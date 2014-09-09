@@ -1,0 +1,506 @@
+namespace atb
+{
+
+  template<typename T>
+  SparseMatrix<T>::SparseMatrix() 
+          : _nRows(0), _nColumns(0), _rows(), _columnsValid(), _columns()
+  {}
+
+  template<typename T>
+  SparseMatrix<T>::SparseMatrix(size_t r, size_t c)
+          : _nRows(r), _nColumns(c), _rows(_nRows, SparseVector<T>(_nColumns)),
+            _columnsValid(_nColumns, true),
+            _columns(_nColumns, SparseVector<T>(_nRows))
+  {}
+  
+  template<typename T>
+  SparseMatrix<T>::SparseMatrix(SparseMatrix const &m)
+          : _nRows(m._nRows), _nColumns(m._nColumns), _rows(m._rows),
+            _columnsValid(m._columnsValid), _columns(m._columns)
+  {}
+  
+  template<typename T>
+  SparseMatrix<T>::SparseMatrix(blitz::Array<T,2> const &m)
+          : _nRows(m.extent(0)), _nColumns(m.extent(1)),
+            _rows(_nRows, SparseVector<T>(_nColumns)),
+            _columnsValid(_nColumns, false),
+            _columns(_nColumns, SparseVector<T>(_nRows))
+  {
+    for (int r = 0; r < m.extent(0); ++r)
+        for (int c = 0; c < m.extent(1); ++c)
+            if (m(r, c) != T()) _rows[r](c) = m(r, c);
+  }
+
+  template<typename T>
+  template<int NRows, int NCols>
+  SparseMatrix<T>::SparseMatrix(blitz::TinyMatrix<T,NRows,NCols> const &m)
+          : _nRows(NRows), _nColumns(NCols),
+            _rows(_nRows, SparseVector<T>(_nColumns)),
+            _columnsValid(_nColumns, false),
+            _columns(_nColumns, SparseVector<T>(_nRows))
+  {
+    for (int r = 0; r < NRows; ++r)
+        for (int c = 0; c < NCols; ++c)
+            if (m(r, c) != T()) _rows[r](c) = m(r, c);
+  }
+
+  template<typename T>
+  SparseMatrix<T>::~SparseMatrix()
+  {}
+
+  template<typename T>
+  void SparseMatrix<T>::resize(size_t r, size_t c)
+  {
+    _nRows = r;
+    _nColumns = c;
+    _rows.resize(_nRows);
+    for (size_t r = 0; r < _nRows; ++r) _rows[r].resize(_nColumns);
+    _columnsValid.resize(_nColumns, true);
+    _columns.resize(_nColumns);
+    for (size_t c = 0; c < _nColumns; ++c) _columns[c].resize(_nRows);
+  }
+
+  template<typename T>
+  size_t SparseMatrix<T>::nRows() const
+  {
+    return _nRows;
+  }
+
+  template<typename T>
+  size_t SparseMatrix<T>::nColumns() const
+  {
+    return _nColumns;
+  }
+
+  template<typename T>
+  blitz::TinyVector<size_t,2> SparseMatrix<T>::shape() const
+  {
+    return blitz::TinyVector<size_t,2>(_nRows, _nColumns);
+  }
+
+  template<typename T>
+  size_t SparseMatrix<T>::nNonZeroEntries() const
+  {
+    size_t res = 0;
+    for (size_t r = 0; r < _nRows; ++r) res += _rows[r].nNonZeroEntries();
+    return res;
+  }
+
+  template<typename T>
+  void SparseMatrix<T>::clear()
+  {
+    for (size_t r = 0; r < _nRows; ++r) _rows[r].clear();
+    for (size_t c = 0; c < _nColumns; ++c)
+    {
+      _columnsValid[c] = true;
+      _columns[c].clear();
+    }
+  }
+
+  template<typename T>
+  void SparseMatrix<T>::clearRow(size_t r)
+  {
+    if (r >= _nRows)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::row(" << r << "): Index out of bounds. "
+          << "nRows = " << _nRows;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    for (typename SparseVector<T>::const_iterator it = _rows[r].begin();
+         it != _rows[r].end(); ++it) _columnsValid[it->first] = false;
+    _rows[r].clear();
+  }
+
+  template<typename T>
+  void SparseMatrix<T>::clearColumn(size_t c)
+  {
+    if (c >= _nColumns)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::column(" << c << "): Index out of bounds. "
+          << "nColumns = " << _nColumns;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    for (size_t r = 0; r < _nRows; ++r) _rows[r].erase(c);
+    _columnsValid[c] = true;
+    _columns[c].clear();
+  }
+
+  template<typename T>
+  SparseVector<T> const &SparseMatrix<T>::row(size_t r) const
+  {
+    if (r >= _nRows)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::row(" << r << "): Index out of bounds. "
+          << "nRows = " << _nRows;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    return _rows[r];
+  }
+
+  template <typename T>
+  SparseVector<T> const &SparseMatrix<T>::column(size_t c) const
+  {
+    if (c >= _nColumns)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::column(" << c << "): Index out of bounds. "
+          << "nColumns = " << _nColumns;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    if (!_columnsValid[c]) updateColumn(c);
+    return _columns[c];
+  }
+
+  template<typename T>
+  bool SparseMatrix<T>::nonZero(size_t r, size_t c) const
+  {
+    if (r >= _nRows || c >= _nColumns)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::nonZero(" << r << ", " << c << "): "
+          << "Index out of bounds. "
+          << "nRows = " << nRows << ", nColumns = " << _nColumns;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    return _rows[r].nonZero(c);
+  }
+
+  template<typename T>
+  T const &SparseMatrix<T>::operator()(size_t r, size_t c) const
+  {
+    if (r >= _nRows || c >= _nColumns)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::operator()(" << r << ", " << c << "): "
+          << "Index out of bounds. "
+          << "nRows = " << nRows << ", nColumns = " << _nColumns;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    return _rows[r](c);
+  }
+  
+  template<typename T>
+  T &SparseMatrix<T>::operator()(size_t r, size_t c)
+  {
+    if (r >= _nRows || c >= _nColumns)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::operator()(" << r << ", " << c << "): "
+          << "Index out of bounds. "
+          << "nRows = " << _nRows << ", nColumns = " << _nColumns;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    _columnsValid[c] = false;
+    return _rows[r](c);
+  }
+
+  template<typename T>
+  typename SparseVector<T>::const_iterator
+  SparseMatrix<T>::erase(size_t r, size_t c)
+  {
+    if (r >= _nRows || c >= _nColumns)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::erase(" << r << ", " << c << "): "
+          << "Index out of bounds. "
+          << "nRows = " << _nRows << ", nColumns = " << _nColumns;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    _columnsValid[c] = false;
+    return _rows[r].erase(c);
+  }
+
+  template<typename T>
+  blitz::Array<T,2> SparseMatrix<T>::toBlitz() const
+  {
+    blitz::Array<T,2> res(
+        static_cast<ptrdiff_t>(_nColumns), static_cast<ptrdiff_t>(_nRows));
+    res = T();
+    for (size_t r = 0; r < _nRows; ++r)
+    {
+      for (typename SparseVector<T>::const_iterator it =
+               _rows[r].begin(); it != _rows[r].end(); ++it)
+          res(static_cast<ptrdiff_t>(r), static_cast<ptrdiff_t>(it->first)) =
+              it->second;
+    }
+    return res;
+  }
+
+  template<typename T>
+  void SparseMatrix<T>::operator+=(SparseMatrix<T> const &m)
+  {
+    if (_nRows != m._nRows || _nColumns != m._nColumns)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::operator+=(SparseMatrix<T>& m): "
+          << "Matrices incompatible. "
+          << "shape = " << shape() << ", m.shape() = " << m.shape();
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    for (size_t r = 0; r < _nRows; ++r) _rows[r] += m._rows[r];
+    for (size_t c = 0; c < _nColumns; ++c) _columnsValid[c] = false;
+  }
+
+  template<typename T>
+  void SparseMatrix<T>::operator-=(SparseMatrix<T> const &m)
+  {
+    if (_nRows != m._nRows || _nColumns != m._nColumns)
+    {
+      std::stringstream msg;
+      msg << "SparseMatrix<T>::operator-=(SparseMatrix<T>& m): "
+          << "Matrices incompatible. "
+          << "shape = " << shape() << ", m.shape() = " << m.shape();
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    for (size_t r = 0; r < _nRows; ++r) _rows[r] -= m._rows[r];
+    for (size_t c = 0; c < _nColumns; ++c) _columnsValid[c] = false;
+  }
+
+  template<typename T>
+  void SparseMatrix<T>::operator*=(T const &alpha)
+  {
+    for (size_t r = 0; r < _nRows; ++r) _rows[r] *= alpha;
+    for (size_t c = 0; c < _nColumns; ++c) _columnsValid[c] = false;
+  }
+
+  template <typename T>
+  void SparseMatrix<T>::operator/=(T const &alpha)
+  {
+    for (size_t r = 0; r < _nRows; ++r) _rows[r] /= alpha;
+    for (size_t c = 0; c < _nColumns; ++c) _columnsValid[c] = false;
+  }
+
+  template<typename T>
+  void SparseMatrix<T>::save(
+      const std::string& fileName, const std::string& groupName,
+      bool throwErrors)
+  {
+    size_t nEntries = nNonZeroEntries();
+    blitz::Array<blitz::TinyVector<size_t,2>,1> indices(nEntries);
+    blitz::Array<double,1> values(nEntries);
+    
+    ptrdiff_t idx = 0;
+    for (size_t r = 0; r < _nRows; ++r)
+    {
+      for (typename SparseVector<T>::const_iterator itCol = _rows[r].begin();
+           itCol != _rows[r].end(); ++itCol, ++idx)
+      {
+        indices(idx) = r, itCol->first;
+        values(idx) = itCol->second;
+      }
+    }
+
+    blitz::TinyVector<size_t,2> extents(_nRows, _nColumns);
+    try
+    {
+      BlitzH5File outFile(fileName, BlitzH5File::WriteOrNew);
+      outFile.writeDataset(indices, groupName + "/indices");
+      outFile.writeAttribute(extents, "extents", groupName + "/indices");
+      outFile.writeDataset(values, groupName + "/values");
+    }
+    catch (BlitzH5Error& e)
+    {
+      if (throwErrors) throw e;
+      else
+      {
+        std::cerr << "Error while writing sparse matrix: " << e.what()
+                  << std::endl;
+        exit(-1);
+      }
+    }
+  }
+
+  template<typename T>
+  void SparseMatrix<T>::load(
+      std::string const &fileName, std::string const &groupName,
+      bool throwErrors)
+  {
+    blitz::Array<blitz::TinyVector<size_t,2>,1> indices;
+    blitz::Array<double,1> values;
+    try
+    {
+      BlitzH5File inFile(fileName);
+      blitz::TinyVector<size_t,2> extents;
+      inFile.readAttribute(extents, "extents", groupName + "/indices");
+      inFile.readDataset(indices, groupName + "/indices");
+      inFile.readDataset(values, groupName + "/values");
+      if (indices.size() != values.size())
+      {
+        std::stringstream msg;
+        msg << "SparseMatrix<T>::load(" << fileName << ", " << groupName
+            << "): Indices not compatible to values. "
+            << "indices.size() = " << indices.size() << ", values.size() = "
+            << values.size();
+        throw SparseMatrixError(msg.str().c_str());
+      }
+      if (static_cast<size_t>(indices.size()) > extents(0) * extents(1))
+      {
+        std::stringstream msg;
+        msg << "SparseMatrix<T>::load(" << fileName << ", " << groupName
+            << "): Too many values for the matrix. "
+            << "values.size() = " << values.size() << ", Matrix shape = "
+            << shape();
+        throw SparseMatrixError(msg.str().c_str());
+      }
+      resize(extents(0), extents(1));
+      clear();
+      for (ptrdiff_t i = 0; i < indices.size(); ++i)
+          _rows[indices(i)(0)](indices(i)(1)) = values(i);
+    }
+    catch (BlitzH5Error& e)
+    {
+      if (throwErrors) throw e;
+      else
+      {
+        std::cerr << "Error while reading sparse matrix: " << e.what()
+                  << std::endl;
+        exit(-1);
+      }
+    }
+  }  
+
+  template<typename T>
+  void SparseMatrix<T>::updateColumn(size_t c) const
+  {
+    assert(_columns.size() == _nColumns);
+    _columns[c].clear();
+    for (size_t r = 0; r < _nRows; ++r)
+        if (_rows[r].nonZero(c)) _columns[c](r) = _rows[r](c);
+    _columnsValid[c] = true;
+  }
+
+  template<typename T>
+  SparseVector<T> operator*(SparseMatrix<T> const &A, SparseVector<T> const &x)
+  {
+    if (A.nColumns() != x.size())
+    {
+      std::stringstream msg;
+      msg << "operator*(SparseMatrix<T>& A, SparseVector<T>& x): "
+          << "Incompatible Matrix vector multiplication. "
+          << "A.shape() = " << A.shape() << ", x.size() = " << x.size();
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    SparseVector<T> res(A.nRows());
+    for (size_t r = 0; r < A.nRows(); ++r) res(r) = dot(A(r), x);
+    return res;
+  }
+
+  template<typename T>
+  blitz::Array<T,1> operator*(
+      SparseMatrix<T> const &A, blitz::Array<T,1> const &x)
+  {
+    if (A.nColumns() != static_cast<size_t>(x.size()))
+    {
+      std::stringstream msg;
+      msg << "operator*(SparseMatrix<T>& A, blitz::Array<T,1>& x): "
+          << "Incompatible Matrix vector multiplication. "
+          << "A.shape() = " << A.shape() << ", x.size() = " << x.size();
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    blitz::Array<T,1> res(static_cast<ptrdiff_t>(A.nRows()));
+    for (size_t r = 0; r < A.nRows(); ++r)
+        res(static_cast<ptrdiff_t>(r)) = dot(A(r), x);
+    return res;
+  }
+
+  template<typename T, int Dim>
+  blitz::TinyVector<T,Dim> operator*(
+      SparseMatrix<T> const &A, blitz::TinyVector<T,Dim> const &x)
+  {
+    if (A.nColumns() != static_cast<size_t>(Dim))
+    {
+      std::stringstream msg;
+      msg << "operator*(SparseMatrix<T>& A, blitz::TinyVector<T,Dim>& x): "
+          << "Incompatible Matrix vector multiplication. "
+          << "A.shape() = " << A.shape() << ", Dim = " << Dim;
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    blitz::TinyVector<T,Dim> res;
+    for (size_t r = 0; r < A.nRows(); ++r) res(r) = dot(A(r), x);
+    return res;
+  }
+
+  template<typename T>
+  SparseMatrix<T> operator*(
+      SparseMatrix<T> const &A, SparseMatrix<T> const &B)
+  {
+    if (A.nColumns() != B.nRows())
+    {
+      std::stringstream msg;
+      msg << "operator*(SparseMatrix<T>& A, SparseMatrix<T>& B): "
+          << "Incompatible Matrix multiplication. "
+          << "A.shape() = " << A.shape() << ", B.shape() = " << B.shape();
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    SparseMatrix<T> res(A.nRows(), B.nColumns());
+    T tmp;
+    for (size_t r = 0; r < A.nRows(); ++r)
+    {
+      for (size_t c = 0; c < B.nColumns(); ++c)
+      {
+        tmp = dot(A.row(r), B.column(c));
+        if (tmp != T()) res(r, c) = tmp;
+      }
+    }
+    return res;
+  }
+
+  template<typename T>
+  SparseMatrix<T> operator*(
+      blitz::Array<T,2> const &A, SparseMatrix<T> const &B)
+  {
+    if (static_cast<size_t>(A.extent(1)) != B.nRows())
+    {
+      std::stringstream msg;
+      msg << "operator*(blitz::Array<T,2>& A, SparseMatrix<T>& B): "
+          << "Incompatible Matrix multiplication. "
+          << "A.shape() = " << A.shape() << ", B.shape() = " << B.shape();
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    SparseMatrix<T> res(static_cast<size_t>(A.extent(0)), B.nColumns());
+    T tmp;
+    for (size_t r = 0; r < static_cast<size_t>(A.extent(0)); ++r)
+    {
+      for (size_t c = 0; c < B.nColumns(); ++c)
+      {
+        blitz::Array<T,1> row(
+            &A(r, 0), blitz::TinyVector<ptrdiff_t,1>(A.extent(1)),
+            blitz::neverDeleteData);
+        tmp = dot(row, B.column(c));
+        if (tmp != T()) res(r, c) = tmp;
+      }
+    }
+    return res;
+  }
+
+  template<typename T>
+  SparseMatrix<T> operator*(
+      SparseMatrix<T> const &A, blitz::Array<T,2> const &B)
+  {
+    if (A.nColumns() != static_cast<size_t>(B.extent(0)))
+    {
+      std::stringstream msg;
+      msg << "operator*(SparseMatrix<T>& A, blitz::Array<T,2>& B): "
+          << "Incompatible Matrix multiplication. "
+          << "A.shape() = " << A.shape() << ", B.shape() = " << B.shape();
+      throw SparseMatrixError(msg.str().c_str());
+    }
+    SparseMatrix<T> res(A.nRows(), static_cast<size_t>(B.extent(1)));
+    blitz::Array<T,1> column(A.extent(1));
+    T tmp;
+    for (size_t r = 0; r < A.nRows(); ++r)
+    {
+      for (size_t c = 0; c < static_cast<size_t>(B.extent(1)); ++c)
+      {
+        column = A(blitz::Range::all(), c);
+        tmp = dot(A.row(r), column);
+        if (tmp != T()) res(r, c) = tmp;
+      }
+    }
+    return res;
+  }
+
+}

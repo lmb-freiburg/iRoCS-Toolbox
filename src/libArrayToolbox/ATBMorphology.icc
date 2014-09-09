@@ -1,0 +1,522 @@
+/**************************************************************************
+**       Title: Mathematical Morphology functions
+**    $RCSfile:$
+**   $Revision:$ $Name:$
+**       $Date:$
+**   Copyright: GPL $Author:$
+** Description:
+**
+**************************************************************************/
+
+namespace atb
+{
+
+  template<int Dim>
+  std::vector< blitz::TinyVector<ptrdiff_t,Dim> > sphericalStructuringElement(
+      blitz::TinyVector<double,Dim> const &elementSizeUm, double radiusUm)
+  {
+    blitz::TinyVector<ptrdiff_t,Dim> shape(
+        2 * blitz::TinyVector<ptrdiff_t,Dim>(radiusUm / elementSizeUm) +
+        1);
+    blitz::TinyVector<ptrdiff_t,Dim> center(shape / 2);
+    std::vector< blitz::TinyVector<ptrdiff_t,Dim> > strel;
+    for (ptrdiff_t i = 0; i < blitz::product(shape); ++i)
+    {
+      blitz::TinyVector<ptrdiff_t,Dim> pos;
+      ptrdiff_t tmp = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        pos(d) = tmp % shape(d);
+        tmp /= shape(d);
+      }
+      pos -= center;
+      if (blitz::dot(pos * elementSizeUm, pos * elementSizeUm) <
+          blitz::pow2(radiusUm)) strel.push_back(pos);
+    }
+    return strel;
+  }
+
+  template<typename DataT, int Dim>
+  void dilate(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::Array<DataT,Dim> &result,
+      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      iRoCS::ProgressReporter *progress)
+  {
+    blitz::Array<DataT,Dim> *res;
+    if (&result == &data)
+        res = new blitz::Array<DataT,Dim>(data.shape());
+    else
+    {
+      result.resize(data.shape());
+      res = &result;
+    }
+
+    ptrdiff_t progressTick = 0;
+    if (progress != NULL)
+    {
+      if (progress->taskProgressMax() > progress->taskProgressMin())
+          progressTick = data.size() /
+              (progress->taskProgressMax() - progress->taskProgressMin());
+    }
+
+    ptrdiff_t cnt = 1;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < data.size(); ++i)
+    {
+      if (progress != NULL)
+      {
+        if (progress->isAborted()) continue;
+        if (progressTick != 0 && cnt % progressTick == 0)
+            progress->updateProgress(
+                progress->taskProgressMin() + cnt / progressTick);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+        cnt++;
+      }
+      blitz::TinyVector<ptrdiff_t,Dim> pos;
+      ptrdiff_t tmp = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        pos(d) = tmp % data.extent(d);
+        tmp /= data.extent(d);
+      }
+      res->data()[i] = -std::numeric_limits<double>::infinity();
+      for (typename std::vector<
+               blitz::TinyVector<ptrdiff_t,Dim> >::const_iterator it =
+               strel.begin(); it != strel.end(); ++it)
+      {
+        blitz::TinyVector<ptrdiff_t,Dim> p2(pos + *it);
+        if (blitz::all(p2 >= 0 && p2 < data.shape()) &&
+            data(p2) > res->data()[i])
+            res->data()[i] = data(p2);
+      }
+    }
+    if (progress != NULL && progress->isAborted()) 
+    {
+      if (&result == &data) delete res;
+      return;
+    }
+
+    if (&result == &data)
+    {
+      std::memcpy(result.data(), res->data(),
+                  res->size() * sizeof(DataT));
+      delete res;
+    }
+    if (progress != NULL) progress->updateProgress(progress->taskProgressMax());
+  }
+
+  template<typename DataT, int Dim>
+  void erode(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::Array<DataT,Dim> &result,
+      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      iRoCS::ProgressReporter *progress)
+  {
+    blitz::Array<DataT,Dim> *res;
+    if (&result == &data)
+        res = new blitz::Array<DataT,Dim>(data.shape());
+    else
+    {
+      result.resize(data.shape());
+      res = &result;
+    }
+
+    ptrdiff_t progressTick = 0;
+    if (progress != NULL)
+    {
+      if (progress->taskProgressMax() > progress->taskProgressMin())
+          progressTick = data.size() /
+              (progress->taskProgressMax() - progress->taskProgressMin());
+    }
+
+    ptrdiff_t cnt = 1;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < data.size(); ++i)
+    {
+      if (progress != NULL)
+      {
+        if (progress->isAborted()) continue;
+        if (progressTick != 0 && cnt % progressTick == 0)
+            progress->updateProgress(
+                progress->taskProgressMin() + cnt / progressTick);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+        cnt++;
+      }
+      blitz::TinyVector<ptrdiff_t,Dim> pos;
+      ptrdiff_t tmp = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        pos(d) = tmp % data.extent(d);
+        tmp /= data.extent(d);
+      }
+      res->data()[i] = std::numeric_limits<double>::infinity();
+      for (typename std::vector<
+               blitz::TinyVector<ptrdiff_t,Dim> >::const_iterator it =
+               strel.begin(); it != strel.end(); ++it)
+      {
+        blitz::TinyVector<ptrdiff_t,Dim> p2(pos + *it);
+        if (blitz::all(p2 >= 0 && p2 < data.shape()) &&
+            data(p2) < res->data()[i])
+            res->data()[i] = data(p2);
+      }
+    }
+    if (progress != NULL && progress->isAborted()) 
+    {
+      if (&result == &data) delete res;
+      return;
+    }
+
+    if (&result == &data)
+    {
+      std::memcpy(result.data(), res->data(),
+                  res->size() * sizeof(DataT));
+      delete res;
+    }
+    if (progress != NULL) progress->updateProgress(progress->taskProgressMax());
+  }
+
+  template<typename DataT, int Dim>
+  void open(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::Array<DataT,Dim> &result,
+      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      iRoCS::ProgressReporter *progress)
+  {
+    int pMin, pMax;
+    if (progress != NULL)
+    {
+      pMin = progress->taskProgressMin();
+      pMax = progress->taskProgressMax();
+      progress->setTaskProgressMax((pMin + pMax) / 2);
+    }
+    erode(data, result, strel, progress);
+    if (progress != NULL)
+    {
+      if (progress->isAborted()) return;
+      progress->setTaskProgressMin((pMin + pMax) / 2);
+      progress->setTaskProgressMax(pMax);
+    }
+    dilate(result, result, strel, progress);
+  }
+
+  template<typename DataT, int Dim>
+  void close(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::Array<DataT,Dim> &result,
+      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      iRoCS::ProgressReporter *progress)
+  {
+    int pMin, pMax;
+    if (progress != NULL)
+    {
+      pMin = progress->taskProgressMin();
+      pMax = progress->taskProgressMax();
+      progress->setTaskProgressMax((pMin + pMax) / 2);
+    }
+    dilate(data, result, strel);
+    if (progress != NULL)
+    {
+      if (progress->isAborted()) return;
+      progress->setTaskProgressMin((pMin + pMax) / 2);
+      progress->setTaskProgressMax(pMax);
+    }
+    erode(result, result, strel);
+  }
+
+  template<typename DataT, int Dim>
+  void tophat(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &result,
+      double radiusUm,
+      iRoCS::ProgressReporter *progress)
+  {
+    blitz::Array<DataT,Dim> *res;
+    if (&result == &data)
+        res = new blitz::Array<DataT,Dim>(data.shape());
+    else
+    {
+      result.resize(data.shape());
+      res = &result;
+    }
+
+    // Generate structuring element
+    std::vector< blitz::TinyVector<ptrdiff_t,Dim> > strel(
+        sphericalStructuringElement(elementSizeUm, radiusUm));
+          
+    open(data, *res, strel, progress);
+    
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < data.size(); ++i)
+        result.data()[i] = data.data()[i] - res->data()[i];
+
+    if (&result == &data) delete res;
+  }
+
+  template <typename DataT, int Dim>
+  void fillHolesGray(
+      blitz::Array<DataT,Dim> const &data, blitz::Array<DataT,Dim> &result,
+      enum Neighborhood<Dim>::Type nh, iRoCS::ProgressReporter *pr)
+  {
+    double pMin = (pr != NULL) ? pr->taskProgressMin() : 0;
+    double pScale = (pr != NULL) ? (pr->taskProgressMax() - pMin) : 100;
+
+    if (nh == atb::Neighborhood<Dim>::User) 
+    {
+      std::string message("User defined neighborhoods are not available in "
+                          "fillHolesGray");
+      if (pr != NULL)
+      {
+        pr->abortWithError(message);
+        return;
+      }
+      else
+      {
+        std::cerr << message << std::endl;
+        exit(-1);
+      }
+    }
+
+    // Prepare result Array
+    blitz::Array<DataT,Dim> *res = NULL;
+    if (&data == &result) res = new blitz::Array<DataT,Dim>();
+    else res = &result;
+    res->resize(data.shape());
+
+    // Generate neighborhood
+    atb::Neighborhood<Dim> neighbors(nh);
+
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + 0.01 * pScale))) return;
+
+    // Prepare state Array
+    blitz::Array<unsigned char,Dim> elementState(data.shape());
+    std::memset(
+        elementState.data(), 0, elementState.size() * sizeof(unsigned char));
+
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + 0.02 * pScale))) return;
+
+    // Initialize res and state Array (could be faster, but that's no critical
+    // part
+    for (size_t i = 0; i < data.size(); ++i)
+    {
+      size_t tmp = i;
+      blitz::TinyVector<atb::BlitzIndexT,Dim> pos;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        pos(d) = tmp % data.extent(d);
+        tmp /= data.extent(d);
+      }
+      if (blitz::any(pos == 0 || pos == data.shape() - 1))
+      {
+        (*res)(pos) = data(pos);
+        elementState(pos) = 2;
+      }
+      else if (blitz::any(pos == 1 || pos == data.shape() - 2))
+          elementState(pos) = 1;       
+    }
+
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + 0.05 * pScale))) return;
+
+    // If the Array has some extent smaller than 3 the initial Array already
+    // contains the result, otherwise start the algorithm
+    if (blitz::all(data.shape() > 2))
+    {
+      // Prepare position queue
+      typedef std::pair< DataT,blitz::TinyVector<BlitzIndexT,Dim> > PixelT;
+      std::multimap< DataT,blitz::TinyVector<BlitzIndexT,Dim> > posQueue;
+
+      // Initialize Queue
+      for (size_t i = 0; i < data.size(); ++i)
+      {
+        size_t tmp = i;
+        blitz::TinyVector<atb::BlitzIndexT,Dim> pos;
+        for (int d = Dim - 1; d >= 0; --d)
+        {
+          pos(d) = tmp % data.extent(d);
+          tmp /= data.extent(d);
+        }
+        if (elementState.data()[i] == 1)
+            posQueue.insert(PixelT(data.data()[i], pos));
+      }
+
+      if (pr != NULL && !pr->updateProgress(
+              static_cast<int>(pMin + 0.1 * pScale))) return;
+
+      // Run the algorithm
+      size_t i = 0;
+      while (posQueue.size() > 0)
+      {
+        if (pr != NULL &&
+            i % std::max(1, static_cast<int>(data.size()) / 100) &&
+            !pr->updateProgress(
+                static_cast<int>(
+                    pMin + pScale * (0.1 + 0.89 *
+                    (static_cast<double>(i) /
+                     static_cast<double>(data.size() - 1)))))) return;
+
+        PixelT pixel = *posQueue.begin();
+        posQueue.erase(posQueue.begin());
+        DataT minValue = traits<DataT>::greatest;
+        for (typename atb::Neighborhood<Dim>::const_iterator it =
+                 neighbors.begin(); it != neighbors.end(); ++it)
+        {
+          blitz::TinyVector<BlitzIndexT,Dim> p(pixel.second + *it);
+          if (elementState(p) == 0)
+          {
+            posQueue.insert(PixelT(data(p), p));
+            elementState(p) = 1;
+          }
+          else if (elementState(p) == 2 && (*res)(p) < minValue)
+              minValue = (*res)(p);
+        }
+        (*res)(pixel.second) =
+            (pixel.first < minValue) ? minValue : pixel.first;
+        elementState(pixel.second) = 2;
+        ++i;
+      }
+    }
+    
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + 0.99 * pScale))) return;
+
+    // If required copy result to output Array
+    if (&data == &result) 
+    {
+      std::memcpy(result.data(), res->data(), result.size() * sizeof(DataT));
+      delete res;
+    }
+
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + pScale))) return;
+  }
+
+  template<int Dim>
+  void
+  connectedComponentLabelling(
+      const blitz::Array<bool,Dim>& data,
+      blitz::Array<BlitzIndexT,Dim>& labels,
+      NHood nh, iRoCS::ProgressReporter *pr)
+  {
+    double pMin = (pr != NULL) ? static_cast<double>(pr->taskProgressMin()) : 0;
+    double pScale = (pr != NULL) ?
+        (static_cast<double>(pr->taskProgressMax()) - pMin) : 100;
+
+    typename atb::Neighborhood<Dim>::Type nht;
+    switch (nh)
+    {
+    case SIMPLE_NHOOD:
+      nht = atb::Neighborhood<Dim>::Simple;
+      break;
+    case COMPLEX_NHOOD:
+      nht = atb::Neighborhood<Dim>::Complex;
+      break;
+    default:
+      std::cerr << __FILE__ << ":" << __LINE__ << ": neighborhood type not "
+                << "implemented" << std::endl;
+      exit(-1);
+    }
+    atb::Neighborhood<Dim> neighbors(nht);
+  
+    // Generate preliminary labels and a vector of trees for later label
+    // merging
+    labels.resize(data.shape());
+    labels = -1;
+    int nextLabel = 1;
+    std::vector< BasicTreeNode<int,int>* > lbl;
+    lbl.push_back(NULL);
+    bool const *maskPtr = data.data();
+    int *labelPtr = labels.data();
+    size_t dataSize = data.size();
+    int progressModulus = std::max(1, static_cast<int>(dataSize) / 100);
+    double prScale = 0.7 * pScale / static_cast<double>(dataSize - 1);
+    for (size_t i = 0; i < dataSize; ++i, ++maskPtr, ++labelPtr)
+    {
+      if (pr != NULL && i % progressModulus == 0 && !pr->updateProgress(
+              static_cast<int>(pMin + prScale * i))) return;
+
+      if (*maskPtr)
+      {
+        blitz::TinyVector<ptrdiff_t,3> p;
+        ptrdiff_t tmp = i;
+        for (int d = Dim - 1; d >= 0; --d)
+        {
+          p(d) = tmp % data.extent(d);
+          tmp /= data.extent(d);
+        }
+        
+        for (typename atb::Neighborhood<Dim>::const_iterator it =
+                 neighbors.begin(); it != neighbors.end(); ++it)
+        {
+          blitz::TinyVector<ptrdiff_t,Dim> nbPos(p + *it);
+          if (blitz::all(nbPos >= 0 && nbPos < data.shape()))
+          {
+            int *labelNbPtr = &labels(nbPos);
+            if (*labelNbPtr == -1) break; // rest of nhood unlabelled
+            if (*labelNbPtr != 0)
+            {
+              if (*labelPtr == -1) *labelPtr = *labelNbPtr;
+              else if (*labelPtr != *labelNbPtr)
+              {
+                if (lbl[*labelPtr]->root() < lbl[*labelNbPtr]->root())
+                    lbl[*labelNbPtr]->root()->reparent(lbl[*labelPtr]->root());
+                else if (lbl[*labelPtr]->root() > lbl[*labelNbPtr]->root())
+                    lbl[*labelPtr]->root()->reparent(lbl[*labelNbPtr]->root());
+              }
+            }
+          }
+        }
+        if (*labelPtr == -1)
+        {
+          *labelPtr = nextLabel;
+          lbl.push_back(new BasicTreeNode<int,int>(nextLabel));
+          nextLabel++;
+        }
+      }
+      else *labelPtr = 0;
+    }
+    
+    // Generate dense label mapping
+    std::vector<int> labelMap(lbl.size(), 0);
+    int currentLabel = 1;
+    prScale = 0.15 / static_cast<double>(lbl.size() - 1);
+    for (size_t i = 1; i < lbl.size(); ++i) 
+    {
+      if (pr != NULL && !pr->updateProgress(
+              static_cast<int>(pMin + pScale * (0.7 + prScale * i)))) return;
+      
+      if (labelMap[lbl[i]->root()->key()] == 0)
+          labelMap[lbl[i]->root()->key()] = currentLabel++;
+      labelMap[i] = labelMap[lbl[i]->root()->key()];
+    }
+
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + pScale * 0.9))) return;
+
+    // Clean up the trees
+    for (size_t i = 1; i < lbl.size(); ++i) delete lbl[i];
+
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + pScale * 0.95))) return;   
+ 
+    // Re-map the preliminary labels to the final labels
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(labels.size()); ++i)
+        labels.data()[i] = labelMap[labels.data()[i]];
+
+    if (pr != NULL) pr->updateProgress(pMin + pScale);
+  }
+
+}

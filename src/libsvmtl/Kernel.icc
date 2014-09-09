@@ -1,0 +1,32 @@
+/**************************************************************************
+**       Title: 
+**    $RCSfile$
+**   $Revision: 476 $$Name$
+**       $Date: 2004-08-26 10:36:59 +0200 (Thu, 26 Aug 2004) $
+**   Copyright: LGPL $Author: ronneber $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.1  2004/08/26 08:36:58  ronneber
+**  initital import
+**
+**
+**
+**************************************************************************/
+
+template< typename FV, typename KF>
+svt::Kernel<FV,KF>::Kernel(const KF& kernel, int l, FV * const * x_)
+        :_kernel( kernel)
+{
+	clone(x,x_,l);
+}
+
+template< typename FV, typename KF>
+svt::Kernel<FV,KF>::~Kernel()
+{
+	delete[] x;
+}

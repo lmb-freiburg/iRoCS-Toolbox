@@ -1,0 +1,119 @@
+namespace atb
+{
+
+  template<typename ScalarT, int Dim>
+  void normalize(
+      blitz::Array<ScalarT,Dim> const &data,
+      blitz::Array<ScalarT,Dim> &dataNorm, NormType t) 
+  {
+    if (blitz::any(data.shape() != dataNorm.shape()))
+        dataNorm.resize(data.shape());
+
+    switch (t)
+    {
+    case MINMAX :
+    {
+      ScalarT dMin = data.data()[0];
+      ScalarT dMax = data.data()[0];
+      for (ptrdiff_t i = 1; i < data.size(); ++i)
+      {
+        if (data.data()[i] > dMax) dMax = data.data()[i];
+        if (data.data()[i] < dMin) dMin = data.data()[i];
+      }
+      if (dMax - dMin != 0)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < data.size(); ++i)
+            dataNorm.data()[i] = static_cast<ScalarT>(
+                static_cast<double>(data.data()[i] - dMin) /
+                static_cast<double>(dMax - dMin));
+      }
+      else 
+      {
+        throw RuntimeError(
+            "normalize(): Could not normalize to [0, 1]: division by zero");
+      }
+      break;
+    }
+    case STDDEV :
+    {
+      double mean = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) reduction(+:mean)
+#endif
+      for (ptrdiff_t i = 0; i < data.size(); ++i)
+          mean = mean + static_cast<double>(data.data()[i]);
+      mean /= static_cast<double>(data.size());
+
+      double stddev = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) reduction(+:stddev)
+#endif
+      for (ptrdiff_t i = 0; i < data.size(); ++i)
+          stddev = stddev +
+              (static_cast<double>(data.data()[i]) - mean) *
+              (static_cast<double>(data.data()[i]) - mean);
+      stddev = std::sqrt(stddev / static_cast<double>(data.size()));
+
+      if (stddev != 0)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < data.size(); ++i)
+            dataNorm.data()[i] = static_cast<ScalarT>(
+                static_cast<double>(data.data()[i]) / stddev);
+      }
+      else 
+      {
+        throw RuntimeError("normalize(): Could not normalize to standard "
+                           "deviation: division by zero");
+      }
+      break;
+    }
+    case ZERO_MEAN_STDDEV :
+    {
+      double mean = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) reduction(+:mean)
+#endif
+      for (ptrdiff_t i = 0; i < data.size(); ++i)
+          mean = mean + static_cast<double>(data.data()[i]);
+      mean /= static_cast<double>(data.size());
+
+      double stddev = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) reduction(+:stddev)
+#endif
+      for (ptrdiff_t i = 0; i < data.size(); ++i)
+          stddev = stddev +
+              (static_cast<double>(data.data()[i]) - mean) *
+              (static_cast<double>(data.data()[i]) - mean);
+      stddev = std::sqrt(stddev / static_cast<double>(data.size()));
+
+      if (stddev != 0)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < data.size(); ++i)
+            dataNorm.data()[i] = static_cast<ScalarT>(
+                (static_cast<double>(data.data()[i]) - mean) / stddev);
+      }
+      else 
+      {
+        throw RuntimeError("normalize(): Could not normalize to standard "
+                           "deviation: division by zero");
+      }
+      break;
+    }
+    default:
+      std::cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation!"
+                << std::endl;
+      exit(-1);
+    }
+  }
+
+}

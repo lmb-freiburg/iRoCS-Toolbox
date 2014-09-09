@@ -1,0 +1,180 @@
+namespace segmentation
+{
+
+  template<typename DataT, int Dim>
+  void radialProjection(
+      blitz::Array<blitz::TinyVector<DataT,Dim>,Dim> const &field,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::TinyVector<double,Dim> const &centerUm,
+      blitz::Array<DataT,Dim> &result)
+  {
+    std::cout << "Performing radial projection... " << std::endl;
+    result.resize(field.shape());
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < field.size(); ++i)
+    {
+      blitz::TinyVector<ptrdiff_t,Dim> pos;
+      ptrdiff_t tmp = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        pos(d) = tmp % field.extent(d);
+        tmp /= field.extent(d);
+      }
+      blitz::TinyVector<double,Dim> dir(centerUm - pos * elementSizeUm);
+      double dist = std::sqrt(blitz::dot(dir, dir));
+      if (dist > 1e-10)
+          result.data()[i] = static_cast<DataT>(
+              blitz::dot(dir, field.data()[i]) / dist);
+      else result.data()[i] = DataT(0);
+    }
+    std::cout << "done" << std::endl;
+  }
+
+  template<typename DataT>
+  void geodesicSH(
+      blitz::Array<blitz::TinyVector<DataT,3>,3> const &edgeForce,
+      blitz::TinyVector<double,3> const &elementSizeUm,
+      FrequencyArray &coeffs, blitz::TinyVector<double,3> const &positionUm,
+      double radiusUm, int bw, double roundness, int nIter, double tau,
+      iRoCS::ProgressReporter *progress)
+  {
+    std::cout << "Starting active contour evolution" << std::endl;
+    // Check whether the given radius makes sense
+    blitz::TinyVector<double,3> dataShapeUm(
+        blitz::TinyVector<double,3>(edgeForce.shape()) * elementSizeUm);
+    double maxExtentUm = blitz::max(dataShapeUm);
+    if (radiusUm < 0.0f || radiusUm > maxExtentUm * 0.5)
+    {
+      radiusUm = 0.5 * maxExtentUm;
+      std::cout << "WARNING: invalid radius, using " << radiusUm
+                << " micrometers" << std::endl;
+    }
+
+    // Do the radial projection of the data force field
+    blitz::Array<DataT,3> projectedEdgeForce(edgeForce.shape());
+    radialProjection(edgeForce, elementSizeUm, positionUm, projectedEdgeForce);
+
+    // Prepare Arrays to use
+    SpatialArray surface(2 * bw, 2 * bw);
+    SpatialArray surfaceOld(2 * bw, 2 * bw);
+    coeffs.resize(bw * bw); // FrequencyArray outdata(bw * bw);
+    SpatialArray force(2 * bw, 2 * bw);
+    FrequencyArray forceSH(bw * bw);
+    SpatialArray curvature(2 * bw, 2 * bw);
+    FrequencyArray curvatureSH(bw * bw);
+
+    std::cout << "Geodesic Active Contours: Initialization" << std::endl;
+    // Intialize surface with sphere
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < surface.size(); ++i) surface.data()[i] = radiusUm;
+
+    // Prepare spherical s2kit transform functions
+    SH_forward &SHfor = SH_forward::instance(bw);
+    SH_backward &SHback = SH_backward::instance(bw);
+
+    double E_sf = 0.0;
+    double E_sf_old = 0.0;
+    double E_val = 0.0;
+    double E_val_old = 0.0;
+    int conv = 0;
+
+    std::cout << "Geodesic Active Contours: Starting evolution" << std::endl;
+    //evolve snake
+    atb::LinearInterpolator<DataT,3> ip;
+    for (int iter = 1; iter <= nIter; ++iter)
+    {
+      if (progress != NULL && !progress->updateProgress(
+              static_cast<int>(
+                  static_cast<double>(iter) / static_cast<double>(nIter) *
+                  (progress->taskProgressMax() -
+                   progress->taskProgressMin()) +
+                  progress->taskProgressMin()))) return;
+
+      E_sf_old = E_sf;
+      E_sf = 0.0;
+      E_val_old = E_val;
+      E_val = 0.0;
+      blitz::TinyVector<ptrdiff_t,3> posLow;
+      for (int thetaIdx = 0; thetaIdx < 2 * bw; ++thetaIdx)
+      {
+        double theta = indexToTheta(thetaIdx, bw);
+        for (int phiIdx = 0; phiIdx < 2 * bw; ++phiIdx)
+        {
+          double phi = indexToPhi(phiIdx, bw);
+          blitz::TinyVector<double,3> dir(
+              std::sin(theta) * std::cos(phi),
+              std::sin(theta) * std::sin(phi), std::cos(theta));
+
+          blitz::TinyVector<double,3> posPx(
+              (positionUm + surface(thetaIdx, phiIdx).real() * dir) /
+              elementSizeUm);
+
+          double val = ip.get(projectedEdgeForce, posPx);
+          // ATB::interpolate(projectedEdgeForce, posPx, ATB::NOWRAPAROUND);
+
+          E_sf += blitz::pow2((surfaceOld(thetaIdx, phiIdx) -
+                               surface(thetaIdx, phiIdx)).real());
+          E_val += val * val;
+
+          force(thetaIdx, phiIdx) = val;
+        }
+      }
+
+      std::memcpy(surfaceOld.data(), surface.data(),
+                  surface.size() * sizeof(std::complex<double>));
+
+      SHfor.sh_semi_memo_for(reinterpret_cast<double*>(surface.data()),
+                             reinterpret_cast<double*>(coeffs.data()));
+
+      // ToDo: This should be changed in SH_tools, such that it also takes
+      // SpatialArray and FrequencyArray instead of plain double pointers
+      SH_curvature(reinterpret_cast<double*>(coeffs.data()),
+                   reinterpret_cast<double*>(curvature.data()), bw);
+
+      double maxCurvature = 0.0;
+      for (ptrdiff_t i = 0; i < curvature.size(); ++i)
+      {
+        double absCurvature = std::abs(curvature.data()[i]);
+        if (absCurvature > maxCurvature) maxCurvature = absCurvature;
+      }
+
+      if (maxCurvature > 1.0)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < curvature.size(); ++i)
+            curvature.data()[i] /= maxCurvature;
+      }
+
+      SHfor.sh_semi_memo_for(reinterpret_cast<double*>(force.data()),
+                             reinterpret_cast<double*>(forceSH.data()));
+      SHfor.sh_semi_memo_for(reinterpret_cast<double*>(curvature.data()),
+                             reinterpret_cast<double*>(curvatureSH.data()));
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t i = 0; i < coeffs.size(); ++i)
+          coeffs.data()[i] += roundness * tau * curvatureSH.data()[i] -
+              forceSH.data()[i];
+      
+      SHback.sh_semi_memo_back(reinterpret_cast<double*>(coeffs.data()),
+                               reinterpret_cast<double*>(surface.data()));
+      
+      if (blitz::pow2(E_sf - E_sf_old) < 1e-10)
+      {
+        if (blitz::pow2(E_val - E_val_old) < 1e-10) conv += 1;
+      }
+      else conv = 0;
+
+      if (conv >= 200) break;
+    }
+    std::cout << "Geodesic active contours: finished" << std::endl;
+  }
+}

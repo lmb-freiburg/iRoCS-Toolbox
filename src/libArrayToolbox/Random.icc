@@ -1,0 +1,36 @@
+namespace atb
+{
+
+  template<int Dim>
+  blitz::TinyVector<double,Dim>
+  drawRandomVector(const blitz::TinyVector<double,Dim>& mean,
+                   const blitz::TinyMatrix<double,Dim,Dim>& cov)
+  {
+    int i = 0;
+    for (; i < Dim * Dim; ++i) if (cov.data()[i] != 0.0) break;
+    if (i == Dim * Dim) return mean;
+    blitz::TinyMatrix<double,Dim,Dim> A;
+    blitz::TinyVector<double,Dim> lambda;
+    eigenvalueDecompositionRealSymmetric(cov, A, lambda);
+    blitz::TinyMatrix<double,Dim,Dim> L;
+    L = 0.0;
+    for (int d = 0; d < Dim; ++d) L(d, d) = std::sqrt(lambda(d));
+    A = mmMult(A, L);
+    blitz::TinyVector<double,Dim> res;
+    for (int d = 0; d < Dim; ++d)
+        res(d) = gaussRandomNumber(0.0, 1.0);
+    res = mean + mvMult(A, res);
+    return res;
+  }
+
+  template<int Dim>
+  blitz::TinyVector<double,Dim>
+  drawRandomVector(const blitz::TinyVector<double,Dim>& maxValue)
+  {
+    blitz::TinyVector<double,Dim> res;
+    for (int d = 0; d < Dim; ++d)
+        res(d) = maxValue(d) * static_cast<double>(rand()) / RAND_MAX;
+    return res;
+  }
+
+}

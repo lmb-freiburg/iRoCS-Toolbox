@@ -1,0 +1,165 @@
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  setValue
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename T>
+void svt::StDataASCII::setValue( const std::string& key, const T& value)
+{
+  std::ostringstream oss;
+  setPrecisionForType( oss, value);
+  oss << value;
+  _map[key]=oss.str();
+}
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  setArray
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename ForwardIter>
+void svt::StDataASCII::setArray( const std::string& key, 
+                                 const ForwardIter& arrBegin,
+                                 size_t size)
+{
+  std::ostringstream oss;
+  oss << "[" << size << "]";
+  ForwardIter p = arrBegin; 
+  setPrecisionForType( oss, *p);
+  for( size_t i = 0; i < size; ++i, ++p)
+  {
+    if( i != 0) oss << separatorChar();
+    oss << *p;
+  }
+  _map[key]=oss.str();
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  setFVArray
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename ForwardIter>
+void svt::StDataASCII::setFVArray( const std::string& key, 
+                                   const ForwardIter& arrBegin,
+                                   size_t size)
+{
+  std::ostringstream oss;
+  oss << "[" << size << "]";
+  ForwardIter p = arrBegin; 
+  setPrecisionForType( oss, **p);
+  for( size_t i = 0; i < size; ++i, ++p)
+  {
+    if( i != 0) oss << separatorChar();
+    oss << **p;
+  }
+  _map[key]=oss.str();
+}
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION: getValue
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename T> 
+void svt::StDataASCII::getValue( const std::string& key, T& value) const
+{
+  std::map<std::string, std::string>::const_iterator p = findKey(key);
+  if (p == _map.end()) return;
+  stringToValue( p->second, value);
+}
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION: getArray
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename ForwardIter> 
+void svt::StDataASCII::getArray( const std::string& key, 
+                                 const ForwardIter& arrBegin, 
+                                 int containerSize) const
+{
+  std::map<std::string, std::string>::const_iterator p = findKey(key);
+  if (p == _map.end()) return;
+  
+  std::istringstream ist( p->second);
+  std::string s;
+  
+  // get size
+  size_t size = 0;
+  readArraySizeFromStream( ist, size);
+  
+  int index = 0;
+  ForwardIter iter = arrBegin;
+  while( std::getline(ist, s, separatorChar()))
+  {
+    if( containerSize != -1 && index >= containerSize)
+    {
+      ContainerTooSmallError err;
+      err << "tried to load more than " << containerSize << " values (key = '" 
+        << key <<"') into a container of size " << containerSize;
+      throw err;
+    }
+    
+    stringToValue( s, *iter);
+    ++iter;
+    ++index;
+  }
+  if( containerSize != -1 && index != containerSize)
+  {
+    NotEnoughValuesError err;
+    err << "tried to load " << containerSize << " values (key = '" 
+        << key <<"') into a container but got only" << index;
+    throw err;
+  }
+    
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION: getFVArray
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename ForwardIter> 
+void svt::StDataASCII::getFVArray( const std::string& key, 
+                                   const ForwardIter& arrBegin, 
+                                   int containerSize) const
+{
+  std::map<std::string, std::string>::const_iterator p = findKey(key);
+  if (p == _map.end()) return;
+  
+  std::istringstream ist( p->second);
+  std::string s;
+  
+  // get size
+  size_t size = 0;
+  readArraySizeFromStream( ist, size);
+  
+  int index = 0;
+  ForwardIter iter = arrBegin;
+  while( std::getline(ist, s, separatorChar()))
+  {
+    if( containerSize != -1 && index >= containerSize)
+    {
+      ContainerTooSmallError err;
+      err << "tried to load more than " << containerSize << " values (key = '" 
+        << key <<"') into a container of size " << containerSize;
+      throw err;
+    }
+    
+    stringToValue( s, **iter);
+    ++iter;
+    ++index;
+  }
+  if( containerSize != -1 && index != containerSize)
+  {
+    NotEnoughValuesError err;
+    err << "tried to load " << containerSize << " values (key = '" 
+        << key <<"') into a container but got only" << index;
+    throw err;
+  }
+    
+}
+

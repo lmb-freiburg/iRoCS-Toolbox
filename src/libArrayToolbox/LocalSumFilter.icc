@@ -1,0 +1,227 @@
+/**************************************************************************
+ **       Title: Separable local sum Filter
+ **    $RCSfile:$
+ **   $Revision:$ $Name:$
+ **       $Date:$
+ **   Copyright: GPL $Author:$
+ ** Description:
+ **
+ **************************************************************************/
+
+namespace atb
+{
+  
+  template<typename DataT, int Dim>
+  LocalSumFilter<DataT,Dim>::LocalSumFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,DataT>(btType, boundaryValue),
+            _kernelShapePx(1)
+  {}
+
+  template<typename DataT, int Dim>
+  LocalSumFilter<DataT,Dim>::LocalSumFilter(
+      blitz::TinyVector<BlitzIndexT,Dim> const &kernelShapePx,
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,DataT>(btType, boundaryValue),
+            _kernelShapePx(kernelShapePx)
+  {}
+
+  template<typename DataT, int Dim>
+  LocalSumFilter<DataT,Dim>::~LocalSumFilter()
+  {}
+
+  template<typename DataT, int Dim>
+  BlitzIndexT LocalSumFilter<DataT,Dim>::kernelSizePxInDim(int dim) const
+  {
+    return _kernelShapePx(dim);
+  }
+  
+  template<typename DataT, int Dim>
+  void LocalSumFilter<DataT,Dim>::setKernelSizePxInDim(
+      int dim, BlitzIndexT kernelSizePx)
+  {
+    _kernelShapePx(dim) = kernelSizePx;
+  }
+  
+  template<typename DataT, int Dim>
+  blitz::TinyVector<BlitzIndexT,Dim> const
+  &LocalSumFilter<DataT,Dim>::kernelShapePx() const
+  {
+    return _kernelShapePx;
+  }
+  
+  template<typename DataT, int Dim>
+  void LocalSumFilter<DataT,Dim>::setKernelShapePx(
+      blitz::TinyVector<BlitzIndexT,Dim> const &kernelShapePx)
+  {
+    _kernelShapePx = kernelShapePx;
+  }
+
+  template<typename DataT, int Dim>
+  void LocalSumFilter<DataT,Dim>::applyAlongDim(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter *pr) const
+  {
+    if (&data != &filtered) filtered.resize(data.shape());
+
+    if (_kernelShapePx(dim) <= 1)
+    {
+      if (&data != &filtered)
+          std::memcpy(
+              filtered.data(), data.data(), data.size() * sizeof(DataT));
+      return;
+    }
+
+    BlitzIndexT n = data.extent(dim);
+    BlitzIndexT stride = data.stride(dim);
+    BlitzIndexT m = kernelSizePxInDim(dim);
+    BlitzIndexT center = m / 2;
+
+    BlitzIndexT currentVoxel = 0;
+    int totalProgress = (pr != NULL) ?
+        (pr->taskProgressMax() - pr->taskProgressMin()) : 1;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (BlitzIndexT i = 0; i < data.size() / n; ++i)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) continue;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+        {
+          if (currentVoxel % 1000 == 0)
+              pr->updateProgress(
+                  pr->taskProgressMin() + (totalProgress * currentVoxel) /
+                  (data.size() / n - 1));
+          ++currentVoxel;
+        }
+      }
+      blitz::TinyVector<BlitzIndexT,Dim> pos;
+      BlitzIndexT resid = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        if (d != dim)
+        {
+          pos(d) = resid % data.extent(d);
+          resid /= data.extent(d);
+        }
+      }
+      pos(dim) = 0;
+
+      // Copy the Array line into a temporary processing buffer
+      DataT const *constLineIter = &data(pos);
+      DataT *tmp = new DataT[n];
+      for (BlitzIndexT j = 0; j < n; ++j, constLineIter += stride)
+          tmp[j] = *constLineIter;
+
+      DataT *f = new DataT[n];
+      
+      // Initialize first sum explicitely
+      BlitzIndexT p = 0;
+      f[p] = traits<DataT>::zero;
+      for (BlitzIndexT j = 0; j < center; ++j)
+      {
+        f[p] += this->p_bt->get(tmp, p + j - center, n);
+      }
+      for (BlitzIndexT j = center; j < m; ++j)
+      {
+        f[p] += tmp[p + j - center];
+      }
+      ++p;
+
+      // Left border
+      for (; p < center + 1; ++p)
+      {
+        f[p] = f[p - 1] + tmp[p + center - (1 - (m % 2))] -
+            this->p_bt->get(tmp, p - center - 1, n);
+      }
+
+      // Central part
+      for (; p < n - center + (1 - (m % 2)); ++p)
+      {
+        f[p] = f[p - 1] + tmp[p + center - (1 - (m % 2))] - tmp[p - center - 1];
+      }
+
+      // Right border
+      for (; p < n; ++p)
+      {
+        f[p] = f[p - 1] + this->p_bt->get(tmp, p + center - (1 - (m % 2)), n) -
+            tmp[p - center - 1];
+      }
+
+      DataT *lineIter = &filtered(pos);
+      for (BlitzIndexT j = 0; j < n; ++j, lineIter += stride)
+          *lineIter = f[j];
+
+      delete[] tmp;
+      delete[] f;
+    }
+    if (pr != NULL) pr->setProgress(pr->taskProgressMax());
+  }
+
+  template<typename DataT, int Dim>
+  void LocalSumFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    if (&data != &filtered)
+    {
+      filtered.resize(data.shape());
+      std::memcpy(filtered.data(), data.data(), data.size() * sizeof(DataT));
+    }
+
+    int pStart = (pr != NULL) ? pr->taskProgressMin() : 0;
+    int pScale = (pr != NULL) ? pr->taskProgressMax() - pStart : 1;
+
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) return;
+        pr->setTaskProgressMin(
+            static_cast<int>(
+                pStart + static_cast<double>(d) / static_cast<double>(Dim) *
+                pScale));
+        pr->setTaskProgressMax(
+            static_cast<int>(
+                pStart + static_cast<double>(d + 1) / static_cast<double>(Dim) *
+                pScale));
+      }
+      applyAlongDim(filtered, elementSizeUm, filtered, d, pr);
+    }
+    if (pr != NULL) pr->setProgress(pStart + pScale);
+  }
+  
+  template<typename DataT, int Dim>
+  void LocalSumFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered,
+      blitz::TinyVector<BlitzIndexT,Dim> const &kernelShapePx,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter *pr)
+  {
+    LocalSumFilter<DataT,Dim> f(kernelShapePx, btType, boundaryValue);
+    f.apply(data, elementSizeUm, filtered, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void LocalSumFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<DataT,Dim> &filtered,
+      blitz::TinyVector<BlitzIndexT,Dim> const &kernelShapePx,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter *pr)
+  {
+    LocalSumFilter<DataT,Dim> f(kernelShapePx, btType, boundaryValue);
+    f.apply(data, filtered, pr);
+  }
+
+}
+

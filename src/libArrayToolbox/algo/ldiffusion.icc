@@ -1,0 +1,70 @@
+template<typename Type, int Dim>
+void anisotropicDiffusion3D_explicit(
+    blitz::Array<Type, Dim>& image,
+    blitz::Array<Type, Dim>& Dxx, blitz::Array<Type, Dim>& Dyy,
+    blitz::Array<Type, Dim>& Dzz, blitz::Array<Type, Dim>& Dxy,
+    blitz::Array<Type, Dim>& Dxz, blitz::Array<Type, Dim>& Dyz,
+    const double delta_t, const int /*v*/)
+{
+  Type *u, *a, *b, *c, *d, *e, *f;
+  Type *u_new;
+  int dimsu[3];
+  dimsu[0] = image.extent(2);
+  dimsu[1] = image.extent(1);
+  dimsu[2] = image.extent(0);
+
+  u = image.data();
+  a = Dxx.data(); /* Dxx */
+  b = Dyy.data(); /* Dyy */
+  c = Dzz.data(); /* Dzz */
+  d = Dxy.data(); /* Dxy */
+  e = Dxz.data(); /* Dxz */
+  f = Dyz.data(); /* Dyz */
+
+  // diffusion.
+  blitz::Array<Type,Dim> diffusedI(image.shape());
+  u_new = diffusedI.data();
+
+
+  /* Loop through all pixels in the volume */
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (int z = 0; z < dimsu[2]; z++) {
+    /* Neighbor coordinates */
+    int nz = z - 1;
+    if (nz < 0) {
+      nz = 0;
+    }
+    int pz = z + 1;
+    if (pz > (dimsu[2] - 1)) {
+      pz = dimsu[2] - 1;
+    }
+    for (int y = 0; y < dimsu[1]; y++) {
+      int ny = y - 1;
+      if (ny < 0) {
+        ny = 0;
+      }
+      int py = y + 1;
+      if (py > (dimsu[1] - 1)) {
+        py = dimsu[1] - 1;
+      }
+      for (int x = 0; x < dimsu[0]; x++) {
+        int nx = x - 1;
+        if (nx < 0) {
+          nx = 0;
+        }
+        int px = x + 1;
+        if (px > (dimsu[0] - 1)) {
+          px = dimsu[0] - 1;
+        }
+
+        int index = mindex3(x, y, z, dimsu[0], dimsu[1]);
+        u_new[index] = CalculateDiffusionNewGreyValue(
+            u, a, b, c, d, e, f, x, y, z, nx, ny, nz, px, py, pz, delta_t,
+            dimsu);
+      }
+    }
+  }
+  pCopy(diffusedI, image);
+}

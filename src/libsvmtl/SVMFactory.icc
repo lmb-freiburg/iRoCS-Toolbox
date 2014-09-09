@@ -1,0 +1,90 @@
+/**************************************************************************
+**       Title: 
+**    $RCSfile$
+**   $Revision: 476 $$Name$
+**       $Date: 2004-08-26 10:36:59 +0200 (Thu, 26 Aug 2004) $
+**   Copyright: LGPL $Author: ronneber $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.1  2004/08/26 08:36:59  ronneber
+**  initital import
+**
+**  Revision 1.2  2002/09/05 13:16:04  pigorsch
+**  *** empty log message ***
+**
+**  Revision 1.1  2002/09/04 10:29:57  pigorsch
+**  - initial revision, copied from libpollenpp and modified
+**
+**
+**
+**************************************************************************/
+
+svt::SVMAdapter* 
+svt::SVMFactory::
+createSVM(
+    const std::string& multiClassType,
+    const std::string& svmType,
+    const std::string& kernelType)
+{
+  return selectKernel(multiClassType, svmType, kernelType);
+}
+/*
+template<typename KF>
+static
+svt::SVMAdapter* 
+svt::SVMFactory::
+selectTwoClassSVMType(
+    const std::string& multiClassType,
+    const std::string& svmType)
+{
+  SVMAdapter* svm;
+  if (svmType=="c_svc")
+  {
+    svm=selectMultiClassType<svt::TwoClassSVMc, KF>(multiClassType);
+  }
+  else if (svmType=="nu_svc")
+  {
+    svm=selectMultiClassType<svt::TwoClassSVMnu, KF>(multiClassType);
+  }
+  else
+  {
+    svt::SVMAdapter::WrongParameterError e;
+    e << "Unknown SVM Type `" << svmType << "'";
+    throw e;
+  }
+
+  return svm;
+}
+
+    
+template<template<typename> class TwoClassSVMType, typename KF>
+static
+svt::SVMAdapter* 
+svt::SVMFactory::
+selectMultiClassType(
+    const std::string& multiClassType)
+{
+  SVMAdapter* svm;
+  if (multiClassType=="one_vs_one")
+  {
+    svm=new svt::SVMOneVsOneAdapterTempl<TwoClassSVMType, KF>;
+  }
+  else if (multiClassType=="one_vs_rest")
+  {
+    svm=new svt::SVMOneVsRestAdapterTempl<TwoClassSVMType, KF>;
+  }
+  else
+  {
+    svt::SVMAdapter::WrongParameterError e;
+    e << "Unknown multi class SVM type `" << multiClassType << "'";
+    throw e;
+  }
+
+  return svm;
+}
+*/

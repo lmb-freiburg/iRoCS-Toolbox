@@ -1,0 +1,195 @@
+/**************************************************************************
+ **	Title: BlitzAnalyzeFile inline/template implementation
+ **	$RCSfile$
+ **	$Revision: $$Name$
+ **	$Date: $
+ **	Copyright: GPL $Author: $
+ **	Description:
+ **
+ **************************************************************************/
+
+/*======================================================================*/
+/*!
+ * -----------------------------
+ * - Copyright Acknowledgement -
+ * -----------------------------
+ * The methode "saveArrayWithElemSize" in "BlitzAnalyzeFile.icc"
+ * is mainly based on the Analyze 7.5 File Format document
+ * http://www.mayo.edu/bir/PDF/ANALYZE75.pdf
+ * (.../libBlitzAnalyze/docs/ANALYZE75.pdf)
+ *
+ * It contains the following copyright notice regarding the
+ * header file format:
+ *
+ * ANALYZE TM Header File Format
+ * (c) Copyright, 1986-1995
+ * Biomedical Imaging Resource
+ * Mayo Foundation
+ */
+/*======================================================================*/
+
+#include <cstring>
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename T>
+void
+BlitzAnalyzeFile::
+saveArrayWithElemSize(
+    const blitz::Array<T,3>& inArray,
+    const blitz::TinyVector<float,3>& element_size_um)
+    throw (BlitzAnalyzeError)
+{
+  // If some data has already been saved data to file, warn user about
+  // overwriting the file
+  if (_saveArrayWithElemSize_called) {
+    std::cerr << "\nWarning (BlitzAnalyzeFile::saveArrayWithElemSize): \n"
+              << "\t Some data has already been saved to specified file "
+              << "previously! \n"
+              << "\t Overwrite file: " << _fName << std::endl;
+  }
+
+  // Write header data
+  std::FILE *ofAnalyzeHDR;
+
+  const std::string filenameHDR( _fName + ".hdr");
+  const std::string filenameIMG( _fName + ".img");
+
+  blitz::TinyVector<int, 3> _dim( inArray.shape());
+
+  BlitzAnalyzeTraits<T>* type_trait = BlitzAnalyzeTraits<T>::Instance();
+
+  if (inArray.size() > 0)
+  {
+    _datatype = type_trait->Type();
+  } else {
+    BlitzAnalyzeError e;
+    e << "Error: Array has no elements." << "\n";
+    throw(e);
+  }
+
+  //const std::string _datatype = "CHAR";
+  const short int _numVolumes = 1;
+  const int _glmax = type_trait->max(inArray);
+  const int _glmin = type_trait->min(inArray);
+
+  struct dsr hdr;
+  static char DataTypes[9][12] = {"UNKNOWN", "BINARY",
+                                  "CHAR", "SHORT", "INT","FLOAT", "COMPLEX",
+                                  "DOUBLE", "RGB"};
+  static int DataTypeSizes[9] = {0,1,8,16,32,32,64,64,24};
+
+  std::memset(&hdr,0, sizeof(struct dsr));
+  for(int i=0; i < 8; ++i) {
+    hdr.dime.pixdim[i] = 0.0;
+  }
+  hdr.dime.vox_offset = 0.0;
+  hdr.dime.funused1 = 0.0;
+  hdr.dime.funused2 = 0.0;
+  hdr.dime.funused3 = 0.0;
+  hdr.dime.cal_max = 0.0;
+  hdr.dime.cal_min = 0.0;
+  hdr.dime.datatype = -1;
+
+  for(int i=1; i <= 8; ++i) {
+    if(!std::strcmp( _datatype.c_str(),DataTypes[i]))
+    {
+      hdr.dime.datatype = (1<<(i-1));
+      hdr.dime.bitpix = DataTypeSizes[i];
+      break;
+    }
+  }
+
+  if(hdr.dime.datatype <= 0)
+  {
+    BlitzAnalyzeError e;
+    e << "Error: " << _datatype.c_str() << "is an unacceptable datatype."
+      << "\n";
+    throw(e);
+  }
+
+  if((ofAnalyzeHDR=fopen( filenameHDR.c_str(),"w"))==0)
+  {
+    BlitzAnalyzeError e;
+    e << "Error: " << "Unable to create: " << filenameHDR.c_str() << ".\n";
+    throw(e);
+  }
+
+  hdr.dime.dim[0] = 4; /* all Analyze images are taken as 4 dimensional */
+  hdr.hk.regular = 'r';
+  hdr.hk.sizeof_hdr = sizeof(struct dsr);
+  hdr.dime.dim[1] = _dim(2); /* slice width in pixels */
+  hdr.dime.dim[2] = _dim(1); /* slice height in pixels */
+  hdr.dime.dim[3] = _dim(0); /* volume depth in slices */
+  hdr.dime.dim[4] = _numVolumes; /* number of volumes per file */
+  hdr.dime.glmax = _glmax; /* maximum voxel value */
+  hdr.dime.glmin = _glmin; /* minimum voxel value */
+
+  /* Set the voxel dimension fields:
+     A value of 0.0 for these fields implies that the value is unknown.
+     Change these values to what is appropriate for your data
+     or pass additional command line arguments */
+  hdr.dime.pixdim[1] = element_size_um(2)/1000; /* voxel x dimension */
+  hdr.dime.pixdim[2] = element_size_um(1)/1000; /* voxel y dimension */
+  hdr.dime.pixdim[3] = element_size_um(0)/1000; /* pixel z dimension, slice thickness */
+
+  /* Assume zero offset in .img file, byte at which pixel
+     data starts in the image file */
+  hdr.dime.vox_offset = 0.0;
+
+  /* Planar Orientation; */
+  /* Movie flag OFF: 0 = transverse, 1 = coronal, 2 = sagittal
+     Movie flag ON: 3 = transverse, 4 = coronal, 5 = sagittal */
+  hdr.hist.orient = 0;
+
+  /* up to 3 characters for the voxels units label; i.e. mm., um., cm. */
+  std::strcpy(hdr.dime.vox_units, "mm");
+
+  /* up to 7 characters for the calibration units label; i.e. HU */
+  std::strcpy(hdr.dime.cal_units, " ");
+
+  /* Calibration maximum and minimum values;
+     values of 0.0 for both fields imply that no
+     calibration max and min values are used */
+  hdr.dime.cal_max = 0.0;
+  hdr.dime.cal_min = 0.0;
+
+  fwrite(&hdr, sizeof(struct dsr), 1, ofAnalyzeHDR);
+  fclose(ofAnalyzeHDR);
+        
+  // Write image data
+  std::ofstream ofAnalyzeIMG( filenameIMG.c_str(), std::ios::out | std::ios::binary);
+
+  if ( inArray.isStorageContiguous())
+  {
+//          //Write data block at once
+//          ofAnalyzeIMG.write( reinterpret_cast<const char *>(inArray.data()), inArray.size()*type_trait->sizeof_type());
+    //Write data elements lien by line
+    for( int lev = 0; lev < inArray.extent(0); ++lev) {
+      for( int row = inArray.extent(1)-1; row >= 0; --row) {
+        ofAnalyzeIMG.write( reinterpret_cast<const char *>(&inArray( lev,row,0)),
+                            inArray.extent(2)*type_trait->sizeof_type());
+      }
+    }
+          
+          
+
+  } else {
+    //Write data elements one after the other
+    for( int lev = 0; lev < inArray.extent(0); ++lev) {
+      for( int row = inArray.extent(1)-1; row >= 0; --row) {
+        for( int col =  0; col < inArray.extent(2); ++col) {
+          ofAnalyzeIMG.write( reinterpret_cast<const char *>(&inArray( lev,row,col)), type_trait->sizeof_type());
+        }
+      }
+    }
+                
+  }
+
+  ofAnalyzeIMG.close();
+
+  _saveArrayWithElemSize_called = true;
+
+}

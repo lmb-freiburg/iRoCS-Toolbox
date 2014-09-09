@@ -1,0 +1,130 @@
+namespace atb
+{
+  
+  template<typename DataT, int Dim>
+  MedianFilter<DataT,Dim>::MedianFilter(
+        blitz::TinyVector<BlitzIndexT,Dim> const &extentsPx)
+          : Filter<DataT,Dim,DataT>(), _filterExtentsPx(extentsPx)
+  {}
+    
+  template<typename DataT, int Dim>
+  MedianFilter<DataT,Dim>::~MedianFilter()
+  {}
+
+  template<typename DataT, int Dim>
+  blitz::TinyVector<BlitzIndexT,Dim> const
+  &MedianFilter<DataT,Dim>::filterExtentsPx() const
+  {
+    return _filterExtentsPx;
+  }
+
+  template<typename DataT, int Dim>
+  void MedianFilter<DataT,Dim>::setFilterExtentsPx(
+      blitz::TinyVector<BlitzIndexT,Dim> const &extentsPx)
+  {
+    _filterExtentsPx = extentsPx;
+  }
+
+  template<typename DataT, int Dim>
+  void MedianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &/*elementSizeUm*/,
+      blitz::Array<ResultT,Dim> &result,
+      iRoCS::ProgressReporter *pr) const
+  {
+    blitz::Array<DataT,Dim>* filtered;
+    
+    if (&data == &result) filtered = new blitz::Array<DataT,Dim>(data.shape());
+    else
+    {
+      result.resize(data.shape());
+      filtered = &result;
+    }
+    std::memset(filtered->data(), 0, result.size() * sizeof(DataT));
+
+    size_t strelSize = 1;
+    for (int d = 0; d < Dim; ++d) strelSize *= _filterExtentsPx(d);
+    std::vector< blitz::TinyVector<BlitzIndexT,Dim> > strel(strelSize);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (size_t i = 0; i < strel.size(); ++i)
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> p;
+      BlitzIndexT tmp = BlitzIndexT(i);
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        p(d) = tmp % _filterExtentsPx(d);
+        tmp /= _filterExtentsPx(d);
+      }
+      strel[i] = p - _filterExtentsPx / 2;
+    }
+    
+    ptrdiff_t currentVoxel = 0;
+    int totalProgress = (pr != NULL) ?
+        (pr->taskProgressMax() - pr->taskProgressMin()) : 1;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (BlitzIndexT i = 0; i < data.size(); ++i)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) continue;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+        {
+          if (currentVoxel % 1000 == 0)
+              pr->updateProgress(
+                  pr->taskProgressMin() + (totalProgress * currentVoxel) /
+                  (data.size() - 1));
+          ++currentVoxel;
+        }
+      }
+      std::vector<DataT> values;
+      blitz::TinyVector<BlitzIndexT,Dim> p;
+      BlitzIndexT tmp = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        p(d) = tmp % data.extent(d);
+        tmp /= data.extent(d);
+      }
+      for (size_t j = 0; j < strel.size(); ++j)
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> rdPos(p + strel[j]);
+        if (blitz::all(rdPos >= 0 && rdPos < data.shape()))
+            values.push_back(data(rdPos));
+      }
+      std::sort(values.begin(), values.end());
+      filtered->data()[i] = values[values.size() / 2];
+    }
+    if (pr != NULL)
+    {
+      if (pr->isAborted())
+      {
+        if (&data == &result) delete filtered;
+        return;
+      }
+      pr->setProgress(pr->taskProgressMax());
+    }
+    if (&data == &result) 
+    {
+      std::memcpy(
+          result.data(), filtered->data(), result.size() * sizeof(DataT));
+      delete filtered;
+    }
+  }
+    
+  template<typename DataT, int Dim>
+  void MedianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::Array<ResultT,Dim> &filtered,
+      blitz::TinyVector<BlitzIndexT,Dim> const &extentsPx,
+      iRoCS::ProgressReporter *pr)
+  {
+    MedianFilter<DataT,Dim> filter(extentsPx);
+    filter.apply(data, blitz::TinyVector<double,Dim>(1.0), filtered, pr);
+  }
+
+}

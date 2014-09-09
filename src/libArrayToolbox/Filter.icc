@@ -1,0 +1,62 @@
+/**************************************************************************
+ **       Title: General filter interface
+ **    $RCSfile:$
+ **   $Revision:$ $Name:$
+ **       $Date:$
+ **   Copyright: GPL $Author:$
+ ** Description:
+ **
+ **   The interface all filters should obey. It mainly sets up the boundary
+ **   treatment and provides an apply() method.
+ **
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename DataT, int Dim, typename ResultT>
+  Filter<DataT,Dim,ResultT>::Filter(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+  {
+    p_bt = BoundaryTreatmentFactory<DataT,Dim>::get(bt, boundaryValue);
+  }
+  
+  template<typename DataT, int Dim, typename ResultT>
+  Filter<DataT,Dim,ResultT>::~Filter()
+  {
+    delete p_bt;
+  }
+  
+  template<typename DataT, int Dim, typename ResultT>
+  BoundaryTreatment<DataT,Dim> const
+  &Filter<DataT,Dim,ResultT>::boundaryTreatment() const
+  {
+    return *p_bt;
+  }
+  
+  template<typename DataT, int Dim, typename ResultT>
+  void Filter<DataT,Dim,ResultT>::setBoundaryTreatment(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+  {
+    delete p_bt;
+    p_bt = BoundaryTreatmentFactory<DataT,Dim>::get(bt, boundaryValue);
+  }
+
+  template<typename DataT, int Dim, typename ResultT>
+  void Filter<DataT,Dim,ResultT>::setBoundaryTreatment(
+      BoundaryTreatment<DataT,Dim> const &bt)
+  {
+    delete p_bt;
+    p_bt = bt.clone();
+  }
+
+  template<typename DataT, int Dim, typename ResultT>
+  void Filter<DataT,Dim,ResultT>::apply(
+      Array<DataT,Dim> const &data, Array<ResultT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    filtered.setElementSizeUm(data.elementSizeUm());
+    apply(data, data.elementSizeUm(), filtered, pr);
+  }
+
+}

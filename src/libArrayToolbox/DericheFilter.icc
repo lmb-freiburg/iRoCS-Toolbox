@@ -1,0 +1,115 @@
+/**************************************************************************
+ **       Title: Separable Deriche Filter
+ **    $RCSfile:$
+ **   $Revision:$ $Name:$
+ **       $Date:$
+ **   Copyright: GPL $Author:$
+ ** Description:
+ **
+ **************************************************************************/
+
+namespace atb
+{
+  
+  template<typename DataT, int Dim>
+  DericheFilter<DataT,Dim>::DericheFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,DataT>(btType, boundaryValue),
+            _sigmaUm(0.0)
+  {}
+
+  template<typename DataT, int Dim>
+  DericheFilter<DataT,Dim>::DericheFilter(
+      blitz::TinyVector<double,Dim> const &sigmaUm,
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,DataT>(btType, boundaryValue),
+            _sigmaUm(sigmaUm)
+  {}
+
+  template<typename DataT, int Dim>
+  DericheFilter<DataT,Dim>::~DericheFilter()
+  {}
+
+  template<typename DataT, int Dim>
+  double DericheFilter<DataT,Dim>::sigmaUmInDim(int dim) const
+  {
+    return _sigmaUm(dim);
+  }
+  
+  template<typename DataT, int Dim>
+  void DericheFilter<DataT,Dim>::setSigmaUmInDim(int dim, double sigmaUm)
+  {
+    _sigmaUm(dim) = sigmaUm;
+  }
+  
+  template<typename DataT, int Dim>
+  blitz::TinyVector<double,Dim> const
+  &DericheFilter<DataT,Dim>::sigmaUm() const
+  {
+    return _sigmaUm;
+  }
+  
+  template<typename DataT, int Dim>
+  void DericheFilter<DataT,Dim>::setSigmaUm(
+      blitz::TinyVector<double,Dim> const &sigmaUm)
+  {
+    _sigmaUm = sigmaUm;
+  }
+
+  template<typename DataT, int Dim>
+  void DericheFilter<DataT,Dim>::applyAlongDim(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter */*pr*/) const
+  {
+    filterDericheAlongDim(
+        data, elementSizeUm, filtered, _sigmaUm(dim), dim, p_bt->type(),
+        (p_bt->type() == ValueBT) ?
+        static_cast<ValueBoundaryTreatment*>(p_bt)->boundaryValue() :
+        traits<DataT>::zero, pr);
+  }
+
+  template<typename DataT, int Dim>
+  void DericheFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    if (&data != &filtered)
+    {
+      filtered.resize(data.shape());
+      std::memcpy(filtered.data(), data.data(), data.size() * sizeof(DataT));
+    }
+
+    for (int d = 0; d < Dim; ++d)
+        applyAlongDim(filtered, elementSizeUm, filtered, d, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void DericheFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered,
+      blitz::TinyVector<double,Dim> const &sigmaUm,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter *pr)
+  {
+    DericheFilter<DataT,Dim> f(sigmaUm, btType, boundaryValue);
+    f.apply(data, elementSizeUm, filtered, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void DericheFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<DataT,Dim> &filtered,
+      blitz::TinyVector<double,Dim> const &sigmaUm,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter *pr)
+  {
+    DericheFilter<DataT,Dim> f(sigmaUm, btType, boundaryValue);
+    f.apply(data, filtered, pr);
+  }
+
+}
+

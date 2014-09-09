@@ -1,0 +1,275 @@
+namespace atb
+{
+
+  template<typename DataT, int Dim>
+  CentralHessianFilter<DataT,Dim>::CentralHessianFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _accuracy(CentralGradientFilter<DataT,Dim>::SecondOrder)
+  {}
+
+  template<typename DataT, int Dim>
+  CentralHessianFilter<DataT,Dim>::CentralHessianFilter(
+      typename CentralGradientFilter<DataT,Dim>::Accuracy accuracy,
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _accuracy(accuracy)
+  {}
+
+  template<typename DataT, int Dim>
+  CentralHessianFilter<DataT,Dim>::~CentralHessianFilter()
+  {}
+  
+  template<typename DataT, int Dim>
+  typename CentralGradientFilter<DataT,Dim>::Accuracy
+  CentralHessianFilter<DataT,Dim>::accuracy() const
+  {
+    return _accuracy;
+  }
+
+  template<typename DataT, int Dim>
+  void CentralHessianFilter<DataT,Dim>::setAccuracy(
+      typename CentralGradientFilter<DataT,Dim>::Accuracy accuracy)
+  {
+    _accuracy = accuracy;
+  }
+
+  template<typename DataT, int Dim>
+  void CentralHessianFilter<DataT,Dim>::applyAlongDim(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter *pr) const
+  {
+    if (dim > Dim * Dim)
+        throw RuntimeError()
+            << "Invalid index " << dim << " in Hessian computation for " << Dim
+            << "-D data representation. Valid indices are in the range "
+            << "{0, ..., " << Dim * Dim << "}.";
+
+    int pMin = (pr != NULL) ? pr->taskProgressMin() : 0;
+    int pScale = (pr != NULL) ? (pr->taskProgressMax() - pMin) : 100;
+
+    typedef typename traits<DataT>::HighPrecisionT hp_t;
+
+    if (&data != &filtered) filtered.resize(data.shape());
+    
+    blitz::TinyVector<int,2> mPos(dim / Dim, dim % Dim);
+
+    if (mPos(0) == mPos(1)) // Compute second derivative in this direction
+    {
+      ptrdiff_t n = data.extent(mPos(0));
+      ptrdiff_t stride = data.stride(mPos(0));
+      
+      ptrdiff_t p = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t i = 0; i < data.size() / n; ++i)
+      {
+        if (pr != NULL)
+        {
+          if (pr->isAborted()) continue;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+          {
+            if (p % std::max(1, static_cast<int>(data.size() / n / 100)) == 0)
+                pr->updateProgress(
+                    pMin + pScale * p / (data.size() / n - 1));
+            ++p;
+          }
+        }
+        blitz::TinyVector<ptrdiff_t,Dim> pos;
+        ptrdiff_t resid = i;
+        for (int d = Dim - 1; d >= 0; --d)
+        {
+          if (d != mPos(0))
+          {
+            pos(d) = resid % data.extent(d);
+            resid /= data.extent(d);
+          }
+        }
+        pos(mPos(0)) = 0;
+        
+        DataT const *constLineIter = &data(pos);
+        
+        // Copy the Array line into a temporary processing buffer
+        DataT *tmp = new DataT[n];
+        for (ptrdiff_t j = 0; j < n; ++j, constLineIter += stride)
+            tmp[j] = *constLineIter;
+        DataT *f = new DataT[n];
+        
+        if (_accuracy == CentralGradientFilter<DataT,Dim>::SecondOrder)
+        {
+          double hInv = 1.0 / (elementSizeUm(mPos(0)) * elementSizeUm(mPos(0)));
+          f[0] = DataT(
+              (hp_t(this->p_bt->get(tmp, -1, n)) -
+               2.0 * hp_t(tmp[0]) +
+               hp_t(tmp[1])) * hInv);
+          for (ptrdiff_t i = 1; i < n - 1; ++i)
+              f[i] = DataT(
+                  (hp_t(tmp[i - 1]) -
+                   2.0 * hp_t(tmp[i]) +
+                   hp_t(tmp[i + 1])) * hInv);
+          f[n - 1] = DataT(
+              (hp_t(tmp[n - 2]) -
+               2.0 * hp_t(tmp[n - 1]) +
+               hp_t(this->p_bt->get(tmp, n, n))) * hInv);
+        }
+        else if (_accuracy == CentralGradientFilter<DataT,Dim>::FourthOrder)
+        {
+          double hInv =
+              1.0 / (12.0 * elementSizeUm(mPos(0)) * elementSizeUm(mPos(0)));
+          f[0] = DataT(
+              (-hp_t(this->p_bt->get(tmp, -2, n)) +
+               16.0 * hp_t(this->p_bt->get(tmp, -1, n)) -
+               30.0 * hp_t(tmp[0]) +
+               16.0 * hp_t(tmp[1]) -
+               hp_t(tmp[2])) * hInv);
+          f[1] = DataT(
+              (-hp_t(this->p_bt->get(tmp, -1, n)) +
+               16.0 * hp_t(tmp[0]) -
+               30.0 * hp_t(tmp[1]) +
+               16.0 * hp_t(tmp[2]) -
+               hp_t(tmp[3])) * hInv);
+          for (ptrdiff_t i = 2; i < n - 2; ++i)
+              f[i] = DataT(
+                  (-hp_t(tmp[i - 2]) +
+                   16.0 * hp_t(tmp[i - 1]) -
+                   30.0 * hp_t(tmp[i]) +
+                   16.0 * hp_t(tmp[i + 1]) -
+                   hp_t(tmp[i + 2])) * hInv);
+          f[n - 2] = DataT(
+              (-hp_t(tmp[n - 4]) +
+               16.0 * hp_t(tmp[n - 3]) -
+               30.0 * hp_t(tmp[n - 2]) +
+               16.0 * hp_t(tmp[n - 1]) -
+               hp_t(this->p_bt->get(tmp, n, n))) * hInv);
+          f[n - 1] = DataT(
+              (-hp_t(tmp[n - 3]) +
+               16.0 * hp_t(tmp[n - 2]) -
+               30.0 * hp_t(tmp[n - 1]) +
+               16.0 * hp_t(this->p_bt->get(tmp, n, n)) -
+               hp_t(this->p_bt->get(tmp, n + 1, n))) * hInv);
+        }
+        else
+        {
+          std::cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation"
+                    << std::endl;
+          exit(-1);
+        }
+        DataT *lineIter = &filtered(pos);
+        for (ptrdiff_t j = 0; j < n; ++j, lineIter += stride)
+            *lineIter = f[j];
+        
+        delete[] tmp;
+        delete[] f;      
+      }
+    }
+    else
+    {
+      CentralGradientFilter<DataT,Dim> gradientFilter;
+      gradientFilter.setBoundaryTreatment(*this->p_bt);
+      gradientFilter.setAccuracy(_accuracy);
+      if (pr != NULL)
+          pr->setTaskProgressMax(
+              pMin + static_cast<int>(0.5 * static_cast<double>(pScale)));
+      gradientFilter.applyAlongDim(data, elementSizeUm, filtered, mPos(0), pr);
+      if (pr != NULL)
+      {
+        pr->setTaskProgressMin(
+            pMin + static_cast<int>(0.5 * static_cast<double>(pScale)));
+        pr->setTaskProgressMax(
+            pMin + pScale);
+      }
+      gradientFilter.applyAlongDim(
+          filtered, elementSizeUm, filtered, mPos(1), pr);
+      if (pr != NULL) pr->setTaskProgressMin(pMin);
+    }
+    if (pr != NULL) pr->setProgress(pr->taskProgressMax());
+  }
+
+  template<typename DataT, int Dim>
+  void CentralHessianFilter<DataT,Dim>::applyAlongDim(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter *pr) const
+  {
+    if (blitz::any(data.shape() != filtered.shape()))
+        filtered.resize(data.shape());
+    blitz::Array<DataT,Dim> tmp(data.shape());
+    applyAlongDim(data, elementSizeUm, tmp, dim, pr);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < data.size(); ++i)
+        filtered.data()[i](dim / Dim, dim % Dim) = tmp.data()[i];
+    if (pr != NULL) pr->setProgress(pr->taskProgressMax());
+  }
+
+  template<typename DataT, int Dim>
+  void CentralHessianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    filtered.resize(data.shape());
+    int progressMin = (pr != NULL) ? pr->taskProgressMin() : 0;
+    int progressMax = (pr != NULL) ? pr->taskProgressMax() : 100;
+    for (int d = 0; d < Dim * Dim; ++d)
+    {
+      int r = d / Dim, c = d % Dim;
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) break;
+        pr->setTaskProgressMin(
+            progressMin + d * (progressMax - progressMin) / (Dim * Dim));
+        pr->setTaskProgressMax(
+            progressMin + (d + 1) * (progressMax - progressMin) / (Dim * Dim));
+      }
+      if (r <= c) applyAlongDim(data, elementSizeUm, filtered, d, pr);
+      else
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(data.size()); ++i)
+            filtered.data()[i](r, c) = filtered.data()[i](c, r);
+      }
+    }
+    if (pr != NULL)
+    {
+      pr->setTaskProgressMin(progressMin);
+      pr->setTaskProgressMax(progressMax);
+      pr->setProgress(progressMax);
+    }
+  }
+
+  template<typename DataT, int Dim>
+  void CentralHessianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      typename CentralGradientFilter<DataT,Dim>::Accuracy accuracy,
+      BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    CentralHessianFilter<DataT,Dim> f(accuracy, btType, boundaryValue);
+    f.apply(data, elementSizeUm, filtered, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void CentralHessianFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<ResultT,Dim> &filtered,
+      typename CentralGradientFilter<DataT,Dim>::Accuracy accuracy,
+      BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    CentralHessianFilter<DataT,Dim> f(accuracy, btType, boundaryValue);
+    f.apply(data, filtered, pr);
+  }
+
+}

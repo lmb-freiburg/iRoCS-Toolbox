@@ -1,0 +1,16 @@
+lib_LTLIBRARIES = libBlitzFFTW.la
+blitzfftwincludedir = $(pkgincludedir)/libBlitzFFTW
+
+AM_CPPFLAGS = -I$(top_srcdir)/src
+AM_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
+
+libBlitzFFTW_la_SOURCES = \
+	BlitzFFTW.cc \
+	BlitzFFTW-Impl.cc
+
+blitzfftwinclude_HEADERS = \
+	BlitzFFTW.hh \
+	BlitzFFTW.icc \
+	BlitzFFTW-Impl.hh \
+	BlitzFFTWError.hh
+

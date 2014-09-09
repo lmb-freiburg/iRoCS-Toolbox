@@ -1,0 +1,202 @@
+/**************************************************************************
+**       Title:  perform a grid search on parameters for best crossval result
+**    $RCSfile$
+**   $Revision: 4820 $$Name$
+**       $Date: 2011-11-08 10:57:01 +0100 (Tue, 08 Nov 2011) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.5  2005/10/26 07:02:00  ronneber
+**  - now prints a full confusion table during grid search
+**
+**  Revision 1.4  2005/03/29 17:52:06  ronneber
+**  - added manual call to updateKernelCache() at appropriate positions
+**
+**  Revision 1.3  2005/01/31 17:07:53  fehr
+**  Bugfix in GridSearch.icc
+**
+**  Revision 1.2  2004/09/08 14:27:16  ronneber
+**  - cosmetic changes for output (e.g. clear screen at beginning)
+**
+**  Revision 1.1  2004/08/26 08:36:58  ronneber
+**  initital import
+**
+**
+**
+**************************************************************************/
+
+
+template< typename CROSSVALIDATOR>
+void svt::GridSearch::search2D( const GridAxis& row,
+                                const GridAxis& col, 
+                                CROSSVALIDATOR* cv, 
+                                const std::vector<int>& subsetIndexByUID,
+                                std::vector<svt::StDataASCII>& gridPointInfos,
+                                unsigned int& bestGridPointIndex,
+                                std::vector<svt::SingleClassResult>& bestResultTable)
+{
+  /*-----------------------------------------------------------------------
+   *  check changesKernel combination
+   *-----------------------------------------------------------------------*/
+  if( row.changesKernel() == false && 
+      col.changesKernel() == true)
+  {
+    GridSearchError err;
+    err << "Invalid combination of changesKernel's for rows and columns: "
+        "As row-parameter '" << row.keyName() << "' does not affect kernel "
+        "matrix, column parameter '" << col.keyName() << "' must not affect "
+        "kernel matrix either!";
+    throw err;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  if grid-printing is requested, clear screen
+   *-----------------------------------------------------------------------*/
+  if( _printGridLevel >= 1)
+  {
+    _pr->clearScreen();
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  calc size of grid cells
+   *-----------------------------------------------------------------------*/
+ int gridCellSize = int(ceil(log((double)subsetIndexByUID.size())/log(10.0))); 
+
+  /*-----------------------------------------------------------------------
+   *  Do the grid search 
+   *-----------------------------------------------------------------------*/
+  gridPointInfos.resize( row.nValues() * col.nValues());
+  StDataASCII parameters;
+  
+  std::vector<double> predictedClassLabelByUID( subsetIndexByUID.size());
+  
+  int maxNCorrect = -1;
+  
+  size_t nGridPoints = row.nValues() * col.nValues();
+  size_t nCompletedGridPoints = 0;
+  
+  std::vector<double> trueLabelsByUID( subsetIndexByUID.size());
+  const typename CROSSVALIDATOR::PROBLEM_TYPE* trainData = cv->trainingData();
+
+  for( unsigned int i = 0; i < trainData->nFeatureVectors(); ++i)
+  {
+    unsigned int uid = trainData->featureVector(i)->uniqueID();
+    trueLabelsByUID[uid] = trainData->label( i);
+  }
+
+  std::string bestResultTableString;
+  
+
+  for( size_t rowIndex = 0; rowIndex < row.nValues(); ++rowIndex)
+  {
+    parameters.setValue( row.keyName(), row.value( rowIndex));
+    for( size_t colIndex = 0; colIndex < col.nValues(); ++colIndex)
+    {
+      parameters.setValue( col.keyName(), col.value( colIndex));
+
+      cv->loadParameters( parameters);
+      if( _pr != 0)
+      {
+        std::ostringstream oss;
+        oss << row.keyName() << "=" << row.value( rowIndex) << ", "
+            << col.keyName() << "=" << col.value( colIndex) 
+            << " (" << nCompletedGridPoints+1 << " of " << nGridPoints << ") ";
+        
+      
+        _pr->reportProgress( TASK_LEVEL_GRID_SEARCH, 
+                             "Grid Search", 
+                             static_cast<float>(nCompletedGridPoints + 1) /
+                             static_cast<float>(nGridPoints),
+                             oss.str());
+      }
+      
+      
+      if( (rowIndex == 0 && colIndex ==0)
+          || col.changesKernel()
+          || (colIndex == 0 && row.changesKernel()))
+      {
+        cv->updateKernelCache();
+      }
+      /*-----------------------------------------------------------------
+       *  preprocessing with or without prior update of kernel matrix cache
+       *-----------------------------------------------------------------*/
+      cv->preprocessTrainingData();
+
+      /*-------------------------------------------------------------------
+       *  now do the cross validation and store results in
+       *  corresponding grid point info 
+       *-------------------------------------------------------------------*/
+      int nCorrect = cv->doFullCV( subsetIndexByUID, predictedClassLabelByUID);
+      size_t gridPointIndex = rowIndex * col.nValues() + colIndex;
+      if( nCorrect > maxNCorrect)
+      {
+        bestGridPointIndex = static_cast<int>(gridPointIndex);
+        maxNCorrect = nCorrect;
+        ClassificationStatistics cs;
+        cs.calcStatistics( trueLabelsByUID, predictedClassLabelByUID, 
+                           bestResultTable);
+        std::ostringstream oss;
+        cs.prettyPrintStatistics( bestResultTable, oss);
+        cs.prettyPrintConfusionTable( trueLabelsByUID, 
+                                      predictedClassLabelByUID, oss);
+        bestResultTableString = oss.str();
+      }
+      cv->saveStatistics( gridPointInfos[gridPointIndex]);
+      gridPointInfos[gridPointIndex].setValue( "nCorrect", nCorrect);
+      gridPointInfos[gridPointIndex].setValue( row.keyName(), 
+                                               row.value( rowIndex));
+      gridPointInfos[gridPointIndex].setValue( col.keyName(), 
+                                               col.value( colIndex));
+      ++nCompletedGridPoints;
+      if( _printGridLevel >= 1)
+      {
+        std::ostringstream oss;
+        for(size_t r = 0; r < row.nValues(); ++r)
+        {
+          for(size_t c = 0; c < col.nValues(); ++c)
+          {
+            size_t gridPIndex = r * col.nValues() + c;
+            if( gridPIndex < nCompletedGridPoints)
+            {
+              
+              if( gridPIndex == bestGridPointIndex)
+              {
+                oss << "\033[1;7m"
+                    << std::setw(gridCellSize+1) <<gridPointInfos[gridPIndex].asUint("nCorrect")
+                    << "\033[0m";
+                
+              }
+              else
+              {
+                oss << std::setw(gridCellSize+1) << gridPointInfos[gridPIndex].asUint("nCorrect") ;
+              }
+            }
+            else
+            {
+              oss << std::setw(gridCellSize+1) << ".";
+            }
+          }
+          oss << std::endl;
+        }
+
+        oss << "Best results yet:\n";
+        oss << bestResultTableString;
+        _pr->additionalInfo( TASK_LEVEL_GRID_SEARCH, oss.str());
+        
+      }
+                
+      
+              
+            
+      
+    }
+  }
+  
+            
+}
+

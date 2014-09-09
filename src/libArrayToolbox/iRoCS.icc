@@ -1,0 +1,102 @@
+namespace atb
+{
+
+  template<typename DataT>
+  void IRoCS::computeStraightenedView(
+      blitz::Array<DataT,3> const &data,
+      blitz::TinyVector<double,3> const &originalElementSizeUm,
+      blitz::Array<DataT,3> &straightened,
+      blitz::TinyVector<double,3> const &straightenedElementSizeUm,
+      blitz::TinyVector<double,3> const &originUm, double phiOrigin) const
+  {
+    int pStart = (p_progress != NULL) ? p_progress->taskProgressMin() : 0;
+    int pScale = (p_progress != NULL) ?
+        (p_progress->taskProgressMax() - pStart) : 100;
+    int p = 0;
+
+    blitz::TinyMatrix<double,3,3> rotation;
+    rotation =
+        _trafoInv(0, 0), _trafoInv(1, 0), _trafoInv(2, 0),
+        _trafoInv(0, 1), _trafoInv(1, 1), _trafoInv(2, 1),
+        _trafoInv(0, 2), _trafoInv(1, 2), _trafoInv(2, 2);
+
+    LinearInterpolator<DataT,3> ip;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (BlitzIndexT z = 0; z < straightened.extent(2); ++z)
+    {
+      if (p_progress != NULL && p_progress->isAborted()) continue;
+      double zUm = z * straightenedElementSizeUm(2) - originUm(2);
+
+      // Get u from z
+      double uPos = p_ccm->axis().extendedCurveLengthToU(_uQC, zUm);
+
+      // Get the axis position
+      blitz::TinyVector<double,3> axisPositionUm(
+          p_ccm->axis()(uPos, p_ccm->axis().knot(0),
+                        p_ccm->axis().knot(p_ccm->axis().nKnots() - 1)));
+              
+      // Get the tangent vector of the axis
+      blitz::TinyVector<double,3> tangentVector(
+          p_ccm->axis().extendedDerivative(
+              uPos, 1, p_ccm->axis().knot(0),
+              p_ccm->axis().knot(p_ccm->axis().nKnots() - 1)));
+      tangentVector /= std::sqrt(blitz::dot(tangentVector, tangentVector));
+              
+      for (BlitzIndexT y = 0; y < straightened.extent(0); ++y)
+      {
+        if (p_progress != NULL && p_progress->isAborted()) break;
+        double yUm = y * straightenedElementSizeUm(0) - originUm(0);
+        for (BlitzIndexT x = 0; x < straightened.extent(1); ++x)
+        {
+          if (p_progress != NULL)
+          {
+            if (p_progress->isAborted()) break;
+            if ((p % std::max(1, straightened.size() / 1000)) == 0)
+            {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+              p_progress->updateProgress(
+                  pStart + static_cast<int>(
+                      pScale * static_cast<double>(p) /
+                      static_cast<double>(straightened.size() - 1)));
+            }
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+            ++p;
+          }
+          double xUm = x * straightenedElementSizeUm(1) - originUm(1);
+          double phi = std::atan2(yUm, xUm) + phiOrigin;
+          double rUm = std::sqrt(xUm * xUm + yUm * yUm);
+                  
+          // Get the vector in phi direction
+          blitz::TinyVector<double,3> phiVector(
+              0.0, std::cos(phi), std::sin(phi));
+          phiVector = mvMult(rotation, phiVector);
+                  
+          // Project the phi vector onto the tangent vector
+          blitz::TinyVector<double,3> phiTangential(
+              blitz::dot(phiVector, tangentVector) * tangentVector);
+                  
+          // Compute the direction vector on the plane orthogonal to
+          // the axis
+          blitz::TinyVector<double,3> phiInPlane(phiVector - phiTangential);
+          phiInPlane /= std::sqrt(blitz::dot(phiInPlane, phiInPlane));
+                  
+          // Get the point position
+          blitz::TinyVector<double,3> srcPosPx(
+              (axisPositionUm + rUm * phiInPlane) / originalElementSizeUm);
+
+          // Interpolate the intensity at the source position
+          straightened(y, x, z) = ip.get(data, srcPosPx);
+        }
+      }
+    }
+    if (p_progress != NULL)
+        p_progress->updateProgress(p_progress->taskProgressMax());
+  }
+
+}

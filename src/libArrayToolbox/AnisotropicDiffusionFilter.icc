@@ -1,0 +1,525 @@
+namespace atb
+{
+  
+  template<typename DataT, int Dim>
+  AnisotropicDiffusionFilter<DataT,Dim>::AnisotropicDiffusionFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : Filter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _kappa(0.2), _sigmaUm(-1.0), _tau(0.0625),
+            _zAnisotropyCorrection(0.0), _nIterations(20),
+            _hessianUpdateStepWidth(4)
+  {}
+
+  template<typename DataT, int Dim>
+  AnisotropicDiffusionFilter<DataT,Dim>::AnisotropicDiffusionFilter(
+      double kappa, double sigmaUm, double tau, double zAnisotropyCorrection,
+      int nIterations, int hessianUpdateStepWidth, 
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : Filter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _kappa(kappa), _sigmaUm(sigmaUm), _tau(tau),
+            _zAnisotropyCorrection(zAnisotropyCorrection),
+            _nIterations(nIterations),
+            _hessianUpdateStepWidth(hessianUpdateStepWidth)
+  {}
+
+  template<typename DataT, int Dim>
+  AnisotropicDiffusionFilter<DataT,Dim>::~AnisotropicDiffusionFilter()
+  {}
+  
+  template<typename DataT, int Dim>
+  double AnisotropicDiffusionFilter<DataT,Dim>::kappa() const
+  {
+    return _kappa;
+  }
+  
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::setKappa(double kappa)
+  {
+    _kappa = kappa;
+  }
+
+  template<typename DataT, int Dim>
+  double AnisotropicDiffusionFilter<DataT,Dim>::sigmaUm() const
+  {
+    return _sigmaUm;
+  }
+  
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::setSigmaUm(double sigmaUm)
+  {
+    _sigmaUm = sigmaUm;
+  }
+
+  template<typename DataT, int Dim>
+  double AnisotropicDiffusionFilter<DataT,Dim>::tau() const
+  {
+    return _tau;
+  }
+  
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::setTau(double tau)
+  {
+    _tau = tau;
+  }
+
+  template<typename DataT, int Dim>
+  double AnisotropicDiffusionFilter<DataT,Dim>::zAnisotropyCorrection() const
+  {
+    return _zAnisotropyCorrection;
+  }
+  
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::setZAnisotropyCorrection(
+      double zAnisotropyCorrection)
+  {
+    _zAnisotropyCorrection = zAnisotropyCorrection;
+  }
+  
+  template<typename DataT, int Dim>
+  int AnisotropicDiffusionFilter<DataT,Dim>::nIterations() const
+  {
+    return _nIterations;
+  }
+  
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::setNIterations(int nIterations)
+  {
+    _nIterations = nIterations;
+  }
+  
+  template<typename DataT, int Dim>
+  int AnisotropicDiffusionFilter<DataT,Dim>::hessianUpdateStepWidth() const
+  {
+    return _hessianUpdateStepWidth;
+  }
+  
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::setHessianUpdateStepWidth(
+      int hessianUpdateStepWidth)
+  {
+    _hessianUpdateStepWidth = hessianUpdateStepWidth;
+  }
+
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    int pMin = (pr != NULL) ? pr->taskProgressMin() : 0;
+    int pScale = (pr != NULL) ? (pr->taskProgressMax() - pMin) : 100;
+
+    if (pr != NULL && !pr->updateProgress(pMin)) return;
+
+    // Allocate two Arrays as per iteration "in" and "out" Arrays
+    blitz::Array<double,Dim> *in = new blitz::Array<double,Dim>(data.shape());
+    blitz::Array<double,Dim> *out = new blitz::Array<double,Dim>(data.shape());
+    blitz::Array<double,Dim> *swap = NULL;
+    
+    // Initialize the "in" Array with the input data
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(data.size()); ++i)
+        in->data()[i] = static_cast<double>(data.data()[i]);
+    
+    // Allocate the diffusion tensor. The diffusion tensor is symmetric,
+    // therefore only the upper tringular matrix needs to be stored.
+    blitz::Array<blitz::TinyVector<double,Dim * (Dim + 1) / 2>,Dim> D(
+        data.shape());
+    
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + 0.01 * pScale))) return;
+
+    double sigmaUm = (_sigmaUm <= 0.0) ? elementSizeUm(1) : _sigmaUm;
+
+    for (int iter = 1; iter <= _nIterations; ++iter)
+    {
+      if (pr != NULL)
+      {
+        pr->setTaskProgressMin(
+            static_cast<int>(
+                pMin + pScale * (0.01 + 0.98 * static_cast<double>(iter - 1) /
+                                 static_cast<double>(_nIterations))));
+        pr->setTaskProgressMax(
+            static_cast<int>(
+                pMin + pScale * (0.01 + 0.98 * static_cast<double>(iter) /
+                                 static_cast<double>(_nIterations))));
+        std::stringstream msg;
+        msg << "  Diffusion iteration " << iter << " / " << _nIterations;
+        pr->updateProgressMessage(msg.str());
+        if (!pr->updateProgress(pr->taskProgressMin()))
+        {
+          delete in;
+          delete out;
+          return;
+        }
+      }
+      if ((iter - 1) % _hessianUpdateStepWidth == 0)
+      {
+        if (pr != NULL)
+            pr->updateProgressMessage("    Updating Diffusion tensor");
+        int oldPMin = (pr != NULL) ? pr->taskProgressMin() : 0;
+        int oldPMax = (pr != NULL) ? pr->taskProgressMax() : 100;
+
+        // Temporarily use the diffusion tensor to store the hessian. This
+        // creates the corresponding alias.
+        blitz::Array<blitz::TinyVector<double,Dim * (Dim + 1) / 2>,Dim>
+            &hessian = D;
+
+        // Compute hessian
+        if (pr != NULL)
+        {
+          pr->updateProgressMessage("      Hessian computation");
+          pr->setTaskProgressMax(
+              static_cast<int>(oldPMin + 0.05 * (oldPMax - oldPMin)));
+        }
+        blitz::Array<double,Dim> tmp(in->shape());
+        GaussianFilter<double,Dim> smoothingFilter(RepeatBT);
+        smoothingFilter.setStandardDeviationUm(sigmaUm);
+        smoothingFilter.apply(*in, elementSizeUm, tmp, pr);
+
+        if (pr != NULL)
+        {
+          if (pr->isAborted())
+          {
+            delete in;
+            delete out;
+            return;
+          }
+          pr->setTaskProgressMin(
+              static_cast<int>(oldPMin + 0.05 * (oldPMax - oldPMin)));
+          pr->setTaskProgressMax(
+              static_cast<int>(oldPMin + 0.2 * (oldPMax - oldPMin)));
+        }
+        CentralHessianUTFilter<double,Dim> centralHessianFilter(MirrorBT);
+        // centralHessianFilter.apply(
+        //     tmp, blitz::TinyVector<double,Dim>(1.0), hessian, pr);
+        centralHessianFilter.apply(tmp, elementSizeUm, hessian, pr);
+
+        if (pr != NULL &&
+            !pr->updateProgressMessage("      Eigenvalue decomposition"))
+        {
+          delete in;
+          delete out;
+          return;
+        }
+
+        // Eigenvalue decomposition
+        blitz::Array<blitz::TinyVector<double,Dim>,Dim> lambda((*in).shape());
+        double varSum = 0.0;
+        ptrdiff_t p = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(hessian.size()); ++i)
+        {
+          if (pr != NULL)
+          {
+            if (pr->isAborted()) continue;
+            int progress = 0;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+              progress = p;
+              ++p;
+            }
+            if (progress %
+                std::max(1, static_cast<int>(hessian.size() / 100)) == 0)
+            {
+              pr->updateProgress(
+                  static_cast<int>(
+                      oldPMin + (oldPMax - oldPMin) *
+                      (0.2 + 0.5 * static_cast<double>(progress) /
+                       static_cast<double>(hessian.size() - 1))));
+            }
+          }
+          blitz::TinyMatrix<double,Dim,Dim> m;
+          int k = 0;
+          for (int r = 0; r < Dim; ++r)
+              for (int c = r; c < Dim; ++c, ++k)
+                  m(r, c) = m(c, r) = hessian.data()[i](k);
+          eigenvalueDecompositionRealSymmetric(m, lambda.data()[i], Ascending);
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+          varSum += blitz::pow2(lambda.data()[i](0));
+        }
+        double stddevInv = 1.0 / std::sqrt(varSum / hessian.size());
+
+        if (pr != NULL && pr->isAborted())
+        {
+          delete in;
+          delete out;
+          return;
+        }
+
+        if (pr != NULL)
+            pr->updateProgressMessage("      Diffusion tensor computation");
+
+        // Compute diffusion tensor
+        p = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(lambda.size()); ++i)
+        {
+          if (pr != NULL)
+          {
+            if (pr->isAborted()) continue;
+            int progress = 0;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+              progress = p;
+              ++p;
+            }
+            if (progress %
+                std::max(1, static_cast<int>(lambda.size() / 100)) == 0)
+            {
+              pr->updateProgress(
+                  static_cast<int>(
+                      oldPMin + (oldPMax - oldPMin) *
+                      (0.7 + 0.2 * static_cast<double>(progress) /
+                       static_cast<double>(lambda.size() - 1))));
+            }
+          }
+
+          // Get reference to eigenvalues at current position
+          blitz::TinyVector<double,Dim> &eVals = lambda.data()[i];
+
+          // Compute eigenvector matrix at current position
+          blitz::TinyMatrix<double,Dim,Dim> m;
+          int k = 0;
+          for (int r = 0; r < Dim; ++r)
+          {
+            m(r, r) = hessian.data()[i](k++);
+            for (int c = r + 1; c < Dim; ++c)
+                m(r, c) = m(c, r) = hessian.data()[i](k++);
+          }
+          blitz::TinyMatrix<double,Dim,Dim> eVecs;
+          computeEigenvectors(m, eVecs, eVals);
+        
+          // Initialize diffusion to zero
+          D.data()[i] = traits<
+              blitz::TinyVector<double, Dim * (Dim + 1) / 2> >::zero;
+
+          // Normalize eigenvalues to variance of smallest eigenvalue
+          eVals *= stddevInv;
+
+          for (int d = 0; d < Dim; ++d)
+          {
+            double factor = eVals(d);
+
+            // z compensation
+            factor -= _zAnisotropyCorrection * std::abs(eVecs(0, d)) * _kappa;
+
+            // Clip negative values (additionally clip large magnitudes)
+            // and evaluate the exponential
+            factor = std::exp(
+                -blitz::pow2(
+                    ((factor < -100.0) ? -100.0 :
+                     ((factor > 0.0) ? 0.0 : factor)) / _kappa));
+
+            // Multiply with the eigenvector outer product (do not set the
+            // redundant lower triangular part)
+            int k = 0;
+            for (int r = 0; r < Dim; ++r)
+                for (int c = r; c < Dim; ++c, ++k)
+                    D.data()[i](k) += factor * eVecs(r, d) * eVecs(c, d);
+          }
+        }
+        if (pr != NULL)
+        {
+          if (pr->isAborted())
+          {
+            delete in;
+            delete out;
+            return;
+          }
+          pr->setTaskProgressMin(
+              static_cast<int>(oldPMin + 0.9 * (oldPMax - oldPMin)));
+          pr->setTaskProgressMax(oldPMax);
+        }
+      }
+
+      // Diffusion step
+      ptrdiff_t p = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(in->size()); ++i)
+      {
+        if (pr != NULL)
+        {
+          if (pr->isAborted()) continue;
+          int progress = 0;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+          {
+            progress = p;
+            ++p;
+          }
+          if (progress % std::max(1, static_cast<int>(in->size() / 100)) == 0)
+          {
+            pr->updateProgress(
+                static_cast<int>(
+                    pr->taskProgressMin() +
+                    (pr->taskProgressMax() - pr->taskProgressMin()) *
+                    static_cast<double>(progress) /
+                    static_cast<double>(in->size() - 1)));
+          }
+        }
+        ptrdiff_t tmp = i;
+        blitz::TinyVector<BlitzIndexT,Dim> pos;
+        for (int d = Dim - 1; d >= 0; --d)
+        {
+          pos(d) = tmp % in->extent(d);
+          tmp /= in->extent(d);
+        }
+        double du = 0.0;
+
+        // Sum up all mixed terms
+        int k = 1;
+        for (int r = 0; r < Dim; ++r, ++k)
+        {
+          for (int c = r + 1; c < Dim; ++c, ++k)
+          {
+            if (pos(r) > 0 && pos(r) < in->extent(r) - 1 &&
+                pos(c) > 0 && pos(c) < in->extent(c) - 1)
+            {
+              du +=
+                  (D.data()[i - D.stride(r)](k) +
+                   D.data()[i - D.stride(c)](k)) *
+                  in->data()[i - D.stride(r) - D.stride(c)] +
+                  (D.data()[i + D.stride(r)](k) +
+                   D.data()[i + D.stride(c)](k)) *
+                  in->data()[i + D.stride(r) + D.stride(c)] -
+                  (D.data()[i + D.stride(r)](k) +
+                   D.data()[i - D.stride(c)](k)) *
+                  in->data()[i + D.stride(r) - D.stride(c)] -
+                  (D.data()[i - D.stride(r)](k) +
+                   D.data()[i + D.stride(c)](k)) *
+                  in->data()[i - D.stride(r) + D.stride(c)];
+            }
+          }
+        }
+        du *= 0.5;
+
+        // Add directional terms
+        k = 0;
+        for (int r = 0; r < Dim; k += Dim - r, ++r)
+        {
+          if (pos(r) > 0 && pos(r) < in->extent(r) - 1)
+          {
+            du +=
+                (D.data()[i - D.stride(r)](k) + D.data()[i](k)) *
+                in->data()[i - D.stride(r)] +
+                (D.data()[i + D.stride(r)](k) + D.data()[i](k)) *
+                in->data()[i + D.stride(r)];
+          }
+          else
+          {
+            if (pos(r) == 0)
+                du += 2.0 * (D.data()[i + D.stride(r)](k) +
+                             D.data()[i](k)) * in->data()[i + D.stride(r)];
+            else
+                du += 2.0 * (D.data()[i - D.stride(r)](k) +
+                             D.data()[i](k)) * in->data()[i - D.stride(r)];
+          }
+        }
+        du *= 0.5 * _tau;
+
+        // Compute the isotropic term for normalization
+        double di = 0.0;
+        k = 0;
+        for (int r = 0; r < Dim; k += Dim - r, ++r)
+        {
+          if (pos(r) > 0 && pos(r) < in->extent(r) - 1)
+              di -= D.data()[i - D.stride(r)](k) + 2.0 * D.data()[i](k) +
+                  D.data()[i + D.stride(r)](k);
+          else
+          {
+            if (pos(r) == 0)
+                di -= 2.0 * (D.data()[i + D.stride(r)](k) +
+                             D.data()[i](k));
+            else
+                di -= 2.0 * (D.data()[i - D.stride(r)](k) +
+                             D.data()[i](k));
+          }          
+        }
+        di = (1.0 - 0.5 * _tau * di);
+        di = (std::abs(di) < 1e-35) ? 1e-35 : di;
+
+        // Write result
+        out->data()[i] = (in->data()[i] + du) / di;
+      }
+      
+      // Swap roles of input and output Array
+      swap = in;
+      in = out;
+      out = swap;
+    }
+
+    // Free out Array
+    delete out;
+
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pMin + 0.99 * pScale)))
+    {
+      delete in;
+      return;
+    }
+
+    // "in" contains the final result
+    filtered.resize(data.shape());
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(in->size()); ++i)
+        filtered.data()[i] = static_cast<ResultT>(in->data()[i]);
+
+    // Free in Array
+    delete in;
+
+    if (pr != NULL)
+    {
+      pr->setTaskProgressMin(pMin);
+      pr->setTaskProgressMax(pMin + pScale);
+      pr->updateProgress(pMin + pScale);
+    }
+  }
+
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      double kappa, double sigmaUm, double tau, double zAnisotropyCorrection,
+      int nIterations, int hessianUpdateStepWidth, BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    AnisotropicDiffusionFilter<DataT,Dim> f(
+        sigmaUm, kappa, tau, zAnisotropyCorrection, nIterations,
+        hessianUpdateStepWidth, btType, boundaryValue);
+    f.apply(data, elementSizeUm, filtered, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void AnisotropicDiffusionFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<ResultT,Dim> &filtered,
+      double kappa, double sigmaUm, double tau, double zAnisotropyCorrection,
+      int nIterations, int hessianUpdateStepWidth, BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    AnisotropicDiffusionFilter<DataT,Dim> f(
+        sigmaUm, kappa, tau, zAnisotropyCorrection, nIterations,
+        hessianUpdateStepWidth, btType, boundaryValue);
+    f.apply(data, filtered, pr);
+  }
+
+}

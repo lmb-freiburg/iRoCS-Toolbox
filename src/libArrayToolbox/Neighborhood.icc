@@ -1,0 +1,177 @@
+/**************************************************************************
+ **       Title: Neighborhoods for local operators
+ **    $RCSfile:$
+ **   $Revision:$ $Name:$
+ **       $Date:$
+ **   Copyright: GPL $Author:$
+ ** Description:
+ **
+ **   Neighborhood definitions for local operators
+ **
+ **************************************************************************/
+
+namespace atb
+{
+  
+  template<typename DataT, int Dim>
+  bool TinyVectorLessThan<DataT,Dim>::operator()(
+      blitz::TinyVector<DataT,Dim> const &v1,
+      blitz::TinyVector<DataT,Dim> const &v2) const
+  {
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (v1(d) < v2(d)) return true;
+      if (v1(d) > v2(d)) return false;
+    }
+    return false;
+  }
+  
+  template<int Dim>
+  Neighborhood<Dim>::Neighborhood(Type nhoodType)
+          : _type(nhoodType), _neighbors()
+  {
+    switch (nhoodType)
+    {
+    case Simple:
+    {
+      for (int d = 0; d < Dim; ++d)
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> neighbor(BlitzIndexT(0));
+        neighbor(d) = BlitzIndexT(-1);
+        _neighbors.insert(neighbor);
+        neighbor(d) = BlitzIndexT(1);
+        _neighbors.insert(neighbor);
+      }
+      break;
+    }
+    case Complex:
+    {
+      BlitzIndexT neighborCount = 3;
+      for (int d = 1; d < Dim; ++d) neighborCount *= 3;
+      for (BlitzIndexT i = 0; i < neighborCount; ++i)
+      {
+        BlitzIndexT tmp = i;
+        blitz::TinyVector<BlitzIndexT,Dim> pos;
+        for (int d = Dim - 1; d >= 0; --d)
+        {
+          pos(d) = tmp % 3;
+          tmp = tmp / 3;
+        }
+        pos -= BlitzIndexT(1);
+        if (blitz::any(pos != BlitzIndexT(0))) _neighbors.insert(pos);
+      }
+      break;
+    }
+    case User:
+    {
+      _neighbors.clear();
+      break;
+    }
+    }
+  }
+
+  template<int Dim>
+  Neighborhood<Dim>::Neighborhood(
+      typename Neighborhood<Dim>::NeighborSet const &neighbors)
+          : _type(User), _neighbors(neighbors)
+  {}
+
+  template<int Dim>
+  Neighborhood<Dim>::Neighborhood(
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &neighbors)
+          : _type(User), _neighbors()
+  {
+    for (size_t i = 0; i < neighbors.size(); ++i)
+        _neighbors.insert(neighbors[i]);
+  }
+
+  template<int Dim>
+  Neighborhood<Dim>::Neighborhood(Neighborhood<Dim> const &nhood)
+          : _type(nhood._type), _neighbors(nhood._neighbors)
+  {}
+
+  template<int Dim>
+  Neighborhood<Dim>::~Neighborhood()
+  {}
+
+  template<int Dim>
+  Neighborhood<Dim> &Neighborhood<Dim>::operator=(
+      Neighborhood<Dim> const &nhood)
+  {
+    _type = nhood._type;
+    _neighbors = nhood._neighbors;
+  }
+
+  template<int Dim>
+  typename Neighborhood<Dim>::Type Neighborhood<Dim>::type() const
+  {
+    return _type;
+  }
+
+  template<int Dim>
+  size_t Neighborhood<Dim>::size() const
+  {
+    return _neighbors.size();
+  }
+
+  template<int Dim>
+  typename Neighborhood<Dim>::NeighborSet const
+  &Neighborhood<Dim>::neighbors() const
+  {
+    return _neighbors;
+  }
+
+  template<int Dim>
+  void Neighborhood<Dim>::clear()
+  {
+    _type = User;
+    _neighbors.clear();
+  }
+
+  template<int Dim>
+  void Neighborhood<Dim>::insert(
+      blitz::TinyVector<BlitzIndexT,Dim> const &neighbor)
+  {
+    std::pair<typename NeighborSet::iterator, bool> res =
+        _neighbors.insert(neighbor);
+    if (res.second == true) _type = User;
+  }
+
+  template<int Dim>
+  void Neighborhood<Dim>::erase(
+      blitz::TinyVector<BlitzIndexT,Dim> const &neighbor)
+  {
+    size_t nElementsRemoved = _neighbors.erase(neighbor);
+    if (nElementsRemoved != 0) _type = User;
+  }
+
+  template<int Dim>
+  void Neighborhood<Dim>::setNeighbors(NeighborSet const &nhood)
+  {
+    _neighbors = nhood;
+    _type = User;
+  }
+
+  template<int Dim>
+  void Neighborhood<Dim>::setNeighbors(
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &nhood)
+  {
+    for (size_t i = 0; i < nhood.size(); ++i) _neighbors.insert(nhood[i]);
+    _type = User;
+  }
+
+  template<int Dim>
+  typename Neighborhood<Dim>::const_iterator Neighborhood<Dim>::begin() const
+  {
+    return _neighbors.begin();
+  }
+
+    
+  template<int Dim>
+  typename Neighborhood<Dim>::const_iterator Neighborhood<Dim>::end() const
+  {
+    return _neighbors.end();
+  }
+
+}
+

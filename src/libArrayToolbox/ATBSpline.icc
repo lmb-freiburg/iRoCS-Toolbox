@@ -1,0 +1,1573 @@
+namespace atb
+{
+  
+#ifdef ATBSPLINE_PROFILE
+  template<typename ControlPointT>
+  typename BSpline<ControlPointT>::ProfilingSet
+  BSpline<ControlPointT>::__profiler = BSpline<ControlPointT>::ProfilingSet();
+#endif
+
+  template<typename ControlPointT>
+  BSpline<ControlPointT>::BaseCacheIndex::BaseCacheIndex(
+      double u, size_t index, int degree, int derivative)
+          : u(u), j(index), p(degree), l(derivative)
+  {}
+  
+  template<typename ControlPointT>
+  BSpline<ControlPointT>::BaseCacheIndex::BaseCacheIndex(
+      BaseCacheIndex const &idx)
+          : u(idx.u), j(idx.j), p(idx.p), l(idx.l)
+  {}
+  
+  template<typename ControlPointT>
+  bool BSpline<ControlPointT>::BaseCacheIndex::operator<(
+      BaseCacheIndex const &i) const
+  {
+    if (u < i.u) return true;
+    if (u == i.u && j < i.j) return true;
+    if (u == i.u && j == i.j && p < i.p) return true;
+    if (u == i.u && j == i.j && p == i.p && l < i.l) return true;
+    return false;
+  }
+  
+  
+  template<typename ControlPointT>
+  BSpline<ControlPointT>::BasePolynomialCacheIndex::BasePolynomialCacheIndex(
+      size_t segment, size_t index, int degree, int derivative)
+          : m(segment), j(index), p(degree), l(derivative)
+  {}
+  
+  template<typename ControlPointT>
+  BSpline<ControlPointT>::BasePolynomialCacheIndex::BasePolynomialCacheIndex(
+      BasePolynomialCacheIndex const &idx)
+          : m(idx.m), j(idx.j), p(idx.p), l(idx.l)
+  {}
+  
+  template<typename ControlPointT>
+  bool BSpline<ControlPointT>::BasePolynomialCacheIndex::operator<(
+      BasePolynomialCacheIndex const &i) const
+  {
+    if (m < i.m) return true;
+    if (m == i.m && j < i.j) return true;
+    if (m == i.m && j == i.j && p < i.p) return true;
+    if (m == i.m && j == i.j && p == i.p && l < i.l) return true;
+    return false;
+  }
+  
+
+  template<typename ControlPointT>
+  BSpline<ControlPointT>::BSpline(int degree, size_t nControlPoints)
+          : _degree(degree),
+            _controlPoints(nControlPoints, traits<ControlPointT>::zero)
+  {
+#ifdef ATBSPLINE_DEBUG
+    std::cerr << "BSpline(" << degree << ", " << nControlPoints << ") @ "
+              << this << std::endl;
+#endif
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Default Constructor"].start();
+#endif
+    _setNKnots(
+        static_cast<size_t>(
+            static_cast<int>(_controlPoints.size()) + degree + 1));
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Default Constructor"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  BSpline<ControlPointT>::BSpline(
+      int degree, std::vector<ControlPointT> const &controlPoints)
+          : _degree(degree),
+            _controlPoints(controlPoints)
+  {
+#ifdef ATBSPLINE_DEBUG
+    std::cerr << "BSpline(" << degree << ", " << controlPoints.size() << ") @ "
+              << this << std::endl;
+#endif
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Controlpoint Constructor"].start();
+#endif
+    _setNKnots(
+        static_cast<size_t>(
+            static_cast<int>(_controlPoints.size()) + degree + 1));
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Controlpoint Constructor"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  BSpline<ControlPointT>::BSpline(BSpline<ControlPointT> const &spline)
+          : _degree(spline._degree), _controlPoints(spline._controlPoints),
+            _knots(spline._knots)
+  {
+#ifdef ATBSPLINE_DEBUG
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    std::cerr << "Spline Copy constructor called" << std::endl;
+    std::cerr << "Address of this spline = " << this << std::endl;
+    std::cerr << "Address of other spline = " << &spline << std::endl;
+#endif
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Copy Constructor"].start();
+#endif
+    
+    _copyCache(spline);
+
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Copy Constructor"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  BSpline<ControlPointT>::~BSpline()
+  {
+#ifdef ATBSPLINE_DEBUG
+    std::cerr << "~BSpline() @ " << this << std::endl;
+#endif
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Destructor"].start();
+#endif
+    _clearCache();
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Destructor"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  BSpline<ControlPointT> &BSpline<ControlPointT>::operator=(
+      BSpline<ControlPointT> const &spline)
+  {
+#ifdef ATBSPLINE_DEBUG
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    std::cerr << "Spline Copy assignment operator called" << std::endl;
+    std::cerr << "Address of this spline = " << this << std::endl;
+    std::cerr << "Address of other spline = " << &spline << std::endl;
+#endif
+
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Copy Assignment Operator"].start();
+#endif
+    if (this == &spline) return *this;
+
+    _degree = spline._degree;
+    _controlPoints = spline._controlPoints;
+    _knots = spline._knots;
+
+    _copyCache(spline);
+
+#ifdef ATBSPLINE_PROFILE
+    __profiler["Copy Assignment Operator"].stop();
+#endif
+
+    return *this;
+  }
+  
+  template<typename ControlPointT>
+  int BSpline<ControlPointT>::degree() const
+  {
+    return _degree;
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::setDegree(int degree)
+  {
+    if (degree == _degree) return;
+    _degree = degree;
+    _setNKnots(static_cast<size_t>(
+                   static_cast<int>(_controlPoints.size()) + _degree + 1));
+  }
+  
+  template<typename ControlPointT>
+  size_t BSpline<ControlPointT>::nControlPoints() const
+  {
+    return _controlPoints.size();
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::setNControlPoints(size_t nControlPoints)
+  {
+    if (_controlPoints.size() == nControlPoints) return;
+    _controlPoints.resize(nControlPoints, ControlPointT());
+    _setNKnots(static_cast<size_t>(
+                   static_cast<int>(_controlPoints.size()) + _degree + 1));
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::setControlPoints(
+      std::vector<ControlPointT> const &controlPoints)
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["setControlPoints(std::vector<ControlPointT> const &)"].start();
+#endif
+    bool updateKnots = (controlPoints.size() != _controlPoints.size());
+    _controlPoints = controlPoints;
+    if (updateKnots)
+        _setNKnots(static_cast<size_t>(
+                       static_cast<int>(controlPoints.size()) + _degree + 1));
+#ifdef ATBSPLINE_PROFILE
+    __profiler["setControlPoints(std::vector<ControlPointT> const &)"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  std::vector<ControlPointT> const
+  &BSpline<ControlPointT>::controlPoints() const
+  {
+    return _controlPoints;
+  }
+
+  template<typename ControlPointT>
+  ControlPointT const &BSpline<ControlPointT>::controlPoint(size_t index) const
+  {
+    if (index >= _controlPoints.size())
+    {
+      std::stringstream errStream;
+      errStream << "Index out of bounds while trying to acces control point "
+                << index << " of a B-Spline with " << _controlPoints.size()
+                << " control points";
+      throw RuntimeError(errStream.str().c_str());
+    }
+    return _controlPoints[index];
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::setControlPoint(
+      size_t index, ControlPointT const &point)
+  {
+    if (index >= _controlPoints.size())
+    {
+      std::stringstream errStream;
+      errStream << "Index out of bounds while trying to acces control point "
+                << index << " of a B-Spline with " << _controlPoints.size()
+                << " control points";
+      throw RuntimeError(errStream.str().c_str());
+    }
+    _controlPoints[index] = point;
+  }
+  
+  template<typename ControlPointT>
+  size_t BSpline<ControlPointT>::nKnots() const
+  {
+    return _knots.size();
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::setKnots(std::vector<double> const &knots)
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["setKnots(std::vector<double> const &)"].start();
+#endif
+    if (knots.size() != _knots.size())
+    {
+      std::stringstream errStream;
+      errStream << "The provided knot vector has wrong length. The spline "
+                << "has " << _knots.size() << " knots, you provided a "
+                << "knot vector of length " << knots.size();
+      throw RuntimeError(errStream.str().c_str());
+    }
+    for (size_t i = 1; i < knots.size(); ++i)
+    {
+      if (knots[i] < knots[i - 1])
+      {
+        std::stringstream errStream;
+        errStream << "The provided knot vector is not monotonic. Please "
+                  << "provide a monotonically increasing sequence of values.";
+        throw RuntimeError(errStream.str().c_str());
+      }  
+    }
+    _knots = knots;
+    _updateCache();
+#ifdef ATBSPLINE_PROFILE
+    __profiler["setKnots(std::vector<double> const &)"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  double BSpline<ControlPointT>::knot(size_t index) const
+  {
+    if (index >= _knots.size())
+    {
+      std::stringstream errStream;
+      errStream << "Index out of bounds while trying to access knot "
+                << index << " of a B-Spline with " << _knots.size()
+                << " knots";
+      throw RuntimeError(errStream.str().c_str());
+    }
+    return _knots[index];
+  }
+  
+  template<typename ControlPointT>
+  std::vector<double> const &BSpline<ControlPointT>::knots() const
+  {
+    return _knots;
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::setKnot(size_t index, double value)
+  {
+    if (index >= _knots.size())
+    {
+      std::stringstream errStream;
+      errStream << "Index out of bounds while trying to acces knot "
+                << index << " of a B-Spline with " << _knots.size()
+                << " knots";
+      throw RuntimeError(errStream.str().c_str());
+    }
+    if (!((index == 0 || _knots[index - 1] <= value) &&
+          (index == _knots.size() - 1 || _knots[index + 1] >= value)))
+    {
+      std::stringstream errStream;
+      errStream << "Inserting the knot value " << value << "at position "
+                << index << " in the knot vector would break the monotonicity "
+                << "of the knot vector. knots = ";
+      if (_knots.size() == 0) errStream << "[]";
+      else
+      {
+        errStream << "[";
+        for (size_t i = 0; i < _knots.size() - 1; ++i)
+            errStream << _knots[i] << ",";
+        errStream << _knots[_knots.size() - 1] << "]";
+      }
+      throw RuntimeError(errStream.str().c_str());      
+    }
+    _knots[index] = value;
+    _updateCache();
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::setOpenUniformKnots(double uMin, double uMax)
+  {
+    size_t p = (_degree > 0) ? _degree : 0;
+    for (size_t i = 0; i < _knots.size(); ++i)
+        _knots[i] = (i <= p) ? uMin : ((i >= _controlPoints.size()) ? uMax :
+                                       (uMax - uMin) * static_cast<double>(i - p) /
+                                       static_cast<double>(_controlPoints.size() - p)) + uMin;
+    _updateCache();
+  }
+  
+  template<typename ControlPointT>
+  double BSpline<ControlPointT>::base(
+      double u, size_t index, int derivative) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["base(double, size_t, int)"].start();
+#endif
+    double res = 0.0;
+    if (_degree >= 0 && -derivative <= _degree)
+    {
+      size_t m = curvePositionToSegment(u);
+      
+      if (derivative <= 0)
+          res = (*_basePolynomialDerivativeCache[
+                     _degree][m][index][-derivative])(u);
+      else
+          res = basePolynomial(
+              BasePolynomialCacheIndex(m, index, _degree, derivative))(u);
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["base(double, size_t, int)"].stop();
+#endif
+    return res;
+  }
+  
+  template<typename ControlPointT>
+  double BSpline<ControlPointT>::base(BaseCacheIndex const &i) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["base(BaseCacheIndex const &)"].start();
+#endif
+    double res = 0.0;
+    if (_degree >= 0 && -i.l <= i.p)
+    {
+      size_t m = curvePositionToSegment(i.u);
+      
+      if (i.l <= 0)
+          res = (*_basePolynomialDerivativeCache[i.p][m][i.j][-i.l])(i.u);
+      else
+          res = basePolynomial(BasePolynomialCacheIndex(m, i.j, i.p, i.l))(i.u);
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["base(BaseCacheIndex const &)"].stop();
+#endif
+    return res;
+  }
+  
+  template<typename ControlPointT>
+  Polynomial<double> const &BSpline<ControlPointT>::basePolynomial(
+      size_t segment, size_t index, int derivative) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["basePolynomial(size_t, size_t, int)"].start();
+#endif
+    Polynomial<double> const *res = &_zeroPolynomial;
+    if (-derivative <= _degree)
+    {
+      if (derivative <= 0)
+          res = _basePolynomialDerivativeCache[
+              _degree][segment][index][-derivative];
+      else
+          res = &basePolynomial(
+              BasePolynomialCacheIndex(segment, index, _degree, derivative));
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["basePolynomial(size_t, size_t, int)"].stop();
+#endif
+    return *res;
+  }
+  
+  template<typename ControlPointT>
+  Polynomial<double> const &BSpline<ControlPointT>::basePolynomial(
+      BasePolynomialCacheIndex const &idx) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["basePolynomial(BasePolynomialCacheIndex const &)"].start();
+#endif
+    Polynomial<double> const *res = &_zeroPolynomial;
+    if (idx.p >= 0 && -idx.l <= idx.p)
+    {
+      if (idx.l <= 0)
+          res = _basePolynomialDerivativeCache[idx.p][idx.m][idx.j][-idx.l];
+      else
+      {
+        if (static_cast<int>(_basePolynomialIntegralCache.size()) > idx.p &&
+            _basePolynomialIntegralCache[idx.p].size() > idx.m &&
+            _basePolynomialIntegralCache[idx.p][idx.m].size() >
+            static_cast<size_t>(idx.j) &&
+            _basePolynomialIntegralCache[idx.p][idx.m][idx.j].size() >
+            static_cast<size_t>(idx.l) &&
+            _basePolynomialIntegralCache[idx.p][idx.m][idx.j][idx.l] != NULL)
+            res = _basePolynomialIntegralCache[idx.p][idx.m][idx.j][idx.l];
+        else
+        {
+#ifdef _OPENMP
+          if (omp_in_parallel())
+          {
+            throw RuntimeError(
+                "Cache miss during parallel BSpline evaluation. This is not "
+                "allowed because cache updates during parallel execution would "
+                "mean to guard all read/write access which is impossible "
+                "because references are passed. To allow parallel execution "
+                "initialize the cache to contain all needed Base polynomials. "
+                "In most cases this can be done by simply calling the "
+                "function once in a non-parallel way.");
+          }
+#endif
+          
+          if (static_cast<int>(_basePolynomialIntegralCache.size()) <= idx.p)
+              _basePolynomialIntegralCache.resize(idx.p + 1);
+          if (_basePolynomialIntegralCache[idx.p].size() <= idx.m)
+              _basePolynomialIntegralCache[idx.p].resize(idx.m + 1);
+          if (_basePolynomialIntegralCache[idx.p][idx.m].size() <=
+              static_cast<size_t>(idx.j))
+              _basePolynomialIntegralCache[idx.p][idx.m].resize(idx.j + 1);
+          if (_basePolynomialIntegralCache[idx.p][idx.m][idx.j].size() <=
+              static_cast<size_t>(idx.l))
+              _basePolynomialIntegralCache[idx.p][idx.m][idx.j].resize(
+                  idx.l + 1, NULL);
+          
+          _basePolynomialIntegralCache[idx.p][idx.m][idx.j][idx.l] = 
+              new Polynomial<double>(
+                  _basePolynomialDerivativeCache[
+                      idx.p][idx.m][idx.j][0]->indefiniteIntegral(idx.l));
+          
+          res = _basePolynomialIntegralCache[idx.p][idx.m][idx.j][idx.l];
+        }
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["basePolynomial(BasePolynomialCacheIndex const &)"].stop();
+#endif
+    return *res;
+  }
+  
+  template<typename ControlPointT>
+  std::string BSpline<ControlPointT>::printBasePolynomial(
+      BasePolynomialCacheIndex idx) const
+  {
+    std::stringstream st;
+    st << basePolynomial(idx);
+    return st.str();
+  }
+  
+  template<typename ControlPointT>
+  size_t BSpline<ControlPointT>::curvePositionToSegment(double u) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["curvePositionToSegment(double)"].start();
+#endif
+    size_t res = _knots.size();
+    if (u >= _knots.front() && u <= _knots.back())
+    {
+      res = 0;
+      for (; res < _knots.size() - 1; ++res)
+          if ((_knots[res] <= u && u < _knots[res + 1]) ||
+              (_knots[res] < u && u <= _knots[res + 1])) break;
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["curvePositionToSegment(double)"].stop();
+#endif
+    return res;
+  }
+      
+  template<typename ControlPointT>
+  size_t BSpline<ControlPointT>::curvePositionToSegment(
+      double u, double tolerance) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["curvePositionToSegment(double, double)"].start();
+#endif
+    size_t res = _knots.size();
+    if (u >= _knots.front() - tolerance && u <= _knots.back() + tolerance)
+    {
+      if (u < _knots.front()) res = curvePositionToSegment(u + tolerance);
+      else if (u > _knots.back()) res = curvePositionToSegment(u - tolerance);
+      else
+      {
+        res = 0;
+        for (; res < _knots.size() - 1; ++res)
+            if ((_knots[res] <= u && u < _knots[res + 1]) ||
+                (_knots[res] < u && u <= _knots[res + 1])) break;
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["curvePositionToSegment(double, double)"].stop();
+#endif
+    return res;
+  }
+      
+  template<typename ControlPointT>
+  ControlPointT BSpline<ControlPointT>::operator()(double u) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["operator()(double)"].start();
+#endif
+    ControlPointT res(traits<ControlPointT>::zero);
+    if (_degree >= 0)
+    {
+      size_t m = curvePositionToSegment(u);
+      if (m != _knots.size())
+      {
+        size_t mMin = static_cast<size_t>(
+            std::max(0, static_cast<int>(m - _degree)));
+        for (size_t j = mMin; j <= m; ++j)
+            res += (*_basePolynomialDerivativeCache[_degree][m][j][0])(u) *
+                _controlPoints[j];
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["operator()(double)"].stop();
+#endif
+    return res;    
+  }
+  
+  template<typename ControlPointT>
+  ControlPointT BSpline<ControlPointT>::operator()(
+      double u, double lBound, double uBound) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["operator()(double, double, double)"].start();
+#endif
+    ControlPointT res(traits<ControlPointT>::zero);
+    if (_degree > 0)
+    {
+      if (u >= lBound && u <= uBound) res = (*this)(u);
+      else
+      {
+        // Left end
+        if (u < lBound)
+            res = (*this)(lBound) + (u - lBound) * derivative(lBound);
+        // Right end
+        if (u > uBound)
+            res = (*this)(uBound) + (u - uBound) * derivative(uBound);
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["operator()(double, double, double)"].stop();
+#endif
+    return res;
+  }
+  
+  template<typename ControlPointT>
+  ControlPointT BSpline<ControlPointT>::derivative(
+      double u, size_t derivative) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["derivative(double, size_t)"].start();
+#endif
+    ControlPointT res(traits<ControlPointT>::zero);
+    if (_degree >= 0 && static_cast<int>(derivative) <= _degree)
+    {
+      size_t m = curvePositionToSegment(u);
+      if (m != _knots.size())
+      {
+        size_t mMin = static_cast<size_t>(
+            std::max(0, static_cast<int>(m - _degree)));        
+        for (size_t j = mMin; j <= m; ++j)
+            res += (*_basePolynomialDerivativeCache[
+                        _degree][m][j][derivative])(u) * _controlPoints[j];
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["derivative(double, size_t)"].stop();
+#endif
+    return res;    
+  }
+  
+  template<typename ControlPointT>
+  ControlPointT BSpline<ControlPointT>::extendedDerivative(
+      double u, size_t derivative, double lBound, double uBound) const
+  {
+    if (u <= lBound) u = lBound;
+    if (u >= uBound) u = uBound;
+
+    return this->derivative(u, derivative);
+  }
+  
+  template<typename ControlPointT>
+  BSpline<ControlPointT> BSpline<ControlPointT>::derivative(
+      size_t derivative) const
+  {
+    if (derivative == 0) return *this;
+
+#ifdef ATBSPLINE_PROFILE
+    __profiler["derivative(size_t)"].start();
+#endif
+
+    BSpline<ControlPointT> res(
+        _degree - static_cast<int>(derivative),
+        static_cast<size_t>(_controlPoints.size() - derivative));
+
+    if (res.degree() >= 0)
+    {
+      std::vector<double> newKnots(_knots.size() - 2 * derivative);
+      for (size_t i = derivative; i < _knots.size() - derivative; ++i)
+          newKnots[i - derivative] = _knots[i];
+      
+      std::vector<ControlPointT> newControlPoints(_controlPoints);
+      int degree = _degree;
+      for (size_t ell = 1; ell <= derivative; ++ell, --degree)
+      {
+        for (size_t i = 0; i < newControlPoints.size() - ell; ++i)
+        {
+          newControlPoints[i] =
+              degree / (_knots[i + _degree + 1] - _knots[i + 1]) *
+              (newControlPoints[i + 1] - newControlPoints[i]);
+        }
+      }
+      newControlPoints.resize(_controlPoints.size() - derivative);
+      
+      res.setControlPoints(newControlPoints);
+      res.setKnots(newKnots);
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["derivative(size_t)"].stop();
+#endif
+    return res;
+  }
+
+  template<typename ControlPointT>
+  double BSpline<ControlPointT>::curveIntegral(
+      double uFrom, double uTo, double uStep) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["curveIntegral(double, double, double)"].start();
+#endif
+    double curveLength = 0.0;
+    double sign = 1.0;
+    if (_degree >= 0)
+    {
+      if (uFrom > uTo)
+      {
+        double tmp = uFrom;
+        uFrom = uTo;
+        uTo = tmp;
+        sign = -1.0;
+      }
+      ControlPointT p1, p2;
+      p2 = (*this)(uFrom);
+      for (double u = uFrom; u < uTo - uStep; u += uStep)
+      {
+        p1 = p2;
+        p2 = (*this)(u + uStep);
+        curveLength += std::sqrt(blitz::dot(p2 - p1, p2 - p1));
+      }
+      curveLength +=
+          std::sqrt(blitz::dot(p2 - (*this)(uTo), p2 - (*this)(uTo)));
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["curveIntegral(double, double, double)"].stop();
+#endif    
+    return sign * curveLength;
+  }
+  
+  template<typename ControlPointT>
+  double BSpline<ControlPointT>::extendedCurveIntegral(
+      double uFrom, double uTo, double lBound, double uBound, double uStep)
+      const
+  {
+    if (_degree < 0) return 0.0;
+
+    double sign = 1.0;
+    if (uFrom > uTo)
+    {
+      double tmp = uFrom;
+      uFrom = uTo;
+      uTo = tmp;
+      sign = -1.0;
+    }
+    if (uTo <= lBound || uFrom >= uBound)
+    {
+      ControlPointT d(
+          (*this)(uTo, lBound, uBound) - (*this)(uFrom, lBound, uBound));
+      return sign * std::sqrt(blitz::dot(d, d));
+    }
+
+    double res = 0.0;
+
+    if (uFrom < lBound)
+    {
+      ControlPointT d((*this)(lBound) - (*this)(uFrom, lBound, uBound));
+      res += std::sqrt(blitz::dot(d, d));
+      uFrom = lBound;
+    }
+
+    if (uTo > uBound)
+    {
+      ControlPointT d((*this)(uTo, lBound, uBound) - (*this)(uBound));
+      res += std::sqrt(blitz::dot(d, d));
+      uTo = uBound;
+    }
+
+    return sign * (res + curveIntegral(uFrom, uTo, uStep));
+  }
+  
+  template<typename ControlPointT>
+  double BSpline<ControlPointT>::curveLengthToU(
+      double origin, double distance) const
+  {
+    if (_degree < 0) return 0.0;
+
+    double step = 0.5 * (_knots[_knots.size() - 1] - origin);
+    double currentPos = 0.5 * (_knots[_knots.size() - 1] - origin) + origin;
+    while (step > 1e-6)
+    {
+      step /= 2.0;
+      if (curveIntegral(origin, currentPos) < distance)
+          currentPos += step;
+      else currentPos -= step;
+    }
+    return currentPos;
+  }
+  
+  template<typename ControlPointT>
+  double BSpline<ControlPointT>::extendedCurveLengthToU(
+      double origin, double distance) const
+  {
+    if (_degree < 0) return 0.0;
+
+    double step = ((distance > 0) ? 0.5 : -0.5) *
+        (_knots[0] + _knots[_knots.size() - 1]);
+    double currentPos = origin + step;
+    while (std::abs(step) > 1e-6)
+    {
+      while (std::abs(extendedCurveIntegral(origin, currentPos)) <
+             std::abs(distance)) currentPos += step;
+      step /= 2.0;
+      currentPos -= step;
+    }
+    return currentPos;
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::save(
+      std::string const &fileName, std::string const &groupName,
+      bool throwExceptions) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["save(std::string const &, std::string const &, bool)"].start();
+#endif
+    try
+    {
+      BlitzH5File outFile(fileName, BlitzH5File::WriteOrNew);
+      save(outFile, groupName);
+    }
+    catch (BlitzH5Error &e)
+    {
+      if (throwExceptions) throw e;
+      else
+      {
+        std::cerr << "Error: Could not write Spline '" << fileName << ":"
+                  << groupName << "': " << e.what() << std::endl;
+        exit(-1);
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["save(std::string const &, std::string const &, bool)"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::load(
+      std::string const &fileName, std::string const &groupName,
+      bool throwExceptions)
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["load(std::string const &, std::string const &, bool)"].start();
+#endif
+    try
+    {
+      BlitzH5File inFile(fileName);
+      load(inFile, groupName);
+    }
+    catch (BlitzH5Error &e)
+    {
+      if (throwExceptions) throw e;
+      else
+      {
+        std::cerr << "Error: Could not write Spline '" << fileName << ":"
+                  << groupName << "': " << e.what() << std::endl;
+        exit(-1);
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["load(std::string const &, std::string const &, bool)"].stop();
+#endif
+  }
+
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::save(
+      BlitzH5File &outFile, std::string const &groupName) const
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["save(BlitzH5File &, std::string const &)"].start();
+#endif
+    std::string splineType("BSpline");
+    outFile.writeAttribute(splineType, "splineType", groupName);
+    outFile.writeAttribute(_degree, "degree", groupName);
+    if (_controlPoints.size() > 0)
+    {
+      blitz::Array<ControlPointT,1> tmp(_controlPoints.size());
+      for (ptrdiff_t i = 0; i < tmp.size(); ++i) tmp(i) = _controlPoints[i];
+      outFile.writeDataset(tmp, groupName + "/controlPoints");
+    }
+    if (_knots.size() > 0)
+    {
+      blitz::Array<double,1> tmp(_knots.size());
+      for (ptrdiff_t i = 0; i < tmp.size(); ++i) tmp(i) = _knots[i];
+      outFile.writeDataset(tmp, groupName + "/knots");
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["save(BlitzH5File &, std::string const &)"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::load(
+      BlitzH5File const &inFile, std::string const &groupName)
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["load(BlitzH5File const &, std::string const &)"].start();
+#endif
+    std::string splineType;
+    inFile.readAttribute(splineType, "splineType", groupName);
+    if (splineType != "BSpline")
+    {
+      BlitzH5Error error("No valid BSpline structure");
+      throw error;
+    }
+    inFile.readAttribute(_degree, "degree", groupName);
+    blitz::Array<ControlPointT,1> tmp;
+    try
+    {
+      inFile.readDataset(tmp, groupName + "/controlPoints");
+      _controlPoints.resize(tmp.size());
+      for (ptrdiff_t i = 0; i < tmp.size(); ++i) _controlPoints[i] = tmp(i);
+    }
+    catch (BlitzH5Error &)
+    {
+      _controlPoints.resize(0);
+    }
+    try
+    {
+      blitz::Array<double,1> tmp;
+      inFile.readDataset(tmp, groupName + "/knots");
+      _knots.resize(tmp.size());
+      for (ptrdiff_t i = 0; i < tmp.size(); ++i) _knots[i] = tmp(i);
+    }
+    catch (BlitzH5Error &)
+    {
+      _knots.resize(0);
+    }
+    _updateCache();
+#ifdef ATBSPLINE_PROFILE
+    __profiler["load(BlitzH5File const &, std::string const &)"].stop();
+#endif
+  }
+
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::_setNKnots(size_t nKnots)
+  {
+#ifdef ATBSPLINE_PROFILE
+    __profiler["_setNKnots(size_t)"].start();
+#endif
+    if (_knots.size() == nKnots) return;
+    if (_knots.size() != 0) _knots.resize(nKnots, _knots[_knots.size() - 1]);
+    else _knots.resize(nKnots, 0.0);
+    _updateCache();
+#ifdef ATBSPLINE_PROFILE
+    __profiler["_setNKnots(size_t)"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::_clearCache() const
+  {
+#ifdef ATBSPLINE_DEBUG
+    std::cerr << "BSpline::_clearCache() @ " << this << std::endl;
+#endif
+
+#ifdef ATBSPLINE_PROFILE
+    __profiler["_clearCache()"].start();
+#endif
+    for (size_t p = 0; p < _basePolynomialDerivativeCache.size(); ++p)
+        for (size_t m = 0; m < _basePolynomialDerivativeCache[p].size(); ++m)
+            for (size_t j = 0;
+                 j < _basePolynomialDerivativeCache[p][m].size(); ++j)
+                for (size_t l = 0;
+                     l < _basePolynomialDerivativeCache[p][m][j].size(); ++l)
+                    delete _basePolynomialDerivativeCache[p][m][j][l];
+
+    _basePolynomialDerivativeCache.clear();
+
+    for (size_t p = 0; p < _basePolynomialIntegralCache.size(); ++p)
+        for (size_t m = 0; m < _basePolynomialIntegralCache[p].size(); ++m)
+            for (size_t j = 0;
+                 j < _basePolynomialIntegralCache[p][m].size(); ++j)
+                for (size_t l = 0;
+                     l < _basePolynomialIntegralCache[p][m][j].size(); ++l)
+                    delete _basePolynomialIntegralCache[p][m][j][l];
+
+    _basePolynomialIntegralCache.clear();
+#ifdef ATBSPLINE_PROFILE
+    __profiler["_clearCache()"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::_copyCache(
+      BSpline<ControlPointT> const &spline) const
+  {
+    if (&spline == this) return;
+    
+#ifdef ATBSPLINE_PROFILE
+    __profiler["_copyCache()"].start();
+#endif
+
+    _clearCache();
+
+    _basePolynomialDerivativeCache.resize(
+        spline._basePolynomialDerivativeCache.size());
+    for (size_t p = 0; p < _basePolynomialDerivativeCache.size(); ++p)
+    {
+      _basePolynomialDerivativeCache[p].resize(
+          spline._basePolynomialDerivativeCache[p].size());      
+      for (size_t m = 0; m < _basePolynomialDerivativeCache[p].size(); ++m)
+      {
+        _basePolynomialDerivativeCache[p][m].resize(
+            spline._basePolynomialDerivativeCache[p][m].size());      
+        for (size_t j = 0; j < _basePolynomialDerivativeCache[p][m].size(); ++j)
+        {
+          _basePolynomialDerivativeCache[p][m][j].resize(
+              spline._basePolynomialDerivativeCache[p][m][j].size());      
+          for (size_t l = 0; l < _basePolynomialDerivativeCache[p][m][j].size();
+               ++l)
+          {
+            if (spline._basePolynomialDerivativeCache[p][m][j][l] != NULL)
+            {
+#ifdef ATBSPLINE_DEBUG
+              std::cout << "Copying derivative cache entry for m = " << m
+                        << ", j = " << j << ", p = " << p << ", l = " << l
+                        << " = "
+                        << *spline._basePolynomialDerivativeCache[p][m][j][l]
+                        << std::endl;
+#endif
+              _basePolynomialDerivativeCache[p][m][j][l] =
+                  new Polynomial<double>(
+                      *spline._basePolynomialDerivativeCache[p][m][j][l]);
+            }
+            else _basePolynomialDerivativeCache[p][m][j][l] = NULL;
+          }
+        }
+      }
+    }
+
+    _basePolynomialIntegralCache.resize(
+        spline._basePolynomialIntegralCache.size());
+    for (size_t p = 0; p < _basePolynomialIntegralCache.size(); ++p)
+    {
+      _basePolynomialIntegralCache[p].resize(
+          spline._basePolynomialIntegralCache[p].size());  
+      for (size_t m = 0; m < _basePolynomialIntegralCache[p].size(); ++m)
+      {
+        _basePolynomialIntegralCache[p][m].resize(
+            spline._basePolynomialIntegralCache[p][m].size());      
+        for (size_t j = 0; j < _basePolynomialIntegralCache[p][m].size(); ++j)
+        {
+          _basePolynomialIntegralCache[p][m][j].resize(
+              spline._basePolynomialIntegralCache[p][m][j].size());      
+          for (size_t l = 0; l < _basePolynomialIntegralCache[p][m][j].size();
+               ++l)
+          {
+            if (spline._basePolynomialIntegralCache[p][m][j][l] != NULL)
+            {
+#ifdef ATBSPLINE_DEBUG
+              std::cout << "Copying integral cache entry for m = " << m
+                        << ", j = " << j << ", p = " << p << ", l = " << l
+                        << " = "
+                        << *spline._basePolynomialIntegralCache[p][m][j][l]
+                        << std::endl;
+#endif
+              _basePolynomialIntegralCache[p][m][j][l] =
+                  new Polynomial<double>(
+                      *spline._basePolynomialIntegralCache[p][m][j][l]);
+            }
+            else _basePolynomialIntegralCache[p][m][j][l] = NULL;
+          }
+        }
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["_copyCache()"].stop();
+#endif
+  }
+
+  template<typename ControlPointT>
+  void BSpline<ControlPointT>::_updateCache() const
+  {
+#ifdef ATBSPLINE_DEBUG
+    std::cerr << "BSpline::_updateCache() @ " << this << std::endl;
+#endif
+
+#ifdef ATBSPLINE_PROFILE
+    __profiler["_updateCache()"].start();
+#endif
+
+    _clearCache();
+
+    // Rebuild derivative cache
+    _basePolynomialDerivativeCache.resize(_degree + 1);
+    for (int p = 0; p <= _degree; ++p)
+    {
+      _basePolynomialDerivativeCache[p].resize(_knots.size());
+      for (size_t m = 0; m < _knots.size(); ++m)
+      {
+        _basePolynomialDerivativeCache[p][m].resize(_knots.size() - p - 1);
+        for (size_t j = 0; j < _knots.size() - p - 1; ++j)
+        {
+          _basePolynomialDerivativeCache[p][m][j].resize(p + 1);
+          if (p == 0)
+          {
+            _basePolynomialDerivativeCache[p][m][j][0] = (m == j) ?
+                new Polynomial<double>(Polynomial<double>::one()) :
+                new Polynomial<double>(Polynomial<double>::zero());
+          }
+          else
+          {
+            Polynomial<double> l, r;
+            if (_knots[j + p] - _knots[j] != 0)
+            {
+              l.coefficient(0) = -_knots[j];
+              l.coefficient(1) = 1.0;
+              l /= _knots[j + p] - _knots[j];
+            }
+            if (_knots[j + p + 1] - _knots[j + 1] != 0)
+            {
+              r.coefficient(0) = _knots[j + p + 1];
+              r.coefficient(1) = -1.0;
+              r /= _knots[j + p + 1] - _knots[j + 1];
+            }
+            _basePolynomialDerivativeCache[p][m][j][0] =
+                new Polynomial<double>(
+                    l * *_basePolynomialDerivativeCache[p - 1][m][j][0] +
+                    r * *_basePolynomialDerivativeCache[p - 1][m][j + 1][0]);
+          }
+          for (int l = 1; l <= p; ++l)
+          {
+            _basePolynomialDerivativeCache[p][m][j][l] = 
+                new Polynomial<double>(
+                    _basePolynomialDerivativeCache[
+                        p][m][j][l - 1]->derivative());
+          }
+        }
+      }
+    }
+#ifdef ATBSPLINE_PROFILE
+    __profiler["_updateCache()"].stop();
+#endif
+  }
+  
+  template<typename ControlPointT>
+  std::ostream &operator<<(
+      std::ostream &os, BSpline<ControlPointT> const &spline)
+  {
+    os << "BSpline { " << std::endl;
+    os << "  Degree = " << spline.degree() << std::endl;
+    os << "  knots (" << spline.nKnots() << ") = [" << std::flush;
+    for (size_t i = 0; i < spline.nKnots(); ++i)
+        os << " " << spline.knot(i) << std::flush;
+    os << "]" << std::endl;
+    os << "  controlPoints (" << spline.nControlPoints() << ") = ["
+       << std::flush;
+    for (size_t i = 0; i < spline.nControlPoints(); ++i)
+        os << " " << spline.controlPoint(i) << std::flush;
+    os << "]" << std::endl;
+    os << "  Base Polynomials: " << std::endl;
+    for (size_t j = 0; j < spline.nControlPoints(); ++j)
+    {
+      std::cout << "   " << std::flush;
+      for (size_t segment = spline.degree();
+           segment < spline.nControlPoints(); ++segment)
+          os << " " << spline.basePolynomial(segment, j) << std::flush;
+      os << std::endl;
+    }
+    os << "\r}";
+    return os;
+  }
+      
+  extern void fitSplineToSpline(
+      BSpline<double> &spline, BSpline<double> const &reference);
+
+  template<int Dim>
+  void fitSplineToSpline(
+      BSpline< blitz::TinyVector<double,Dim> > &spline,
+      BSpline< blitz::TinyVector<double,Dim> > const &reference)
+  {
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "fitSplineToSpline(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "BSpline< blitz::TinyVector<double,Dim> > const &)"].start();
+#endif
+    if (spline.knot(0) != reference.knot(0) ||
+        spline.knot(spline.nKnots() - 1) !=
+        reference.knot(reference.nKnots() - 1))
+    {
+      throw RuntimeError(
+          "Incompatible spline domains.... splines can only be fitted "
+          "against each other, when defined on the same domain.");
+    }
+
+    size_t m = reference.nControlPoints();
+    size_t mp = spline.nControlPoints();
+    size_t pp = spline.degree();
+    
+    blitz::Array<double,2> B(mp, mp);
+    B = 0.0;
+    for (size_t r = 0; r < mp; ++r)
+    {
+      for (size_t segment = r; segment <= r + pp; ++segment)
+      {
+        Polynomial<double> poly =
+            (*spline._basePolynomialDerivativeCache[
+                spline.degree()][segment][r][0] *
+             *spline._basePolynomialDerivativeCache[
+                 spline.degree()][segment][r][0]).indefiniteIntegral();
+        B(static_cast<BlitzIndexT>(r), static_cast<BlitzIndexT>(r)) +=
+            poly(spline.knot(segment + 1)) - poly(spline.knot(segment));
+      }
+      for (size_t c = r + 1; c < mp && c <= r + pp; ++c)
+      {
+        Polynomial<double> poly;
+        for (size_t segment = r; segment <= r + pp; ++segment)
+        {
+          poly = (*spline._basePolynomialDerivativeCache[
+                      spline.degree()][segment][r][0] *
+                  *spline._basePolynomialDerivativeCache[
+                      spline.degree()][segment][c][0]).indefiniteIntegral();
+          B(static_cast<BlitzIndexT>(r), static_cast<BlitzIndexT>(c)) +=
+              poly(spline.knot(segment + 1)) - poly(spline.knot(segment));
+          B(static_cast<BlitzIndexT>(c), static_cast<BlitzIndexT>(r)) =
+              B(static_cast<BlitzIndexT>(r), static_cast<BlitzIndexT>(c));
+        }
+      }
+    }
+    B = invert(B);
+
+    // Generate all sub-intervals with corresponding segment indices
+    // for piecewise integration
+    std::map< std::pair<double, double>, std::pair<size_t,size_t> > intervals;
+    double lBound = reference.knot(0);
+    size_t j = 1, jp = 1;
+    while (j < reference.nKnots() && jp < spline.nKnots())
+    {
+      if (reference.knot(j) == lBound)
+      {
+        ++j;
+        continue;
+      }
+      if (spline.knot(jp) == lBound)
+      {
+        ++jp;
+        continue;
+      }
+      if (reference.knot(j) < spline.knot(jp))
+      {
+        intervals[std::pair<double,double>(lBound, reference.knot(j))] =
+            std::pair<size_t,size_t>(j - 1, jp - 1);
+        lBound = reference.knot(j);
+        ++j;
+      }
+      else if (reference.knot(j) > spline.knot(jp))
+      {
+        intervals[std::pair<double,double>(lBound, spline.knot(jp))] =
+            std::pair<size_t,size_t>(j - 1, jp - 1);
+        lBound = spline.knot(jp);
+        ++jp;
+      }
+      else
+      {
+        intervals[std::pair<double,double>(lBound, spline.knot(jp))] =
+            std::pair<size_t,size_t>(j - 1, jp - 1);
+        lBound = spline.knot(jp);
+        ++j;
+        ++jp;
+      }
+    }
+
+    std::vector< blitz::TinyVector<double,Dim> > cp(
+        spline.nControlPoints(), blitz::TinyVector<double,Dim>(0.0));
+
+    for (int k = 0; k < Dim; ++k)
+    {
+      blitz::Array<double,1> a(mp);
+      a = 0.0;
+      for (size_t r = 0; r < mp; ++r)
+      {
+        for (size_t jp = 0; jp < m; ++jp)
+        {
+          double integral = 0.0;
+          std::map< std::pair<double, double>,
+              std::pair<size_t,size_t> >::const_iterator it;
+          for (it = intervals.begin(); it != intervals.end(); ++it)
+          {
+            Polynomial<double> poly =
+                (*reference._basePolynomialDerivativeCache[
+                    reference.degree()][it->second.first][jp][0] *
+                 *spline._basePolynomialDerivativeCache[
+                     spline.degree()][it->second.second][r][0]
+                 ).indefiniteIntegral();
+            integral += poly(it->first.second) - poly(it->first.first);
+          }
+          a(static_cast<BlitzIndexT>(r)) +=
+              reference.controlPoint(jp)(k) * integral;
+        }
+      }
+      blitz::Array<double,1> c(mp);
+      c = mvMult(B, a);
+      for (size_t j = 0; j < spline.nControlPoints(); ++j)
+          cp[j](k) = c(static_cast<BlitzIndexT>(j));
+    }
+    spline.setControlPoints(cp);
+
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "fitSplineToSpline(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "BSpline< blitz::TinyVector<double,Dim> > const &)"].stop();
+#endif
+  }
+  
+  extern void fitSplineToPointCloud(
+      BSpline<double> &spline, const std::vector<double> &u,
+      std::vector<double> const &points);
+
+  template<int Dim>
+  void fitSplineToPointCloud(
+      BSpline< blitz::TinyVector<double,Dim> > &spline,
+      std::vector<double> const &u,
+      std::vector< blitz::TinyVector<double,Dim> > const &points)
+  {
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "fitSplineToPointCloud(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "std::vector<double> const &, "
+        "std::vector< blitz::TinyVector<double,Dim> > const &)"].start();
+#endif
+
+    // Compute degree-diagonal symmetric Base matrix
+    size_t m = spline.nControlPoints();
+    size_t p = spline.degree();
+    size_t n = points.size();
+    blitz::Array<double,2> B(m, m);
+    B = 0.0;
+    for (size_t i = 0; i < n; ++i)
+    {
+      for (size_t j = 0; j < m; ++j)
+      {
+        B(static_cast<BlitzIndexT>(j), static_cast<BlitzIndexT>(j)) +=
+            spline.base(u[i], j) * spline.base(u[i], j);
+        for (size_t jp = j + 1; jp <= j + p && jp < m; ++jp)
+            B(static_cast<BlitzIndexT>(j), static_cast<BlitzIndexT>(jp)) +=
+                spline.base(u[i], jp) * spline.base(u[i], j);
+      }
+    }
+    for (size_t j = 0; j < m; ++j)
+        for (size_t jp = j + 1; jp <= j + p && jp < m; ++jp)
+            B(static_cast<BlitzIndexT>(jp), static_cast<BlitzIndexT>(j)) =
+                B(static_cast<BlitzIndexT>(j), static_cast<BlitzIndexT>(jp));
+    
+    // std::cerr << "B      = " << B << std::endl;
+    // std::cerr << "B^{-1} = " << ATB::invert(B) << std::endl;
+
+    // Compute righthandside vector and independently solve the system
+    // for each dimension
+    blitz::Array<double,1> a(m);
+    std::vector< blitz::TinyVector<double,Dim> > cp(
+        spline.nControlPoints(), 0.0);
+    for (int k = 0; k < Dim; ++k)
+    {
+      a = 0.0;
+      for (size_t i = 0; i < n; ++i)
+          for (size_t j = 0; j < m; ++j)
+              a(static_cast<BlitzIndexT>(j)) +=
+                  spline.base(u[i], j) * points[i](k);
+      // std::cerr << " a[" << k << "] = " << a << std::endl;
+      blitz::Array<double,1> x(m);
+      x = mvMult(invert(B), a);
+      // std::cerr << " x[" << k << "] = B^{-1} * a[" << k << "] = "
+      //           << x << std::endl;
+      for (size_t j = 0; j < m; ++j) cp[j](k) = x(static_cast<BlitzIndexT>(j));
+    }
+    spline.setControlPoints(cp);
+
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "fitSplineToPointCloud(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "std::vector<double> const &, "
+        "std::vector< blitz::TinyVector<double,Dim> > const &)"].stop();
+#endif
+  }
+
+  extern double distance(BSpline<double> const &spline, double x, double &u);
+
+  template<int Dim>
+  double distance(
+      BSpline< blitz::TinyVector<double,Dim> > const &spline,
+      blitz::TinyVector<double,Dim> const &x, double &u)
+  {
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "blitz::TinyVector<double,Dim> const &, double)"].start();
+#endif
+    if (spline.degree() < 0)
+    {
+      u = 0.0;
+      return std::sqrt(blitz::dot(x, x));
+    }
+
+    double sqMinDist = std::numeric_limits<double>::infinity();
+    for (size_t segment = spline.degree();
+         segment < spline.nControlPoints(); ++segment)
+    {
+#ifdef ATBSPLINE_PROFILE
+      BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+          "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+          "blitz::TinyVector<double,Dim> const &, double) "
+          "- Polynomial computation"].start();
+#endif
+      Polynomial<double> res;
+      for (int k = 0; k < Dim; ++k)
+      {
+        Polynomial<double> b(std::vector<double>(1, -x(k)));
+        Polynomial<double> db(std::vector<double>(1, 0.0));
+        for (size_t j = segment - spline.degree(); j <= segment; ++j)
+        {
+          b += spline.controlPoint(j)(k) *
+              *spline._basePolynomialDerivativeCache[
+                  spline.degree()][segment][j][0];
+          db += spline.controlPoint(j)(k) *
+              *spline._basePolynomialDerivativeCache[
+                  spline.degree()][segment][j][1];
+        }
+        res += db * b;
+      }
+#ifdef ATBSPLINE_PROFILE
+      BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+          "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+          "blitz::TinyVector<double,Dim> const &, double) "
+          "- Polynomial computation"].stop();
+#endif
+#ifdef ATBSPLINE_PROFILE
+      BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+          "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+          "blitz::TinyVector<double,Dim> const &, double) "
+          "- root finding"].start();
+#endif
+      std::vector< std::complex<double> > roots(res.roots());
+#ifdef ATBSPLINE_PROFILE
+      BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+          "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+          "blitz::TinyVector<double,Dim> const &, double) "
+          "- root finding"].stop();
+#endif
+#ifdef ATBSPLINE_PROFILE
+      BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+          "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+          "blitz::TinyVector<double,Dim> const &, double) "
+          "- Minimum search"].start();
+#endif
+      for (size_t i = 0; i < roots.size(); ++i)
+      {
+        if (std::abs(roots[i].imag()) < 1e-10 &&
+            roots[i].real() >= spline.knot(segment) &&
+            roots[i].real() < spline.knot(segment + 1))
+        {
+          blitz::TinyVector<double,Dim> d(spline(roots[i].real()) - x);
+          double sqDist = blitz::dot(d, d);
+          if (sqDist < sqMinDist)
+          {
+            sqMinDist = sqDist;
+            u = roots[i].real();
+          }
+        }
+      }
+#ifdef ATBSPLINE_PROFILE
+      BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+          "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+          "blitz::TinyVector<double,Dim> const &, double) "
+          "- Minimum search"].stop();
+#endif
+    }
+
+    // Add the spline end points to the candidate set
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "blitz::TinyVector<double,Dim> const &, double) "
+        "- End point treatment"].start();
+#endif
+    blitz::TinyVector<double,Dim> d(spline(spline.knot(0)) - x);
+    double sqDist = blitz::dot(d, d);
+    if (sqDist < sqMinDist)
+    {
+      sqMinDist = sqDist;
+      u = spline.knot(0);
+    }
+    d = spline(spline.knot(spline.nKnots() - 1)) - x;
+    sqDist = blitz::dot(d, d);
+    if (sqDist < sqMinDist)
+    {
+      sqMinDist = sqDist;
+      u = spline.knot(spline.nKnots() - 1);
+    }
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "blitz::TinyVector<double,Dim> const &, double) "
+        "- End point treatment"].stop();
+#endif
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "distance(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "blitz::TinyVector<double,Dim> const &, double)"].stop();
+#endif
+    return std::sqrt(sqMinDist);
+  }
+
+  template<int Dim>
+  double extendedDistance(
+      BSpline< blitz::TinyVector<double,Dim> > const &spline,
+      blitz::TinyVector<double,Dim> const &x, double &u,
+      double lBound, double uBound)
+  {
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "extentdedDistance(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "blitz::TinyVector<double,Dim> const &, "
+        "double, double, double)"].start();
+#endif
+    if (spline.degree() < 0)
+    {
+      u = 0.0;
+      return std::sqrt(blitz::dot(x, x));
+    }
+
+    double currentSqDist, sqDist = std::numeric_limits<double>::infinity();
+    for (size_t segment = spline.degree();
+         segment < spline.nControlPoints(); ++segment)
+    {
+      Polynomial<double> res;
+      for (int k = 0; k < Dim; ++k)
+      {
+        Polynomial<double> b;
+        Polynomial<double> db;
+        for (size_t j = segment - spline.degree(); j <= segment; ++j)
+        {
+          b += spline.controlPoint(j)(k) * spline.basePolynomial(segment, j);
+          db += spline.controlPoint(j)(k) *
+              spline.basePolynomial(segment, j, -1);
+        }
+        b -= Polynomial<double>(std::vector<double>(1, x(k)));
+        res += db * b;
+      }
+      std::vector< std::complex<double> > roots(res.roots());
+      for (size_t i = 0; i < roots.size(); ++i)
+      {
+        if (std::abs(roots[i].imag()) < 1e-10 &&
+            roots[i].real() >= spline.knot(segment) &&
+            roots[i].real() < spline.knot(segment + 1) &&
+            roots[i].real() >= lBound && roots[i].real() <= uBound)
+        {
+          blitz::TinyVector<double,Dim> d(spline(roots[i].real()) - x);
+          currentSqDist = blitz::dot(d, d);
+          if (currentSqDist < sqDist)
+          {
+            sqDist = currentSqDist;
+            u = roots[i].real();
+          }
+        }
+      }
+    }
+
+    // Add the nearest points to the linear segments
+    double currentU;
+    blitz::TinyVector<double,Dim> slb(spline(lBound));
+    blitz::TinyVector<double,Dim> dslb(spline.derivative(lBound));
+    currentU = blitz::dot(-slb + lBound * dslb + x, dslb) /
+        blitz::dot(dslb, dslb);
+    blitz::TinyVector<double,Dim> d(spline(currentU, lBound, uBound) - x);
+    currentSqDist = blitz::dot(d, d);
+    if (currentU < lBound && currentSqDist < sqDist)
+    {
+      sqDist = currentSqDist;
+      u = currentU;
+    }
+    blitz::TinyVector<double,Dim> sub(spline(uBound));
+    blitz::TinyVector<double,Dim> dsub(spline.derivative(uBound));
+    currentU = blitz::dot(
+        -sub + uBound * dsub + x, dsub) / blitz::dot(dsub, dsub);
+    d = spline(currentU, lBound, uBound) - x;
+    currentSqDist = blitz::dot(d, d);
+    if (currentU > uBound && currentSqDist < sqDist)
+    {
+      sqDist = currentSqDist;
+      u = currentU;
+    }
+    
+#ifdef ATBSPLINE_PROFILE
+    BSpline< blitz::TinyVector<double,Dim> >::__profiler[
+        "extentdedDistance(BSpline< blitz::TinyVector<double,Dim> > &, "
+        "blitz::TinyVector<double,Dim> const &, "
+        "double, double, double)"].stop();
+#endif
+    return std::sqrt(sqDist);
+  }
+ 
+  template<typename ControlPointT>
+  Polynomial<double> BSpline<ControlPointT>::_zeroPolynomial =
+      Polynomial<double>();
+  
+}

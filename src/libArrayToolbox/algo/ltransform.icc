@@ -1,0 +1,27 @@
+template<typename LabelT, int Dim>
+void randomColorMapping(
+    blitz::Array<LabelT,Dim> &L,
+    blitz::Array<unsigned char,Dim+1> &randomColor)
+{
+  LabelT maxLabel = blitz::max(L);
+  blitz::TinyVector<unsigned char, 3> colorMap[maxLabel + 1];
+  colorMap[0] = blitz::TinyVector<unsigned char, 3>(10, 10, 10);
+  colorMap[1] = blitz::TinyVector<unsigned char, 3>(0, 0, 0);
+  for (int i = 2; i < maxLabel + 1; i++)
+  {
+    unsigned char red = float(std::rand()) / RAND_MAX * 150 + 100;
+    unsigned char green = float(std::rand()) / RAND_MAX * 150 + 100;
+    unsigned char blue = float(std::rand()) / RAND_MAX * 150 + 100;
+    colorMap[i] = blitz::TinyVector<unsigned char, 3>(red, green, blue);
+  }
+
+  typename blitz::Array<unsigned char, 1 + Dim>::iterator it =
+      randomColor.begin();
+  typename blitz::Array<LabelT, Dim>::iterator it2 = L.begin();
+  for (; it2 != L.end(); it2++)
+  {
+    *it++ = (colorMap[*it2])(0);
+    *it++ = (colorMap[*it2])(1);
+    *it++ = (colorMap[*it2])(2);
+  }
+}

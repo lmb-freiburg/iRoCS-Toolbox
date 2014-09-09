@@ -1,0 +1,90 @@
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  saveParameters
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename TCModel>
+template<typename STDATA>
+void svt::Model_MC_OneVsOne<TCModel>::saveParameters( 
+    STDATA& stData) const
+{
+  CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireStDataFVArray<STDATA,FV>);
+  /*-----------------------------------------------------------------------
+   *  Run throgh all two-class models and store their parameters
+   *-----------------------------------------------------------------------*/
+  for( unsigned int firstClass = 0; 
+       firstClass < _triangMat.width()-1; ++firstClass)
+  {
+    for( unsigned int secondClass = firstClass+1; 
+         secondClass < _triangMat.width(); ++secondClass)
+    {
+      std::ostringstream prefix_os;
+      prefix_os << firstClass << "vs" << secondClass << "_";
+      _triangMat( firstClass ,secondClass).saveParametersWithUIDs(
+          stData, prefix_os.str());
+    }
+  }
+  stData.setValue( "n_classes", nClasses());
+  
+  this->saveSupportVectorsAndClassLabels( stData);
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  loadParameters
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename TCModel>
+template< typename STDATA>
+void svt::Model_MC_OneVsOne<TCModel>::loadParameters( STDATA& stData)
+{
+  CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireStDataFVArray<STDATA,FV>);
+
+  // be sure to throw exceptions, when a key is missing
+  //SVM_ASSERT( stData.exceptionFlag() == true);  
+  bool oldExceptionFlag = stData.exceptionFlag();
+  stData.setExceptionFlag( true);
+ 
+  /*-----------------------------------------------------------------------
+   *  load support vectors and class labels
+   *-----------------------------------------------------------------------*/
+  this->loadSupportVectorsAndClassLabels( stData);
+
+  /*-----------------------------------------------------------------------
+   *  get number of classes to resize internal structures appropriately  
+   *-----------------------------------------------------------------------*/
+  unsigned int n_classes;
+  stData.getValue( "n_classes", n_classes);
+  resizeTriangularMatrix( n_classes);
+  
+  /*-----------------------------------------------------------------------
+   *  set up translation table from uid to Feature vector pointer
+   *-----------------------------------------------------------------------*/
+  std::vector< FV*> fvsByUID( this->maxUniqueID()+1);
+  for( unsigned int i = 0; i < this->collectedSupportVectors().size(); ++i)
+  {
+    fvsByUID[ this->collectedSupportVectors()[i]->uniqueID()] = 
+        this->collectedSupportVectors()[i];
+  }
+  /*-----------------------------------------------------------------------
+   *  finally load the parameters for each model
+   *-----------------------------------------------------------------------*/
+  for( unsigned int firstClass = 0; 
+       firstClass < _triangMat.width()-1; ++firstClass)
+  {
+    for( unsigned int secondClass = firstClass+1; 
+         secondClass < _triangMat.width(); ++secondClass)
+    {
+      std::ostringstream prefix_os;
+      prefix_os << firstClass << "vs" << secondClass << "_";
+      _triangMat( firstClass ,secondClass).loadParametersWithUIDs( 
+          stData, fvsByUID, prefix_os.str());
+    }
+  }
+  
+  stData.setExceptionFlag( oldExceptionFlag);
+  
+}
+
+
+

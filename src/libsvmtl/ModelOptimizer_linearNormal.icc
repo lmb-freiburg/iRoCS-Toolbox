@@ -1,0 +1,46 @@
+
+template <typename FV>
+template <typename MODEL>
+void ModelOptimizer_linearNormal<FV>::optimizeModel(MODEL& model)
+{
+    //calc normals
+    _reducedSV.clear();
+    for (unsigned int i =0;i< model.nTwoClassModels();++i)
+    {
+	_reducedSV.push_back(optimizeTwoClassModel(model.twoClassModel(i),i));
+    }
+
+    //kill old model
+    model.freeCollectedSupportVectors();
+    model.resizeCollectedSupportVectors(model.nTwoClassModels());
+    model.collectSupportVectorsFromTCModels();
+
+}
+
+template <typename FV>
+template <typename TWO_MODEL>
+FV* ModelOptimizer_linearNormal<FV>::optimizeTwoClassModel(TWO_MODEL& model, int uid)
+{
+    //calc normal
+    FV* w = new FV;
+    w->resize(model.supportVector(0)->size());
+    w->setZero();
+    for (unsigned int i=0;i<model.size(); ++i)
+    {
+	FV tmp;
+	tmp.resize(model.supportVector(i)->size());
+	tmp.setZero();
+	tmp += *model.supportVector(i);
+	tmp *= model.alpha(i);
+	*w += tmp;
+    }
+
+    w->setUniqueID(uid);
+
+    //model.free_memory();
+    model.resize(1);
+    model.setSupportVector(0, w, 1.0);
+    
+    return w;
+}
+

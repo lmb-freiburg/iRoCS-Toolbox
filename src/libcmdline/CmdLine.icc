@@ -1,0 +1,282 @@
+/**************************************************************************
+**       Title: CmdLine inline methods
+**    $RCSfile$
+**   $Revision: 3270 $$Name$
+**       $Date: 2010-01-12 22:01:51 +0100 (Tue, 12 Jan 2010) $
+**   Copyright: GPL $Author: emmenlau $
+** Description:
+**
+**
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.6  2005/06/09 07:58:07  tschmidt
+**  - Changed enum names from bla to CmdLinebla
+**
+**  Revision 1.5  2004/07/02 13:13:03  mechnich
+**  allow negative numbers as cmdline arguments
+**
+**  Revision 1.4  2002/06/03 15:22:35  pigorsch
+**  - removed UsageLevel
+**
+**  Revision 1.3  2002/04/18 14:02:30  pigorsch
+**  - changed method of clearing flags
+**
+**  Revision 1.2  2002/03/27 10:25:10  pigorsch
+**  - added longname support
+**
+**  Revision 1.1  2002/03/26 07:36:28  ronneber
+**  restructuring for autoconf
+**
+**  Revision 1.1.1.1  2002/03/22 13:45:07  pigorsch
+**  moved from polsoft repository
+**
+**
+**
+**************************************************************************/
+
+inline
+std::string
+CmdLine::
+name() const
+{
+  return pName;
+}
+
+inline
+void
+CmdLine::
+name(const std::string& value)
+{
+  pName=basename(value);
+}
+
+inline
+std::string
+CmdLine::
+longname() const
+{
+  return pLongName;
+}
+
+inline
+void
+CmdLine::
+longname(const std::string& value)
+{
+  pLongName=value;
+}
+
+inline
+std::string
+CmdLine::
+description() const
+{
+  return pDescription;
+}
+
+inline
+void
+CmdLine::
+description(const std::string& value)
+{
+  pDescription=value;
+}
+
+inline
+CmdLine&
+CmdLine::
+append(CmdArg& cmdarg)
+{
+  return append(&cmdarg);
+}
+
+inline
+std::ostream&
+CmdLine::
+usage() const
+{
+  return usage(error());
+}
+
+inline
+CmdLine::CmdLineStatus
+CmdLine::
+status() const
+{
+  return pStatus;
+}
+
+inline
+void
+CmdLine::
+status(CmdLine::CmdLineStatus s)
+{
+  pStatus=s;
+}
+
+inline
+void
+CmdLine::
+setStatus(CmdLine::CmdLineStatus s)
+{
+  status(CmdLine::CmdLineStatus(status() | s));
+}
+
+inline
+bool
+CmdLine::
+hasStatus(CmdLine::CmdLineStatus s) const
+{
+  return ((status() & s) != 0);
+}
+
+inline
+CmdLine::CmdLineState
+CmdLine::
+state() const
+{
+  return pState;
+}
+
+inline
+void
+CmdLine::
+state(CmdLine::CmdLineState s)
+{
+  pState=s;
+}
+
+inline
+void
+CmdLine::
+setState(CmdLine::CmdLineState s)
+{
+  state(CmdLine::CmdLineState(state() | s));
+}
+
+inline
+void
+CmdLine::
+clearState(CmdLine::CmdLineState s)
+{
+  state(CmdLine::CmdLineState(state() & ~s));
+}
+
+inline
+bool
+CmdLine::
+hasState(CmdLine::CmdLineState s) const
+{
+  return ((state() & s) != 0);
+}
+
+inline
+CmdLine::CmdLineFlags
+CmdLine::
+flags() const
+{
+  return pFlags;
+}
+
+inline
+void
+CmdLine::
+flags(CmdLine::CmdLineFlags f)
+{
+  pFlags=f;
+}
+
+inline
+void
+CmdLine::
+setFlags(CmdLine::CmdLineFlags f)
+{
+  flags(CmdLine::CmdLineFlags(f | flags()));
+}
+
+inline
+void
+CmdLine::
+clearFlags(CmdLine::CmdLineFlags f)
+{
+  flags(CmdLine::CmdLineFlags(flags() & ~f));
+}
+
+inline
+bool
+CmdLine::
+hasFlag(CmdLine::CmdLineFlags f) const
+{
+  return ((flags() & f) != 0);
+}
+
+inline
+std::ostream&
+CmdLine::
+error() const
+{
+  std::ostream* os=(pErr) ? pErr : &std::cerr;
+  return *os;
+}
+
+inline
+void
+CmdLine::
+error(std::ostream& os)
+{
+  pErr=&os;
+}
+
+inline
+unsigned int
+CmdLine::
+nargsParsed() const
+{
+  return pNArgsParsed;
+}
+
+inline
+CmdArg*
+CmdLine::
+getArg(char optchar) const
+{
+  return matchShort(optchar);
+}
+
+inline
+CmdArg*
+CmdLine::
+getArg(const std::string& keyword) const
+{
+  bool ambig=false;
+  return matchLong(keyword, -1, ambig);
+}
+
+inline
+bool
+CmdLine::
+isShort(const char* s)
+{
+  return ((*(s)=='-')
+          && ((*((s)+1)!='-'))
+          && ((*((s)+1)) < '0' || (*((s)+1) > '9'))
+          && ((*((s)+1)!='\0')));
+}
+
+inline
+bool
+CmdLine::
+isLong(const char* s)
+{
+  return ((*(s)=='-') && (*((s)+1)=='-') && (*((s)+2)!='\0'));
+}
+
+inline
+bool
+CmdLine::
+isEndOfOptions(const char *s)
+{
+  return ((*(s)=='-') && (*((s)+1)=='-') && (*((s)+2)=='\0'));
+}

@@ -1,0 +1,41 @@
+/**************************************************************************
+**       Title: 
+**    $RCSfile$
+**   $Revision: 536 $$Name$
+**       $Date: 2004-09-10 13:51:50 +0200 (Fri, 10 Sep 2004) $
+**   Copyright: GPL $Author: ronneber $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.1  2004/09/10 11:51:50  ronneber
+**  renamed class SVM to SVMBase to avoid confusion with SVM template parameters
+**
+**  Revision 1.1  2004/08/26 08:36:59  ronneber
+**  initital import
+**
+**
+**
+**************************************************************************/
+
+
+
+template< typename KF> 
+template<typename FV>
+double svt::SVMBase<KF>::classify( const FV& testObject, 
+                               const Model<FV>& model) const
+{
+  CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireKernel_k_function<KF,FV>);
+
+  double sum = 0;
+  for( unsigned int i = 0; i < model.size(); ++i)
+  {
+    sum += model.alpha(i) *  p_kernel.k_function( testObject, 
+                                                  *(model.supportVector(i)));
+  }
+  sum -= model.rho();
+  return sum;
+}

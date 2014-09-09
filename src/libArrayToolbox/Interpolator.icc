@@ -1,0 +1,2019 @@
+/**************************************************************************
+ **       Title: Interpolation strategies and related functions and classes
+ **    $RCSfile:$
+ **   $Revision:$ $Name:$
+ **       $Date:$
+ **   Copyright: GPL $Author:$
+ ** Description:
+ **
+ **   Implementation of several boundary treatments when accessing
+ **   out-of-bounds Array positions as for example during filtering.
+ **
+ **************************************************************************/
+
+namespace atb
+{
+
+  /*-----------------------------------------------------------------------
+   *  General interface
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim>::Interpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+  {
+    p_bt = BoundaryTreatmentFactory<DataT,Dim>::get(bt, boundaryValue);
+  }
+  
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim>::Interpolator(Interpolator<DataT,Dim> const &ip)
+          : p_bt(ip.p_bt->clone())
+  {}
+  
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim>::~Interpolator()
+  {
+    delete p_bt;
+  }
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim> &Interpolator<DataT,Dim>::operator=(
+      Interpolator<DataT,Dim> const &ip)
+  {
+    delete p_bt;
+    p_bt = ip.p_bt->clone();
+    return *this;
+  }
+
+  template<typename DataT,int Dim>
+  BoundaryTreatment<DataT,Dim> const
+  &Interpolator<DataT,Dim>::boundaryTreatment() const
+  {
+    return *p_bt;
+  }
+  
+  template<typename DataT,int Dim>
+  BoundaryTreatment<DataT,Dim> &Interpolator<DataT,Dim>::boundaryTreatment()
+  {
+    return *p_bt;
+  }
+  
+  template<typename DataT,int Dim>
+  void Interpolator<DataT,Dim>::setBoundaryTreatment(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+  {
+    delete p_bt;
+    p_bt = BoundaryTreatmentFactory<DataT,Dim>::get(bt, boundaryValue);
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Nearest Interpolator
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT,int Dim>
+  NearestInterpolator<DataT,Dim>::NearestInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT,int Dim>
+  NearestInterpolator<DataT,Dim>::NearestInterpolator(
+      NearestInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename DataT,int Dim>
+  NearestInterpolator<DataT,Dim>::~NearestInterpolator()
+  {}
+  
+  template<typename DataT,int Dim>
+  NearestInterpolator<DataT,Dim> &NearestInterpolator<DataT,Dim>::operator=(
+      NearestInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim> *NearestInterpolator<DataT,Dim>::clone() const
+  {
+    return new NearestInterpolator<DataT,Dim>(*this);
+  }
+
+  template<typename DataT,int Dim>
+  InterpolationType NearestInterpolator<DataT,Dim>::type() const
+  {
+    return NearestIP;
+  }
+
+  template<typename DataT,int Dim>
+  DataT NearestInterpolator<DataT,Dim>::get(
+          blitz::Array<DataT,Dim> const &data,
+          blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<BlitzIndexT,Dim> iPos(blitz::floor(pos + 0.5));
+    return this->p_bt->get(data, iPos);
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Linear interpolator (general case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT,int Dim>
+  LinearInterpolator<DataT,Dim>::LinearInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT,int Dim>
+  LinearInterpolator<DataT,Dim>::LinearInterpolator(
+      LinearInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename DataT,int Dim>
+  LinearInterpolator<DataT,Dim>::~LinearInterpolator()
+  {}
+  
+  template<typename DataT,int Dim>
+  LinearInterpolator<DataT,Dim> &LinearInterpolator<DataT,Dim>::operator=(
+      LinearInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim> *LinearInterpolator<DataT,Dim>::clone() const
+  {
+    return new LinearInterpolator<DataT,Dim>(*this);
+  }
+
+  template<typename DataT,int Dim>
+  InterpolationType LinearInterpolator<DataT,Dim>::type() const
+  {
+    return LinearIP;
+  }
+
+  template<typename DataT,int Dim>
+  DataT LinearInterpolator<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<BlitzIndexT,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - lPos);
+    blitz::TinyVector<double,Dim> lambda[] = { 1.0 - fPos, fPos };
+    
+    typedef typename traits<DataT>::HighPrecisionT hp_t;
+
+    hp_t res = traits<hp_t>::zero;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> binPos;
+      for (int i = 0; i < (1 << Dim); i++)
+      {
+        double factor = 1.0;
+        for (int d = 0; d < Dim; ++d)
+        {
+          int offset = (i >> d) % 2;
+          factor *= lambda[offset](d);
+          binPos(d) = lPos(d) + offset;
+        }
+        res += factor * hp_t(data(binPos));
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        for (int i = 0; i < (1 << Dim); i++)
+        {
+          double factor = 1.0;
+          for (int d = 0; d < Dim; ++d)
+          {
+            int offset = (i >> d) % 2;
+            factor *= lambda[offset](d);
+            binPos(d) = posI[offset](d);
+          }
+          res += factor * hp_t(data(binPos));
+        }
+      }
+      else
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        for (int i = 0; i < (1 << Dim); i++)
+        {
+          double factor = 1.0;
+          for (int d = 0; d < Dim; ++d)
+          {
+            int offset = (i >> d) % 2;
+            factor *= lambda[offset](d);
+            binPos(d) = lPos(d) + offset;
+          }
+          res += factor * hp_t(this->p_bt->get(data, binPos));
+        }
+      }
+    }
+    if (std::numeric_limits<DataT>::is_specialized &&
+        std::numeric_limits<DataT>::is_integer)
+        return DataT(res + 0.5);
+    else return DataT(res);
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Linear interpolator (specialization for 1D)
+   *-----------------------------------------------------------------------*/ 
+
+  template<typename DataT>
+  class LinearInterpolator<DataT,1> : public Interpolator<DataT,1>
+  {
+
+  public:
+    
+    LinearInterpolator(BoundaryTreatmentType bt = ValueBT,
+                       DataT const &boundaryValue = traits<DataT>::zero);
+    LinearInterpolator(LinearInterpolator<DataT,1> const &ip);
+    ~LinearInterpolator();
+
+    LinearInterpolator<DataT,1> &operator=(
+        LinearInterpolator<DataT,1> const &ip);
+
+    Interpolator<DataT,1> *clone() const;
+
+    InterpolationType type() const;
+
+    DataT get(
+        blitz::Array<DataT,1> const &data,
+        blitz::TinyVector<double,1> const &pos) const;
+
+  };
+
+  template<typename DataT>
+  LinearInterpolator<DataT,1>::LinearInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,1>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,1>::LinearInterpolator(
+      LinearInterpolator<DataT,1> const &ip)
+          : Interpolator<DataT,1>(ip)
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,1>::~LinearInterpolator()
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,1> &LinearInterpolator<DataT,1>::operator=(
+      LinearInterpolator<DataT,1> const &ip)
+  {
+    Interpolator<DataT,1>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT>
+  Interpolator<DataT,1> *LinearInterpolator<DataT,1>::clone() const
+  {
+    return new LinearInterpolator<DataT,1>(*this);
+  }
+
+  template<typename DataT>
+  InterpolationType LinearInterpolator<DataT,1>::type() const
+  {
+    return LinearIP;
+  }
+
+  template<typename DataT>
+  DataT LinearInterpolator<DataT,1>::get(
+      blitz::Array<DataT,1> const &data,
+      blitz::TinyVector<double,1> const &pos) const
+  {
+    typedef typename traits<DataT>::HighPrecisionT hp_t;
+
+    ptrdiff_t posInt = static_cast<ptrdiff_t>(std::floor(pos(0)));
+    double alpha = pos(0) - static_cast<double>(posInt);
+    if (posInt >= 0 && posInt < static_cast<ptrdiff_t>(data.size()) - 1)
+        return DataT((1.0 - alpha) * hp_t(data.data()[posInt]) +
+                     alpha * hp_t(data.data()[posInt + 1]));
+    return DataT((1.0 - alpha) *
+                 hp_t(this->p_bt->get(
+                          data,
+                          blitz::TinyVector<atb::BlitzIndexT,1>(posInt))) +
+                 alpha *
+                 hp_t(this->p_bt->get(
+                          data,
+                          blitz::TinyVector<atb::BlitzIndexT,1>(posInt + 1))));
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Linear interpolator (specialization for 2D)
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT>
+  class LinearInterpolator<DataT,2> : public Interpolator<DataT,2>
+  {
+
+  public:
+    
+    LinearInterpolator(BoundaryTreatmentType bt = ValueBT,
+                       DataT const &boundaryValue = traits<DataT>::zero);
+    LinearInterpolator(LinearInterpolator<DataT,2> const &ip);
+    ~LinearInterpolator();
+
+    LinearInterpolator<DataT,2> &operator=(
+        LinearInterpolator<DataT,2> const &ip);
+
+    Interpolator<DataT,2> *clone() const;
+
+    InterpolationType type() const;
+
+    DataT get(
+        blitz::Array<DataT,2> const &data,
+        blitz::TinyVector<double,2> const &pos) const;
+
+  };
+
+  template<typename DataT>
+  LinearInterpolator<DataT,2>::LinearInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,2>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,2>::LinearInterpolator(
+      LinearInterpolator<DataT,2> const &ip)
+          : Interpolator<DataT,2>(ip)
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,2>::~LinearInterpolator()
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,2> &LinearInterpolator<DataT,2>::operator=(
+      LinearInterpolator<DataT,2> const &ip)
+  {
+    Interpolator<DataT,2>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT>
+  Interpolator<DataT,2> *LinearInterpolator<DataT,2>::clone() const
+  {
+    return new LinearInterpolator<DataT,2>(*this);
+  }
+
+  template<typename DataT>
+  InterpolationType LinearInterpolator<DataT,2>::type() const
+  {
+    return LinearIP;
+  }
+
+  template<typename DataT>
+  DataT LinearInterpolator<DataT,2>::get(
+      blitz::Array<DataT,2> const &data,
+      blitz::TinyVector<double,2> const &pos) const
+  {
+    typedef typename traits<DataT>::HighPrecisionT hp_t;
+
+    blitz::TinyVector<BlitzIndexT,2> posInt(
+        static_cast<BlitzIndexT>(std::floor(pos(0))),
+        static_cast<BlitzIndexT>(std::floor(pos(1))));
+    blitz::TinyVector<double,2> alpha(
+        pos - blitz::TinyVector<double,2>(posInt));
+    hp_t res;
+    if (blitz::all(posInt >= 0 && posInt < data.shape() - 1))
+    {
+      res = (1.0 - alpha(1)) * (
+          (1.0 - alpha(0)) * hp_t(data(posInt(0), posInt(1))) +
+          alpha(0) * hp_t(data(posInt(0) + 1, posInt(1)))) +
+          alpha(1) * (
+              (1.0 - alpha(0)) * hp_t(data(posInt(0), posInt(1) + 1)) +
+              alpha(0) * hp_t(data(posInt(0) + 1, posInt(1) + 1)));
+    }
+    else if (this->p_bt->providesIndices())
+    {
+      blitz::TinyVector<BlitzIndexT,2> lb(
+          this->p_bt->getIndex(posInt, data.shape()));
+      blitz::TinyVector<BlitzIndexT,2> ub(
+          this->p_bt->getIndex(
+              blitz::TinyVector<BlitzIndexT,2>(posInt + 1), data.shape()));
+      res = (1.0 - alpha(1)) * ((1.0 - alpha(0)) * hp_t(data(lb(0), lb(1))) +
+                                alpha(0) * hp_t(data(ub(0), lb(1)))) +
+          alpha(1) * ((1.0 - alpha(0)) * hp_t(data(lb(0), ub(1))) +
+                      alpha(0) * hp_t(data(ub(0), ub(1))));
+    }
+    else res = (1.0 - alpha(1)) * (
+        (1.0 - alpha(0)) * hp_t(
+            this->p_bt->get(
+                data, blitz::TinyVector<BlitzIndexT,2>(posInt(0), posInt(1)))) +
+        alpha(0) * hp_t(
+            this->p_bt->get(
+                data, blitz::TinyVector<BlitzIndexT,2>(
+                    posInt(0) + 1, posInt(1))))) +
+             alpha(1) * (
+                 (1.0 - alpha(0)) *
+                 hp_t(this->p_bt->get(data, blitz::TinyVector<BlitzIndexT,2>(
+                                          posInt(0), posInt(1) + 1))) +
+                 alpha(0) * hp_t(
+                     this->p_bt->get(data, blitz::TinyVector<BlitzIndexT,2>(
+                                         posInt(0) + 1, posInt(1) + 1))));
+    if (std::numeric_limits<DataT>::is_specialized &&
+        std::numeric_limits<DataT>::is_integer)
+        return DataT(res + 0.5);
+    else return DataT(res);    
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  Linear interpolator (specialization for 3D)
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT>
+  class LinearInterpolator<DataT,3> : public Interpolator<DataT,3>
+  {
+
+  public:
+    
+    LinearInterpolator(BoundaryTreatmentType bt = ValueBT,
+                       DataT const &boundaryValue = traits<DataT>::zero);
+    LinearInterpolator(LinearInterpolator<DataT,3> const &ip);
+    ~LinearInterpolator();
+
+    LinearInterpolator<DataT,3> &operator=(
+        LinearInterpolator<DataT,3> const &ip);
+
+    Interpolator<DataT,3> *clone() const;
+
+    InterpolationType type() const;
+
+    DataT get(
+        blitz::Array<DataT,3> const &data,
+        blitz::TinyVector<double,3> const &pos) const;
+
+  };
+
+  template<typename DataT>
+  LinearInterpolator<DataT,3>::LinearInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,3>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,3>::LinearInterpolator(
+      LinearInterpolator<DataT,3> const &ip)
+          : Interpolator<DataT,3>(ip)
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,3>::~LinearInterpolator()
+  {}
+  
+  template<typename DataT>
+  LinearInterpolator<DataT,3> &LinearInterpolator<DataT,3>::operator=(
+      LinearInterpolator<DataT,3> const &ip)
+  {
+    Interpolator<DataT,3>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT>
+  Interpolator<DataT,3> *LinearInterpolator<DataT,3>::clone() const
+  {
+    return new LinearInterpolator<DataT,3>(*this);
+  }
+
+  template<typename DataT>
+  InterpolationType LinearInterpolator<DataT,3>::type() const
+  {
+    return LinearIP;
+  }
+
+  template<typename DataT>
+  DataT LinearInterpolator<DataT,3>::get(
+      blitz::Array<DataT,3> const &data,
+      blitz::TinyVector<double,3> const &pos) const
+  {
+    typedef typename traits<DataT>::HighPrecisionT hp_t;
+
+    blitz::TinyVector<BlitzIndexT,3> posInt(
+        static_cast<BlitzIndexT>(std::floor(pos(0))),
+        static_cast<BlitzIndexT>(std::floor(pos(1))),
+        static_cast<BlitzIndexT>(std::floor(pos(2))));
+    blitz::TinyVector<double,3> alpha(
+        pos - blitz::TinyVector<double,3>(posInt));
+    hp_t res;
+    if (blitz::all(posInt >= 0 && posInt < data.shape() - 1))
+    {
+      res = (1.0 - alpha(2)) * (
+          (1.0 - alpha(1)) * (
+              (1.0 - alpha(0)) *
+              hp_t(data(posInt(0), posInt(1), posInt(2))) +
+              alpha(0) *
+              hp_t(data(posInt(0) + 1, posInt(1), posInt(2)))) +
+          alpha(1) * (
+              (1.0 - alpha(0)) *
+              hp_t(data(posInt(0), posInt(1) + 1, posInt(2))) +
+              alpha(0) *
+              hp_t(data(posInt(0) + 1, posInt(1) + 1, posInt(2))))) +
+          alpha(2) * (
+              (1.0 - alpha(1)) * (
+                  (1.0 - alpha(0)) *
+                  hp_t(data(posInt(0), posInt(1), posInt(2) + 1)) +
+                  alpha(0) *
+                  hp_t(data(posInt(0) + 1, posInt(1), posInt(2) + 1))) +
+              alpha(1) * (
+                  (1.0 - alpha(0)) *
+                  hp_t(data(posInt(0), posInt(1) + 1, posInt(2) + 1)) +
+                  alpha(0) *
+                  hp_t(data(posInt(0) + 1, posInt(1) + 1, posInt(2) + 1))));
+    }
+    else if (this->p_bt->providesIndices())
+    {
+      blitz::TinyVector<BlitzIndexT,3> lb(
+          this->p_bt->getIndex(posInt, data.shape()));
+      blitz::TinyVector<BlitzIndexT,3> ub(
+          this->p_bt->getIndex(
+              blitz::TinyVector<BlitzIndexT,3>(posInt + 1), data.shape()));
+      res = (1.0 - alpha(2)) * (
+          (1.0 - alpha(1)) * (
+              (1.0 - alpha(0)) * hp_t(data(lb(0), lb(1), lb(2))) +
+              alpha(0) * hp_t(data(ub(0), lb(1), lb(2)))) +
+          alpha(1) * (
+              (1.0 - alpha(0)) * hp_t(data(lb(0), ub(1), lb(2))) +
+              alpha(0) * hp_t(data(ub(0), ub(1), lb(2))))) +
+          alpha(2) * (
+              (1.0 - alpha(1)) * (
+                  (1.0 - alpha(0)) * hp_t(data(lb(0), lb(1), ub(2))) +
+                  alpha(0) * hp_t(data(ub(0), lb(1), ub(2)))) +
+              alpha(1) * (
+                  (1.0 - alpha(0)) * hp_t(data(lb(0), ub(1), ub(2))) +
+                  alpha(0) * hp_t(data(ub(0), ub(1), ub(2)))));
+    }
+    else res = (1.0 - alpha(2)) * (
+        (1.0 - alpha(1)) * (
+            (1.0 - alpha(0)) *
+            hp_t(this->p_bt->get(
+                     data, blitz::TinyVector<BlitzIndexT,3>(
+                         posInt(0), posInt(1), posInt(2)))) +
+            alpha(0) *
+            hp_t(this->p_bt->get(
+                     data, blitz::TinyVector<BlitzIndexT,3>(
+                         posInt(0) + 1, posInt(1), posInt(2))))) +
+        alpha(1) * (
+            (1.0 - alpha(0)) *
+            hp_t(this->p_bt->get(
+                     data, blitz::TinyVector<BlitzIndexT,3>(
+                         posInt(0), posInt(1) + 1, posInt(2)))) +
+            alpha(0) *
+            hp_t(this->p_bt->get(
+                     data, blitz::TinyVector<BlitzIndexT,3>(
+                         posInt(0) + 1, posInt(1) + 1, posInt(2)))))) +
+             alpha(2) * (
+                 (1.0 - alpha(1)) * (
+                     (1.0 - alpha(0)) *
+                     hp_t(this->p_bt->get(
+                              data, blitz::TinyVector<BlitzIndexT,3>(
+                                  posInt(0), posInt(1), posInt(2) + 1))) +
+                     alpha(0) *
+                     hp_t(this->p_bt->get(
+                              data, blitz::TinyVector<BlitzIndexT,3>(
+                                  posInt(0) + 1, posInt(1), posInt(2) + 1)))) +
+                 alpha(1) * (
+                     (1.0 - alpha(0)) *
+                     hp_t(this->p_bt->get(
+                              data, blitz::TinyVector<BlitzIndexT,3>(
+                                  posInt(0), posInt(1) + 1, posInt(2) + 1))) +
+                     alpha(0) *
+                     hp_t(this->p_bt->get(
+                              data, blitz::TinyVector<BlitzIndexT,3>(
+                                  posInt(0) + 1, posInt(1) + 1,
+                                  posInt(2) + 1)))));
+    if (std::numeric_limits<DataT>::is_specialized &&
+        std::numeric_limits<DataT>::is_integer)
+        return DataT(res + 0.5);
+    else return DataT(res);    
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Cubic interpolator (general case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT,int Dim>
+  CubicInterpolator<DataT,Dim>::CubicInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT,int Dim>
+  CubicInterpolator<DataT,Dim>::CubicInterpolator(
+      CubicInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename DataT,int Dim>
+  CubicInterpolator<DataT,Dim>::~CubicInterpolator()
+  {}
+  
+  template<typename DataT,int Dim>
+  CubicInterpolator<DataT,Dim> &CubicInterpolator<DataT,Dim>::operator=(
+      CubicInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim> *CubicInterpolator<DataT,Dim>::clone() const
+  {
+    return new CubicInterpolator<DataT,Dim>(*this);
+  }
+
+  template<typename DataT,int Dim>
+  InterpolationType CubicInterpolator<DataT,Dim>::type() const
+  {
+    return CubicIP;
+  }
+
+  template<typename DataT,int Dim>
+  DataT CubicInterpolator<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    typedef typename traits<DataT>::HighPrecisionT hp_t;
+
+    blitz::TinyVector<BlitzIndexT,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - blitz::floor(pos));
+    blitz::TinyVector<double,Dim> lambda[] = {
+        fPos * ((2.0 - fPos) * fPos - 1.0),
+        fPos * fPos * (3.0 * fPos - 5.0) + 2.0,
+        fPos * ((4.0 - 3.0 * fPos) * fPos + 1.0),
+        fPos * fPos * (fPos - 1.0) };
+
+    hp_t res = traits<hp_t>::zero;
+    if (blitz::all(lPos >= 1 && lPos < data.shape() - 3))
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> binPos;
+      for (int i = 0; i < (1 << (2 * Dim)); i++)
+      {
+        double factor = 1.0;
+        for (int d = 0; d < Dim; ++d)
+        {
+          int offset = (i >> (2 * d)) % 4;
+          factor *= 0.5 * lambda[offset](d);
+          binPos(d) = lPos(d) + offset - 1;
+        }
+        res += factor * hp_t(data(binPos));
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos - 1), data.shape()), 
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 1), data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 2), data.shape()) };
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        for (int i = 0; i < (1 << (2 * Dim)); i++)
+        {
+          double factor = 1.0;
+          for (int d = 0; d < Dim; ++d)
+          {
+            int offset = (i >> (2 * d)) % 4;
+            factor *= 0.5 * lambda[offset](d);
+            binPos(d) = static_cast<BlitzIndexT>(std::floor(posI[offset](d)));
+          }
+          res += factor * hp_t(data(binPos));
+        }
+      }
+      else
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        for (int i = 0; i < (1 << (2 * Dim)); i++)
+        {
+          double factor = 1.0;
+          for (int d = 0; d < Dim; ++d)
+          {
+            int offset = (i >> (2 * d)) % 4;
+            factor *= 0.5 * lambda[offset](d);
+            binPos(d) = lPos(d) + offset - 1;
+          }
+          res += factor * hp_t(this->p_bt->get(data, binPos));
+        }
+      }
+    }
+    if (std::numeric_limits<DataT>::is_specialized &&
+        std::numeric_limits<DataT>::is_integer)
+        return static_cast<DataT>(res + 0.5);
+    else return static_cast<DataT>(res);
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Minimum interpolator (general case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT,int Dim>
+  MinimumInterpolator<DataT,Dim>::MinimumInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT,int Dim>
+  MinimumInterpolator<DataT,Dim>::MinimumInterpolator(
+      MinimumInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename DataT,int Dim>
+  MinimumInterpolator<DataT,Dim>::~MinimumInterpolator()
+  {}
+  
+  template<typename DataT,int Dim>
+  MinimumInterpolator<DataT,Dim> &MinimumInterpolator<DataT,Dim>::operator=(
+      MinimumInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim> *MinimumInterpolator<DataT,Dim>::clone() const
+  {
+    return new MinimumInterpolator<DataT,Dim>(*this);
+  }
+
+  template<typename DataT,int Dim>
+  InterpolationType MinimumInterpolator<DataT,Dim>::type() const
+  {
+    return MinimumIP;
+  }
+
+  template<typename DataT,int Dim>
+  DataT MinimumInterpolator<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<BlitzIndexT,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - blitz::floor(pos));
+    
+    DataT res;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> binPos;
+      res = data(lPos);
+      for (int i = 1; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        DataT val = data(binPos);
+        if (val < res) res = val;
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = data(posI[0]);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<BlitzIndexT>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          DataT val = data(binPos);
+          if (val < res) res = val;
+        }
+      }
+      else
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = this->p_bt->get(data, lPos);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          DataT val = this->p_bt->get(data, binPos);
+          if (val < res) res = val;
+        }
+      }
+    }
+    return res;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Minimum interpolator (complex case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename InnerT, int Dim>
+  class MinimumInterpolator<std::complex<InnerT>,Dim> :
+        public Interpolator<std::complex<InnerT>,Dim>
+  {
+
+  public:
+    
+    typedef std::complex<InnerT> DataT;
+
+    MinimumInterpolator(BoundaryTreatmentType bt = ValueBT,
+                        DataT const &boundaryValue = traits<DataT>::zero);
+
+    MinimumInterpolator(MinimumInterpolator<DataT,Dim> const &ip);
+
+    ~MinimumInterpolator();
+
+    MinimumInterpolator<DataT,Dim> &operator=(
+        MinimumInterpolator<DataT,Dim> const &ip);
+
+    Interpolator<DataT,Dim> *clone() const;
+
+    InterpolationType type() const;
+    
+    DataT get(
+        blitz::Array<DataT,Dim> const &data,
+        blitz::TinyVector<double,Dim> const &pos) const;
+  };
+
+  template<typename InnerT, int Dim>
+  MinimumInterpolator<std::complex<InnerT>,Dim>::MinimumInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename InnerT, int Dim>
+  MinimumInterpolator<std::complex<InnerT>,Dim>::MinimumInterpolator(
+      MinimumInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename InnerT, int Dim>
+  MinimumInterpolator<std::complex<InnerT>,Dim>::~MinimumInterpolator()
+  {}
+  
+  template<typename InnerT, int Dim>
+  MinimumInterpolator<std::complex<InnerT>,Dim>
+  &MinimumInterpolator<std::complex<InnerT>,Dim>::operator=(
+      MinimumInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename InnerT, int Dim>
+  Interpolator<std::complex<InnerT>,Dim>
+  *MinimumInterpolator<std::complex<InnerT>,Dim>::clone() const
+  {
+    return new MinimumInterpolator<std::complex<InnerT>,Dim>(*this);
+  }
+
+  template<typename InnerT, int Dim>
+  InterpolationType MinimumInterpolator<std::complex<InnerT>,Dim>::type() const
+  {
+    return MinimumIP;
+  }
+
+  template<typename InnerT, int Dim>
+  std::complex<InnerT> MinimumInterpolator<std::complex<InnerT>,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<BlitzIndexT,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - lPos);
+    
+    DataT res;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> binPos;
+      res = data(lPos);
+      for (int i = 1; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        DataT val = data(binPos);
+        if (std::abs(val) < std::abs(res)) res = val;
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = data(posI[0]);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<BlitzIndexT>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          DataT val = data(binPos);
+          if (std::abs(val) < std::abs(res)) res = val;
+        }
+      }
+      else
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = this->p_bt->get(data, lPos);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          DataT val = this->p_bt->get(data, binPos);
+          if (std::abs(val) < std::abs(res)) res = val;
+        }
+      }
+    }
+    return res;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Minimum interpolator (TinyVector case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename InnerT, int InnerDim, int Dim>
+  class MinimumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim> :
+        public Interpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  {
+
+  public:
+    
+    typedef blitz::TinyVector<InnerT,InnerDim> DataT;
+
+    MinimumInterpolator(BoundaryTreatmentType bt = ValueBT,
+                        DataT const &boundaryValue = traits<DataT>::zero);
+
+    MinimumInterpolator(MinimumInterpolator<DataT,Dim> const &ip);
+
+    ~MinimumInterpolator();
+
+    MinimumInterpolator<DataT,Dim> &operator=(
+        MinimumInterpolator<DataT,Dim> const &ip);
+
+    Interpolator<DataT,Dim> *clone() const;
+
+    InterpolationType type() const;
+    
+    DataT get(
+        blitz::Array<DataT,Dim> const &data,
+        blitz::TinyVector<double,Dim> const &pos) const;
+  };
+
+  template<typename InnerT, int InnerDim, int Dim>
+  MinimumInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::MinimumInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MinimumInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::MinimumInterpolator(
+      MinimumInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MinimumInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::~MinimumInterpolator()
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MinimumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  &MinimumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::operator=(
+      MinimumInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  Interpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  *MinimumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::clone() const
+  {
+    return
+        new MinimumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>(*this);
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  InterpolationType
+  MinimumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::type() const
+  {
+    return MinimumIP;
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  blitz::TinyVector<InnerT,InnerDim>
+  MinimumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<BlitzIndexT,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - lPos);
+    
+    DataT res;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> binPos;
+      res = data(lPos);
+      for (int i = 1; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        DataT val = data(binPos);
+        for (int d = 0; d < InnerDim; ++d)
+            if (val(d) < res(d)) res(d) = val(d);
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = data(posI[0]);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<BlitzIndexT>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          DataT val = data(binPos);
+          for (int d = 0; d < InnerDim; ++d)
+              if (val(d) < res(d)) res(d) = val(d);
+        }
+      }
+      else
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = this->p_bt->get(data, lPos);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          DataT val = this->p_bt->get(data, binPos);
+          for (int d = 0; d < InnerDim; ++d)
+              if (val(d) < res(d)) res(d) = val(d);
+        }
+      }
+    }
+    return res;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Maximum interpolator (general case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT,int Dim>
+  MaximumInterpolator<DataT,Dim>::MaximumInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT,int Dim>
+  MaximumInterpolator<DataT,Dim>::MaximumInterpolator(
+      MaximumInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename DataT,int Dim>
+  MaximumInterpolator<DataT,Dim>::~MaximumInterpolator()
+  {}
+  
+  template<typename DataT,int Dim>
+  MaximumInterpolator<DataT,Dim> &MaximumInterpolator<DataT,Dim>::operator=(
+      MaximumInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim> *MaximumInterpolator<DataT,Dim>::clone() const
+  {
+    return new MaximumInterpolator<DataT,Dim>(*this);
+  }
+
+  template<typename DataT,int Dim>
+  InterpolationType MaximumInterpolator<DataT,Dim>::type() const
+  {
+    return MaximumIP;
+  }
+
+  template<typename DataT,int Dim>
+  DataT MaximumInterpolator<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<BlitzIndexT,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - blitz::floor(pos));
+    
+    DataT res;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> binPos;
+      res = data(lPos);
+      for (int i = 1; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        DataT val = data(binPos);
+        if (val > res) res = val;
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = data(posI[0]);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<BlitzIndexT>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          DataT val = data(binPos);
+          if (val > res) res = val;
+        }
+      }
+      else
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = this->p_bt->get(data, lPos);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          DataT val = this->p_bt->get(data, binPos);
+          if (val > res) res = val;
+        }
+      }
+    }
+    return res;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Maximum interpolator (complex case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename InnerT, int Dim>
+  class MaximumInterpolator<std::complex<InnerT>,Dim> :
+        public Interpolator<std::complex<InnerT>,Dim>
+  {
+
+  public:
+    
+    typedef std::complex<InnerT> DataT;
+
+    MaximumInterpolator(BoundaryTreatmentType bt = ValueBT,
+                        DataT const &boundaryValue = traits<DataT>::zero);
+
+    MaximumInterpolator(MaximumInterpolator<DataT,Dim> const &ip);
+
+    ~MaximumInterpolator();
+
+    MaximumInterpolator<DataT,Dim> &operator=(
+        MaximumInterpolator<DataT,Dim> const &ip);
+
+    Interpolator<DataT,Dim> *clone() const;
+
+    InterpolationType type() const;
+    
+    DataT get(
+        blitz::Array<DataT,Dim> const &data,
+        blitz::TinyVector<double,Dim> const &pos) const;
+  };
+
+  template<typename InnerT, int Dim>
+  MaximumInterpolator<std::complex<InnerT>,Dim>::MaximumInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename InnerT, int Dim>
+  MaximumInterpolator<std::complex<InnerT>,Dim>::MaximumInterpolator(
+      MaximumInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename InnerT, int Dim>
+  MaximumInterpolator<std::complex<InnerT>,Dim>::~MaximumInterpolator()
+  {}
+  
+  template<typename InnerT, int Dim>
+  MaximumInterpolator<std::complex<InnerT>,Dim>
+  &MaximumInterpolator<std::complex<InnerT>,Dim>::operator=(
+      MaximumInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename InnerT, int Dim>
+  Interpolator<std::complex<InnerT>,Dim>
+  *MaximumInterpolator<std::complex<InnerT>,Dim>::clone() const
+  {
+    return new MaximumInterpolator<std::complex<InnerT>,Dim>(*this);
+  }
+
+  template<typename InnerT, int Dim>
+  InterpolationType MaximumInterpolator<std::complex<InnerT>,Dim>::type() const
+  {
+    return MaximumIP;
+  }
+
+  template<typename InnerT, int Dim>
+  std::complex<InnerT> MaximumInterpolator<std::complex<InnerT>,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<BlitzIndexT,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - lPos);
+    
+    DataT res;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> binPos;
+      res = data(lPos);
+      for (int i = 1; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        DataT val = data(binPos);
+        if (std::abs(val) > std::abs(res)) res = val;
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = data(posI[0]);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<BlitzIndexT>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          DataT val = data(binPos);
+          if (std::abs(val) > std::abs(res)) res = val;
+        }
+      }
+      else
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = this->p_bt->get(data, lPos);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          DataT val = this->p_bt->get(data, binPos);
+          if (std::abs(val) > std::abs(res)) res = val;
+        }
+      }
+    }
+    return res;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Maximum interpolator (TinyVector case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename InnerT, int InnerDim, int Dim>
+  class MaximumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim> :
+        public Interpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  {
+
+  public:
+    
+    typedef blitz::TinyVector<InnerT,InnerDim> DataT;
+
+    MaximumInterpolator(BoundaryTreatmentType bt = ValueBT,
+                        DataT const &boundaryValue = traits<DataT>::zero);
+
+    MaximumInterpolator(MaximumInterpolator<DataT,Dim> const &ip);
+
+    ~MaximumInterpolator();
+
+    MaximumInterpolator<DataT,Dim> &operator=(
+        MaximumInterpolator<DataT,Dim> const &ip);
+
+    Interpolator<DataT,Dim> *clone() const;
+
+    InterpolationType type() const;
+    
+    DataT get(
+        blitz::Array<DataT,Dim> const &data,
+        blitz::TinyVector<double,Dim> const &pos) const;
+  };
+
+  template<typename InnerT, int InnerDim, int Dim>
+  MaximumInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::MaximumInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MaximumInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::MaximumInterpolator(
+      MaximumInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MaximumInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::~MaximumInterpolator()
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MaximumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  &MaximumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::operator=(
+      MaximumInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  Interpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  *MaximumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::clone() const
+  {
+    return
+        new MaximumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>(*this);
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  InterpolationType
+  MaximumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::type() const
+  {
+    return MaximumIP;
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  blitz::TinyVector<InnerT,InnerDim>
+  MaximumInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<BlitzIndexT,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - lPos);
+    
+    DataT res;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> binPos;
+      res = data(lPos);
+      for (int i = 1; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        DataT val = data(binPos);
+        for (int d = 0; d < InnerDim; ++d)
+            if (val(d) > res(d)) res(d) = val(d);
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<BlitzIndexT,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = data(posI[0]);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<BlitzIndexT>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          DataT val = data(binPos);
+          for (int d = 0; d < InnerDim; ++d)
+              if (val(d) > res(d)) res(d) = val(d);
+        }
+      }
+      else
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> binPos;
+        res = this->p_bt->get(data, lPos);
+        for (int i = 1; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          DataT val = this->p_bt->get(data, binPos);
+          for (int d = 0; d < InnerDim; ++d)
+              if (val(d) > res(d)) res(d) = val(d);
+        }
+      }
+    }
+    return res;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Median interpolator (general case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT,int Dim>
+  MedianInterpolator<DataT,Dim>::MedianInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename DataT,int Dim>
+  MedianInterpolator<DataT,Dim>::MedianInterpolator(
+      MedianInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename DataT,int Dim>
+  MedianInterpolator<DataT,Dim>::~MedianInterpolator()
+  {}
+  
+  template<typename DataT,int Dim>
+  MedianInterpolator<DataT,Dim> &MedianInterpolator<DataT,Dim>::operator=(
+      MedianInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim> *MedianInterpolator<DataT,Dim>::clone() const
+  {
+    return new MedianInterpolator<DataT,Dim>(*this);
+  }
+
+  template<typename DataT,int Dim>
+  InterpolationType MedianInterpolator<DataT,Dim>::type() const
+  {
+    return MedianIP;
+  }
+
+  template<typename DataT,int Dim>
+  DataT MedianInterpolator<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<ptrdiff_t,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - blitz::floor(pos));
+    
+    std::vector<DataT> adjacentValues;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<ptrdiff_t,Dim> binPos;
+      for (int i = 0; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        adjacentValues.push_back(data(binPos));
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<ptrdiff_t,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<ptrdiff_t,Dim> binPos;
+        for (int i = 0; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<ptrdiff_t>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          adjacentValues.push_back(data(binPos));
+        }
+      }
+      else
+      {
+        blitz::TinyVector<ptrdiff_t,Dim> binPos;
+        for (int i = 0; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          adjacentValues.push_back(this->p_bt->get(data, binPos));
+        }
+      }
+    }
+    std::sort(adjacentValues.begin(), adjacentValues.end());
+    return adjacentValues[adjacentValues.size() / 2];
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Median interpolator (complex case)
+   *-----------------------------------------------------------------------*/
+  template<typename InnerT, int Dim>
+  class MedianInterpolator<std::complex<InnerT>,Dim> :
+        public Interpolator<std::complex<InnerT>,Dim>
+  {
+
+  public:
+    
+    typedef std::complex<InnerT> DataT;
+
+    MedianInterpolator(BoundaryTreatmentType bt = ValueBT,
+                        DataT const &boundaryValue = traits<DataT>::zero);
+
+    MedianInterpolator(MedianInterpolator<DataT,Dim> const &ip);
+
+    ~MedianInterpolator();
+
+    MedianInterpolator<DataT,Dim> &operator=(
+        MedianInterpolator<DataT,Dim> const &ip);
+
+    Interpolator<DataT,Dim> *clone() const;
+
+    InterpolationType type() const;
+    
+    DataT get(
+        blitz::Array<DataT,Dim> const &data,
+        blitz::TinyVector<double,Dim> const &pos) const;
+
+  };
+
+  template<typename DataT>
+  struct ComplexAbsLessThan
+  {
+    bool operator()(
+        std::complex<DataT> const &lhs, std::complex<DataT> const &rhs) const
+          {
+            return std::abs(lhs) < std::abs(rhs);
+          }
+  };
+    
+  template<typename InnerT, int Dim>
+  MedianInterpolator<std::complex<InnerT>,Dim>::MedianInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename InnerT, int Dim>
+  MedianInterpolator<std::complex<InnerT>,Dim>::MedianInterpolator(
+      MedianInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename InnerT, int Dim>
+  MedianInterpolator<std::complex<InnerT>,Dim>::~MedianInterpolator()
+  {}
+  
+  template<typename InnerT, int Dim>
+  MedianInterpolator<std::complex<InnerT>,Dim>
+  &MedianInterpolator<std::complex<InnerT>,Dim>::operator=(
+      MedianInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename InnerT, int Dim>
+  Interpolator<std::complex<InnerT>,Dim>
+  *MedianInterpolator<std::complex<InnerT>,Dim>::clone() const
+  {
+    return new MedianInterpolator<std::complex<InnerT>,Dim>(*this);
+  }
+
+  template<typename InnerT, int Dim>
+  InterpolationType MedianInterpolator<std::complex<InnerT>,Dim>::type() const
+  {
+    return MedianIP;
+  }
+
+  template<typename InnerT, int Dim>
+  std::complex<InnerT> MedianInterpolator<std::complex<InnerT>,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<ptrdiff_t,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - lPos);
+    
+    std::vector<DataT> adjacentValues;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<ptrdiff_t,Dim> binPos;
+      for (int i = 0; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        adjacentValues.push_back(data(binPos));
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<ptrdiff_t,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<ptrdiff_t,Dim> binPos;
+        for (int i = 0; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<ptrdiff_t>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          adjacentValues.push_back(data(binPos));
+        }
+      }
+      else
+      {
+        blitz::TinyVector<ptrdiff_t,Dim> binPos;
+        for (int i = 0; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          adjacentValues.push_back(this->p_bt->get(data, binPos));
+        }
+      }
+    }
+    std::sort(adjacentValues.begin(), adjacentValues.end(),
+              ComplexAbsLessThan<InnerT>());
+    return adjacentValues[adjacentValues.size() / 2];    
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Median interpolator (TinyVector case)
+   *-----------------------------------------------------------------------*/
+
+  template<typename InnerT, int InnerDim, int Dim>
+  class MedianInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim> :
+        public Interpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  {
+
+  public:
+    
+    typedef blitz::TinyVector<InnerT,InnerDim> DataT;
+
+    MedianInterpolator(BoundaryTreatmentType bt = ValueBT,
+                        DataT const &boundaryValue = traits<DataT>::zero);
+
+    MedianInterpolator(MedianInterpolator<DataT,Dim> const &ip);
+
+    ~MedianInterpolator();
+
+    MedianInterpolator<DataT,Dim> &operator=(
+        MedianInterpolator<DataT,Dim> const &ip);
+
+    Interpolator<DataT,Dim> *clone() const;
+
+    InterpolationType type() const;
+    
+    DataT get(
+        blitz::Array<DataT,Dim> const &data,
+        blitz::TinyVector<double,Dim> const &pos) const;
+    
+  };
+
+  template<typename DataT, int Dim>
+  struct TinyVectorNormLessThan
+  {
+    bool operator()(
+        blitz::TinyVector<DataT,Dim> const &lhs,
+        blitz::TinyVector<DataT,Dim> const &rhs) const
+          {
+            return (blitz::dot(lhs, lhs) < blitz::dot(rhs, rhs));
+          }
+  };
+
+  template<typename InnerT, int InnerDim, int Dim>
+  MedianInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::MedianInterpolator(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Interpolator<DataT,Dim>(bt, boundaryValue)
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MedianInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::MedianInterpolator(
+      MedianInterpolator<DataT,Dim> const &ip)
+          : Interpolator<DataT,Dim>(ip)
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MedianInterpolator<
+      blitz::TinyVector<InnerT,InnerDim>,Dim>::~MedianInterpolator()
+  {}
+  
+  template<typename InnerT, int InnerDim, int Dim>
+  MedianInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  &MedianInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::operator=(
+      MedianInterpolator<DataT,Dim> const &ip)
+  {
+    Interpolator<DataT,Dim>::operator=(ip);
+    return *this;
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  Interpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>
+  *MedianInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::clone() const
+  {
+    return
+        new MedianInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>(*this);
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  InterpolationType
+  MedianInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::type() const
+  {
+    return MedianIP;
+  }
+
+  template<typename InnerT, int InnerDim, int Dim>
+  blitz::TinyVector<InnerT,InnerDim>
+  MedianInterpolator<blitz::TinyVector<InnerT,InnerDim>,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &pos) const
+  {
+    blitz::TinyVector<ptrdiff_t,Dim> lPos(blitz::floor(pos));
+    blitz::TinyVector<double,Dim> fPos(pos - lPos);
+    
+    std::vector<DataT> adjacentValues;
+
+    if (blitz::all(lPos >= 0 && lPos < data.shape() - 1))
+    {
+      blitz::TinyVector<ptrdiff_t,Dim> binPos;
+      for (int i = 0; i < (1 << Dim); i++)
+      {
+        bool skip = false;
+        for (int d = 0; d < Dim && !skip; ++d)
+        {
+          int offset = (i >> d) % 2;
+          if (offset == 1 && fPos(d) == 0.0) skip = true;
+          binPos(d) = lPos(d) + offset;
+        }
+        if (skip) continue;
+        adjacentValues.push_back(data(binPos));
+      }
+    }
+    else
+    {
+      if (this->p_bt->providesIndices())
+      {
+        blitz::TinyVector<double,Dim> posI[] = {
+            this->p_bt->getIndex(lPos, data.shape()),
+            this->p_bt->getIndex(
+                blitz::TinyVector<ptrdiff_t,Dim>(lPos + 1), data.shape()) };
+        blitz::TinyVector<ptrdiff_t,Dim> binPos;
+        for (int i = 0; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = static_cast<ptrdiff_t>(std::floor(posI[offset](d)));
+          }
+          if (skip) continue;
+          adjacentValues.push_back(data(binPos));
+        }
+      }
+      else
+      {
+        blitz::TinyVector<ptrdiff_t,Dim> binPos;
+        for (int i = 0; i < (1 << Dim); i++)
+        {
+          bool skip = false;
+          for (int d = 0; d < Dim && !skip; ++d)
+          {
+            int offset = (i >> d) % 2;
+            if (offset == 1 && fPos(d) == 0.0) skip = true;
+            binPos(d) = lPos(d) + offset;
+          }
+          if (skip) continue;
+          adjacentValues.push_back(this->p_bt->get(data, binPos));
+        }
+      }
+    }
+    std::sort(adjacentValues.begin(), adjacentValues.end(),
+              TinyVectorNormLessThan<InnerT,InnerDim>());
+    return adjacentValues[adjacentValues.size() / 2];    
+  }
+
+  /*-----------------------------------------------------------------------
+   *  The Interpolator factory
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT,int Dim>
+  Interpolator<DataT,Dim> *InterpolatorFactory<DataT,Dim>::get(
+      InterpolationType ipType, BoundaryTreatmentType btType,
+      DataT const &boundaryValue)
+  {
+    Interpolator<DataT,Dim> *res = NULL;
+    switch (ipType)
+    {
+    case NearestIP:
+      res = new NearestInterpolator<DataT,Dim>(btType, boundaryValue);
+      break;
+    case LinearIP:
+      res = new LinearInterpolator<DataT,Dim>(btType, boundaryValue);
+      break;
+    case CubicIP:
+      res = new CubicInterpolator<DataT,Dim>(btType, boundaryValue);
+      break;
+    case MinimumIP:
+      res = new MinimumInterpolator<DataT,Dim>(btType, boundaryValue);
+      break;
+    case MaximumIP:
+      res = new MaximumInterpolator<DataT,Dim>(btType, boundaryValue);
+      break;
+    case MedianIP:
+      res = new MedianInterpolator<DataT,Dim>(btType, boundaryValue);
+      break;
+    default:
+      std::stringstream errStr;
+      errStr << __FILE__ << ":" << __LINE__ << ": InterpolationType "
+             << "not handled in InterpolatorFactory.";
+      throw RuntimeError(errStr.str().c_str());
+    }
+    return res;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Direct access method
+   *-----------------------------------------------------------------------*/
+
+  // Interface to the rest of the world, only for convenience
+  template<typename DataT,typename IndexT,int Dim>
+  DataT interpolate(blitz::Array<DataT,Dim> const &data,
+                    blitz::TinyVector<IndexT,Dim> const &pos,
+                    InterpolationType ipType, BoundaryTreatmentType btType,
+                    DataT const &boundaryValue)
+  {
+    Interpolator<DataT,Dim> *interpolator =
+        InterpolatorFactory<DataT,Dim>::get(ipType, btType, boundaryValue);
+    DataT res = interpolator->get(data, blitz::TinyVector<double,Dim>(pos));
+    delete interpolator;
+    return res;
+  }
+
+}
+

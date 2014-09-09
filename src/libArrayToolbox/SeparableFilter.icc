@@ -1,0 +1,33 @@
+/**************************************************************************
+ **       Title: Interface for Separable filters
+ **    $RCSfile:$
+ **   $Revision:$ $Name:$
+ **       $Date:$
+ **   Copyright: GPL $Author:$
+ ** Description:
+ **
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename DataT,int Dim,typename ResultT>
+  SeparableFilter<DataT,Dim,ResultT>::SeparableFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : Filter<DataT,Dim,ResultT>(btType, boundaryValue)
+  {}
+  
+  template<typename DataT,int Dim,typename ResultT>
+  SeparableFilter<DataT,Dim,ResultT>::~SeparableFilter()
+  {}
+  
+  template<typename DataT, int Dim, typename ResultT>
+  void SeparableFilter<DataT,Dim,ResultT>::applyAlongDim(
+      Array<DataT,Dim> const &data, Array<ResultT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter *pr) const
+  {
+    filtered.setElementSizeUm(data.elementSizeUm());
+    applyAlongDim(data, data.elementSizeUm(), filtered, dim, pr);
+  }
+
+}

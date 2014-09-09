@@ -1,0 +1,26 @@
+Dependencies:
+
+Description				  Library  Version
+-----------------------------------------------------------------------------
+C++ template class array library          blitz++  (>= 0.9, 0.10 recommended)
+Hierarchical data format 5                hdf5     (>= 1.8.4)
+Fastest Fourier Transform of the West     fftw     (>= 3.2.2)
+GNU scientific library                    gsl      (>= 1.13)
+Open Computer Vision library              OpenCV   (>= 2.0)
+QT4                                       Qt4      (>= 4.6.2)
+-----------------------------------------------------------------------------
+
+When the above-mentioned dependencies are met you should be able to build
+the iRoCS Toolbox as follows:
+
+./configure
+make
+make install
+
+This will install the software to /usr/local. Especially if you do not have
+super-user rights on the host system you can change the installation folder
+using the "--prefix" option in configure. E.g. "./configure --prefix=~/iRoCS"
+will install the iRoCS Toolbox into a subfolder called iRoCS in your home
+folder.
+
+All headers will be installed into the subfolder $(prefix)/include/irocs-toolbox.

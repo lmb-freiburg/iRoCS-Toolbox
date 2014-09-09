@@ -1,0 +1,452 @@
+/**************************************************************************
+**       Title: General type traits
+**    $RCSfile$
+**   $Revision: 3896 $ $Name$
+**       $Date: 2008-07-16 15:17:47 +0200 (Wed, 16 Jul 2008) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**    Templates to obtain specific information about used types
+**
+**************************************************************************/
+
+namespace atb
+{
+
+  template<>
+  struct traits<bool>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<bool> ComplexT;
+    typedef bool BasicT;
+    static bool const smallest;
+    static bool const greatest;
+    static bool const zero;
+    static bool const one;
+    static bool const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<unsigned char>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<unsigned char> ComplexT;
+    typedef unsigned char BasicT;
+    static unsigned char const smallest;
+    static unsigned char const greatest;
+    static unsigned char const zero;
+    static unsigned char const one;
+    static unsigned char const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<char>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<char> ComplexT;
+    typedef char BasicT;
+    static char const smallest;
+    static char const greatest;
+    static char const zero;
+    static char const one;
+    static char const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<unsigned short>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<unsigned short> ComplexT;
+    typedef unsigned short BasicT;
+    static unsigned short const smallest;
+    static unsigned short const greatest;
+    static unsigned short const zero;
+    static unsigned short const one;
+    static unsigned short const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<short>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<short> ComplexT;
+    typedef short BasicT;
+    static short const smallest;
+    static short const greatest;
+    static short const zero;
+    static short const one;
+    static short const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<unsigned int>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<unsigned int> ComplexT;
+    typedef unsigned int BasicT;
+    static unsigned int const smallest;
+    static unsigned int const greatest;
+    static unsigned int const zero;
+    static unsigned int const one;
+    static unsigned int const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<int>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<int> ComplexT;
+    typedef int BasicT;
+    static int const smallest;
+    static int const greatest;
+    static int const zero;
+    static int const one;
+    static int const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<unsigned long>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<unsigned long> ComplexT;
+    typedef unsigned long BasicT;
+    static unsigned long const smallest;
+    static unsigned long const greatest;
+    static unsigned long const zero;
+    static unsigned long const one;
+    static unsigned long const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<long>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<long> ComplexT;
+    typedef long BasicT;
+    static long const smallest;
+    static long const greatest;
+    static long const zero;
+    static long const one;
+    static long const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<unsigned long long>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<unsigned long long> ComplexT;
+    typedef unsigned long long BasicT;
+    static unsigned long long const smallest;
+    static unsigned long long const greatest;
+    static unsigned long long const zero;
+    static unsigned long long const one;
+    static unsigned long long const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<long long>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<long long> ComplexT;
+    typedef long long BasicT;
+    static long long const smallest;
+    static long long const greatest;
+    static long long const zero;
+    static long long const one;
+    static long long const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<float>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<float> ComplexT;
+    typedef float BasicT;
+    static float const smallest;
+    static float const greatest;
+    static float const zero;
+    static float const one;
+    static float const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<double>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<double> ComplexT;
+    typedef double BasicT;
+    static double const smallest;
+    static double const greatest;
+    static double const zero;
+    static double const one;
+    static double const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits<long double>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<long double> ComplexT;
+    typedef long double BasicT;
+    static long double const smallest;
+    static long double const greatest;
+    static long double const zero;
+    static long double const one;
+    static long double const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<typename DataT>
+  struct traits< std::complex<DataT> >
+  {
+    
+    typedef std::complex<double> HighPrecisionT;
+    typedef std::complex<DataT> ComplexT;
+    typedef typename traits<DataT>::BasicT BasicT;
+    static std::complex<DataT> const smallest;
+    static std::complex<DataT> const greatest;
+    static std::complex<DataT> const zero;
+    static std::complex<DataT> const one;
+    static std::complex<DataT> const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<typename DataT>
+  std::complex<DataT> const traits< std::complex<DataT> >::smallest =
+      std::complex<DataT>(traits<DataT>::smallest, traits<DataT>::zero);
+  template<typename DataT>
+  std::complex<DataT> const traits< std::complex<DataT> >::greatest =
+      std::complex<DataT>(traits<DataT>::greatest, traits<DataT>::zero);
+  template<typename DataT>
+  std::complex<DataT> const traits< std::complex<DataT> >::zero =
+      std::complex<DataT>(traits<DataT>::zero, traits<DataT>::zero);
+  template<typename DataT>
+  std::complex<DataT> const traits< std::complex<DataT> >::one =
+      std::complex<DataT>(traits<DataT>::one, traits<DataT>::zero);
+  template<typename DataT>
+  std::complex<DataT> const traits< std::complex<DataT> >::saturated =
+      std::complex<DataT>(traits<DataT>::saturated, traits<DataT>::zero);
+  template<typename DataT>
+  bool const traits< std::complex<DataT> >::isComplex = true;
+
+  template<>
+  struct traits< std::complex<float> >
+  {
+    
+    typedef std::complex<double> HighPrecisionT;
+    typedef std::complex<float> ComplexT;
+    typedef float BasicT;
+    static std::complex<float> const smallest;
+    static std::complex<float> const greatest;
+    static std::complex<float> const zero;
+    static std::complex<float> const one;
+    static std::complex<float> const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits< std::complex<double> >
+  {
+    
+    typedef std::complex<double> HighPrecisionT;
+    typedef std::complex<double> ComplexT;
+    typedef double BasicT;
+    static std::complex<double> const smallest;
+    static std::complex<double> const greatest;
+    static std::complex<double> const zero;
+    static std::complex<double> const one;
+    static std::complex<double> const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
+  struct traits< std::complex<long double> >
+  {
+    
+    typedef std::complex<double> HighPrecisionT;
+    typedef std::complex<long double> ComplexT;
+    typedef long double BasicT;
+    static std::complex<long double> const smallest;
+    static std::complex<long double> const greatest;
+    static std::complex<long double> const zero;
+    static std::complex<long double> const one;
+    static std::complex<long double> const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<typename DataT, int Dim>
+  struct traits< blitz::TinyVector<DataT,Dim> >
+  {
+    
+    typedef blitz::TinyVector<typename traits<DataT>::HighPrecisionT,Dim>
+    HighPrecisionT;
+    typedef blitz::TinyVector<typename traits<DataT>::ComplexT,Dim>
+    ComplexT;
+    typedef typename traits<DataT>::BasicT BasicT;
+    static blitz::TinyVector<DataT,Dim> const smallest;
+    static blitz::TinyVector<DataT,Dim> const greatest;
+    static blitz::TinyVector<DataT,Dim> const zero;
+    static blitz::TinyVector<DataT,Dim> const one;
+    static blitz::TinyVector<DataT,Dim> const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<typename DataT, int Dim>
+  blitz::TinyVector<DataT,Dim> const
+  traits< blitz::TinyVector<DataT,Dim> >::smallest =
+      blitz::TinyVector<DataT,Dim>(traits<DataT>::smallest);
+  template<typename DataT, int Dim>
+  blitz::TinyVector<DataT,Dim> const
+  traits< blitz::TinyVector<DataT,Dim> >::greatest =
+      blitz::TinyVector<DataT,Dim>(traits<DataT>::greatest);
+  template<typename DataT, int Dim>
+  blitz::TinyVector<DataT,Dim> const
+  traits< blitz::TinyVector<DataT,Dim> >::zero =
+      blitz::TinyVector<DataT,Dim>(traits<DataT>::zero);
+  template<typename DataT, int Dim>
+  blitz::TinyVector<DataT,Dim> const
+  traits< blitz::TinyVector<DataT,Dim> >::one =
+      blitz::TinyVector<DataT,Dim>(traits<DataT>::one);
+  template<typename DataT, int Dim>
+  blitz::TinyVector<DataT,Dim> const
+  traits< blitz::TinyVector<DataT,Dim> >::saturated =
+      blitz::TinyVector<DataT,Dim>(traits<DataT>::saturated);
+  template<typename DataT, int Dim>
+  bool const traits< blitz::TinyVector<DataT,Dim> >::isComplex =
+      traits<DataT>::isComplex;
+
+  template<typename DataT, int Dim1, int Dim2>
+  struct traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >
+  {
+    
+    typedef blitz::TinyMatrix<
+        typename traits<DataT>::HighPrecisionT,Dim1,Dim2> HighPrecisionT;
+    typedef blitz::TinyMatrix<
+        typename traits<DataT>::ComplexT,Dim1,Dim2> ComplexT;
+    typedef typename traits<DataT>::BasicT BasicT;
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const smallest;
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const greatest;
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const zero;
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const one;
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const saturated;
+    static bool const isComplex;
+
+  private:
+    
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const _smallest()
+          {
+            blitz::TinyMatrix<DataT,Dim1,Dim2> res;
+            for (int r = 0; r < Dim1; ++r)
+                for (int c = 0; c < Dim2; ++c)
+                    res(r, c) = traits<DataT>::smallest;
+            return res;
+          }
+    
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const _greatest()
+          {
+            blitz::TinyMatrix<DataT,Dim1,Dim2> res;
+            for (int r = 0; r < Dim1; ++r)
+                for (int c = 0; c < Dim2; ++c)
+                    res(r, c) = traits<DataT>::greatest;
+            return res;
+          }
+    
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const _zero()
+          {
+            blitz::TinyMatrix<DataT,Dim1,Dim2> res;
+            for (int r = 0; r < Dim1; ++r)
+                for (int c = 0; c < Dim2; ++c)
+                    res(r, c) = traits<DataT>::zero;
+            return res;
+          }
+    
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const _eye()
+          {
+            blitz::TinyMatrix<DataT,Dim1,Dim2> res = zero;
+            int maxIndex = (Dim1 < Dim2) ? Dim1 : Dim2;
+            for (int d = 0; d < maxIndex; ++d) res(d, d) = traits<DataT>::one;
+            return res;
+          }
+    
+    static blitz::TinyMatrix<DataT,Dim1,Dim2> const _saturated()
+          {
+            blitz::TinyMatrix<DataT,Dim1,Dim2> res;
+            for (int r = 0; r < Dim1; ++r)
+                for (int c = 0; c < Dim2; ++c)
+                    res(r, c) = traits<DataT>::saturated;
+            return res;
+          }
+    
+  };
+
+  template<typename DataT, int Dim1, int Dim2>
+  blitz::TinyMatrix<DataT,Dim1,Dim2> const
+  traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::smallest =
+      traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::_smallest();
+  template<typename DataT, int Dim1, int Dim2>
+  blitz::TinyMatrix<DataT,Dim1,Dim2> const
+  traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::greatest =
+      traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::_greatest();
+  template<typename DataT, int Dim1, int Dim2>
+  blitz::TinyMatrix<DataT,Dim1,Dim2> const
+  traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::zero =
+      traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::_zero();
+  template<typename DataT, int Dim1, int Dim2>
+  blitz::TinyMatrix<DataT,Dim1,Dim2> const
+  traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::one =
+      traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::_eye();
+  template<typename DataT, int Dim1, int Dim2>
+  blitz::TinyMatrix<DataT,Dim1,Dim2> const
+  traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::saturated =
+      traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::_saturated();
+  template<typename DataT, int Dim1, int Dim2>
+  bool const traits< blitz::TinyMatrix<DataT,Dim1,Dim2> >::isComplex =
+      traits<DataT>::isComplex;
+
+}

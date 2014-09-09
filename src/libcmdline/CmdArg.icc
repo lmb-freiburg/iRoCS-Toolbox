@@ -1,0 +1,229 @@
+/**************************************************************************
+**       Title: basic command line argument
+**    $RCSfile$
+**   $Revision: 3084 $$Name$
+**       $Date: 2009-11-17 00:34:57 +0100 (Tue, 17 Nov 2009) $
+**   Copyright: GPL $Author: emmenlau $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.5  2005/06/09 07:48:17  tschmidt
+**  - Changing enum names from bla to CmdLinebla
+**
+**  Revision 1.4  2002/04/22 15:56:45  pigorsch
+**  - added virtual function hasDefaultValue()
+**  - added virtual function getDefaultValueString()
+**  - added virtual function clearFixedList()
+**
+**  Revision 1.3  2002/04/18 13:54:50  pigorsch
+**  - functions fixedSize() and remainingSize() now return 0
+**  - renamed function clear(...) clearFlags(...) to avoid ambiguities
+**  - changed way of clearing flags
+**
+**  Revision 1.2  2002/04/10 09:54:38  pigorsch
+**  - added functions bool modified(), void modified(bool), bool given()
+**
+**  Revision 1.1  2002/03/26 07:36:28  ronneber
+**  restructuring for autoconf
+**
+**  Revision 1.1.1.1  2002/03/22 13:45:07  pigorsch
+**  moved from polsoft repository
+**
+**
+**
+**************************************************************************/
+
+inline
+unsigned int 
+CmdArg::
+fixedSize() const
+{
+  return 0;
+}
+
+inline
+unsigned int 
+CmdArg::
+remainingSize() const
+{
+  return 0;
+}
+
+inline
+CmdArg::Syntax
+CmdArg::
+syntax() const
+{ 
+  return pSyntax; 
+}
+
+inline
+bool
+CmdArg::
+hasSyntax(CmdArg::Syntax s) const
+{
+  return ((syntax() & s) != 0);
+}
+
+inline
+CmdArg::CmdLineFlags
+CmdArg::
+flags() const  
+{ 
+  return pFlags; 
+}
+
+inline
+bool
+CmdArg::
+hasFlag(CmdArg::CmdLineFlags f) const
+{
+  return ((flags() & f) != 0);
+}
+
+inline
+unsigned int
+CmdArg::
+sequence() const 
+{ 
+  return pSequence;
+}
+
+inline
+char
+CmdArg::
+shortName() const  
+{ 
+  return pShortName; 
+}
+
+inline
+const std::string
+CmdArg::
+longName() const  
+{ 
+  return pLongName; 
+}
+
+inline
+const std::string
+CmdArg::
+valueName() const  
+{
+  return pValueName; 
+}
+
+inline
+const std::string
+CmdArg::
+description() const  
+{ 
+  return pDescription; 
+}
+
+inline
+const std::string
+CmdArg::
+errorMsg() const
+{
+  return pErrorMessage;
+}
+
+inline
+void
+CmdArg::
+clearErrorMsg()
+{
+  pErrorMessage="";
+}
+ 
+inline 
+void
+CmdArg::
+setErrorMsg(const std::string& msg)
+{
+  pErrorMessage=msg;
+}
+
+inline
+void
+CmdArg::
+flags(CmdArg::CmdLineFlags f)  
+{
+  pFlags=f;
+}
+
+inline
+void
+CmdArg::
+setFlags(CmdArg::CmdLineFlags f)  
+{ 
+  flags(CmdArg::CmdLineFlags(flags() | f)); 
+}
+ 
+inline 
+void
+CmdArg::
+clearFlags(CmdArg::CmdLineFlags f)  
+{ 
+  flags(CmdArg::CmdLineFlags(flags() & ~f)); 
+}
+
+inline
+void
+CmdArg::
+sequence(unsigned int num) 
+{ 
+  pSequence=num; 
+}
+
+inline
+bool 
+CmdArg::
+modified() const
+{
+  return pModified;
+}
+
+inline
+void 
+CmdArg::
+modified(bool m)
+{
+  pModified=m;
+}
+
+inline
+bool 
+CmdArg::
+given() const
+{
+  return hasFlag(CmdArg::GIVEN);
+}
+
+inline 
+bool
+CmdArg::
+hasDefaultValue() const
+{
+  return false;
+}
+
+inline 
+std::string
+CmdArg::
+getDefaultValueString() const
+{
+  return "";
+}
+
+inline
+void
+CmdArg::
+clearFixedList()
+{}
+

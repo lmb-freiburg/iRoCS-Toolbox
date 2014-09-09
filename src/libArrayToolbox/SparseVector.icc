@@ -1,0 +1,299 @@
+namespace atb
+{
+
+  template<typename T>
+  T SparseVector<T>::zero = T();
+
+  template<typename T>
+  SparseVector<T>::SparseVector() 
+          : _size(0)
+  {}
+    
+  template<typename T>
+  SparseVector<T>::SparseVector(size_t size)
+          : _size(size)
+  {}
+
+  template<typename T>
+  SparseVector<T>::SparseVector(SparseVector const &v)
+          : _size(v._size), _data(v._data)
+  {}
+
+  template<typename T>
+  SparseVector<T>::SparseVector(blitz::Array<T,1> const &v)
+          : _size(v._size)
+  {
+    for (ptrdiff_t c = 0; c < v.size(); ++c) if (v(c) != zero) _data[c] = v(c);
+  }
+
+  template<typename T>
+  template<int Dim>
+  SparseVector<T>::SparseVector(blitz::TinyVector<T,Dim> const &v)
+          : _size(Dim)
+  {
+    for (ptrdiff_t c = 0; c < Dim; ++c) if (v(c) != zero) _data[c] = v(c);
+  }
+
+  template<typename T>
+  SparseVector<T>::~SparseVector()
+  {}
+
+  template<typename T>
+  void SparseVector<T>::resize(size_t size)
+  {
+    if (size < _size) _data.erase(_data.lower_bound(size), _data.end());
+    _size = size;
+  }
+
+  template<typename T>
+  size_t SparseVector<T>::size() const
+  {
+    return _size;
+  }
+
+  template<typename T>
+  bool SparseVector<T>::nonZero(size_t c) const
+  {
+    if (c >= _size)
+    {
+      std::stringstream msg;
+      msg << "SparseVector<T>::nonZero(" << c << ") - Index out of bounds. "
+          << "vector length is " << _size;
+      throw SparseVectorError(msg.str().c_str());
+    }
+    return (_data.find(c) != _data.end());
+  }
+
+  template<typename T>
+  T const &SparseVector<T>::operator()(size_t c) const
+  {
+    if (c >= _size)
+    {
+      std::stringstream msg;
+      msg << "SparseVector<T>::operator()(" << c << ") - Index out of bounds. "
+          << "vector length is " << _size;
+      throw SparseVectorError(msg.str().c_str());
+    }
+    typename std::map<size_t,T>::const_iterator it = _data.find(c);
+    T const &res = (it != _data.end()) ? it->second : zero;
+    return res;
+  }
+  
+  template<typename T>
+  T &SparseVector<T>::operator()(size_t c)
+  {
+    if (c >= _size)
+    {
+      std::stringstream msg;
+      msg << "SparseVector<T>::operator()(" << c << ") - Index out of bounds. "
+          << "vector length is " << _size;
+      throw SparseVectorError(msg.str().c_str());
+    }
+    return _data[c];
+  }
+
+  template<typename T>
+  size_t SparseVector<T>::nNonZeroEntries() const
+  {
+    return _data.size();
+  }
+
+  template<typename T>
+  void SparseVector<T>::clear() 
+  {
+    _data.clear();
+  }
+
+  template<typename T>
+  typename SparseVector<T>::const_iterator SparseVector<T>::begin() const
+  {
+    return _data.begin();
+  }
+
+  template<typename T>
+  typename SparseVector<T>::const_iterator SparseVector<T>::end() const
+  {
+    return _data.end();
+  }
+
+  template<typename T>
+  typename SparseVector<T>::iterator SparseVector<T>::begin()
+  {
+    return _data.begin();
+  }
+
+  template<typename T>
+  typename SparseVector<T>::iterator SparseVector<T>::end()
+  {
+    return _data.end();
+  }
+
+  template<typename T>
+  typename SparseVector<T>::const_iterator SparseVector<T>::erase(size_t c)
+  {
+    typename std::map<size_t,T>::iterator it = _data.find(c);
+    if (it == _data.end()) return _data.end();
+    typename std::map<size_t,T>::const_iterator it2 = it;
+    ++it2;
+    _data.erase(it);
+    return it2;
+  }
+
+  template<typename T>
+  blitz::Array<T,1> SparseVector<T>::toBlitz() const
+  {
+    blitz::Array<T,1> res(static_cast<ptrdiff_t>(_size));
+    res = zero;
+    for (typename std::map<size_t,T>::const_iterator it =
+             _data.begin(); it != _data.end(); ++it)
+        res(it->first) = it->second;
+    return res;
+  }
+
+  template<typename T>
+  void SparseVector<T>::operator+=(SparseVector<T> const &v)
+  {
+    if (_size != v.size())
+    {
+      std::stringstream msg;
+      msg << "SparseVector<T>::operator+=(SparseVector<T>& v) - "
+          << "Vector lengths don't match. "
+          << "Vector length is " << _size << " v.size() = " << v.size();
+      throw SparseVectorError(msg.str().c_str());
+    }
+    for (typename SparseVector<T>::const_iterator it =
+             v.begin(); it != v.end(); ++it) _data[it->first] += it->second;
+  }
+
+  template<typename T>
+  void SparseVector<T>::operator-=(SparseVector<T> const &v)
+  {
+    if (_size != v.size())
+    {
+      std::stringstream msg;
+      msg << "SparseVector<T>::operator-=(SparseVector<T>& v) - "
+          << "Vector lengths don't match. "
+          << "Vector length is " << _size << " v.size() = " << v.size();
+      throw SparseVectorError(msg.str().c_str());
+    }
+    for (typename SparseVector<T>::const_iterator it =
+             v.begin(); it != v.end(); ++it) _data[it->first] -= it->second;
+  }
+
+  template<typename T>
+  void SparseVector<T>::operator*=(T const &alpha)
+  {
+    for (typename std::map<size_t,T>::iterator it =
+             _data.begin(); it != _data.end(); ++it) it->second *= alpha;
+  }
+
+  template<typename T>
+  void SparseVector<T>::operator/=(T const &alpha)
+  {
+    for (typename std::map<size_t,T>::iterator it =
+             _data.begin(); it != _data.end(); ++it) it->second /= alpha;
+  }
+
+  template<typename T>
+  T dot(SparseVector<T> const &v1, SparseVector<T> const &v2)
+  {
+    if (v1.size() != v2.size())
+    {
+      std::stringstream msg;
+      msg << "dot(SparseVector<T>& v1, SparseVector<T>& v2) - "
+          << "Vector lengths don't match. "
+          << "v1.size() = " << v1.size() << ", v2.size() = " << v2.size();
+      throw SparseVectorError(msg.str().c_str());
+    }
+    T res = SparseVector<T>::zero;
+    for (typename SparseVector<T>::const_iterator it = v1.begin();
+         it != v1.end(); ++it) res += it->second * v2(it->first);
+    return res;
+  }
+
+  template<typename T>
+  T dot(blitz::Array<T,1> const &v1, SparseVector<T> const &v2)
+  {
+    if (static_cast<size_t>(v1.size()) != v2.size())
+    {
+      std::stringstream msg;
+      msg << "dot(blitz::Array<T,1>& v1, SparseVector<T>& v2) - "
+          << "Vector lengths don't match. "
+          << "v1.size() = " << v1.size() << ", v2.size() = " << v2.size();
+      throw SparseVectorError(msg.str().c_str());
+    }
+    T res = SparseVector<T>::zero;
+    for (typename SparseVector<T>::const_iterator it = v2.begin();
+         it != v2.end(); ++it) res += v1(it->first) * it->second;
+    return res;
+  }
+
+  template<typename T>
+  T dot(SparseVector<T> const &v1, blitz::Array<T,1> const &v2)
+  {
+    if (v1.size() != static_cast<size_t>(v2.size()))
+    {
+      std::stringstream msg;
+      msg << "dot(SparseVector<T>& v1, blitz::Array<T,1>& v2) - "
+          << "Vector lengths don't match. "
+          << "v1.size() = " << v1.size() << ", v2.size() = " << v2.size();
+      throw SparseVectorError(msg.str().c_str());
+    }
+    T res = SparseVector<T>::zero;
+    for (typename SparseVector<T>::const_iterator it = v1.begin();
+         it != v1.end(); ++it)
+        res += it->second * v2(static_cast<ptrdiff_t>(it->first));
+    return res;
+  }
+
+  template<typename T, int Dim>
+  T dot(blitz::TinyVector<T,Dim> const &v1, SparseVector<T> const &v2)
+  {
+    if (static_cast<size_t>(Dim) != v2.size())
+    {
+      std::stringstream msg;
+      msg << "dot(blitz::TinyVector<T,Dim>& v1, SparseVector<T>& v2) - "
+          << "Vector lengths don't match. "
+          << "Dim = " << Dim << ", v2.size() = " << v2.size();
+      throw SparseVectorError(msg.str().c_str());
+    }
+    T res = SparseVector<T>::zero;
+    for (typename SparseVector<T>::const_iterator it = v2.begin();
+         it != v2.end(); ++it) res += v1(it->first) * it->second;
+    return res;
+  }
+
+  template<typename T, int Dim>
+  T dot(SparseVector<T> const &v1, blitz::TinyVector<T,Dim> const &v2)
+  {
+    if (v1.size() != static_cast<size_t>(Dim))
+    {
+      std::stringstream msg;
+      msg << "dot(SparseVector<T>& v1, blitz::TinyVector<T,Dim>& v2) - "
+          << "Vector lengths don't match. "
+          << "v1.size() = " << v1.size() << ", Dim = " << Dim;
+      throw SparseVectorError(msg.str().c_str());
+    }
+    T res = SparseVector<T>::zero;
+    for (typename SparseVector<T>::const_iterator it = v1.begin();
+         it != v1.end(); ++it) res += it->second * v2(it->first);
+    return res;
+  }
+
+  template<typename T>
+  SparseVector<T> operator*(SparseVector<T> const &v, T const &alpha)
+  {
+    SparseVector<T> res(v);
+    res *= alpha;
+    return res;
+  }
+
+  template<typename T>
+  SparseVector<T> operator*(T const &alpha, SparseVector<T> const &v)
+  {
+    SparseVector<T> res(v);
+    res *= alpha;
+    return res;
+  }
+
+}

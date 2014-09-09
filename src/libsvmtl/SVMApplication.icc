@@ -1,0 +1,1259 @@
+/**************************************************************************
+**       Title: 
+**    $RCSfile$
+**   $Revision: 4820 $$Name$
+**       $Date: 2011-11-08 10:57:01 +0100 (Tue, 08 Nov 2011) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.12  2007/03/24 09:35:46  ronneber
+**  - now cross validation also prints a confusion table
+**
+**  Revision 1.11  2006/10/06 13:50:05  fehr
+**  linear model optimizer added
+**
+**  Revision 1.10  2005/12/22 15:34:18  ronneber
+**  - now also prints confusion table for classify
+**
+**  Revision 1.9  2005/10/26 07:31:02  ronneber
+**  - saving of classifcation details now works
+**  - now subsets for cross validation can be defined manually (by
+**    specifying a subset label for each feature vector)
+**
+**  Revision 1.8  2005/06/06 21:23:31  haasdonk
+**  added updateCache() with two FV-lists, required for classification with precomputed kernel-matrices
+**
+**  Revision 1.7  2005/03/29 18:03:03  ronneber
+**  - adapted to new manual call of updateKernelCache() and clearKernelCache()
+**
+**  Revision 1.6  2004/09/08 14:36:02  ronneber
+**  - adapted to new ParamInfo class
+**
+**  Revision 1.5  2004/09/03 07:15:11  ronneber
+**  - adapted to new updateCache() interface of Kernels
+**
+**  Revision 1.4  2004/08/27 09:53:55  ronneber
+**  - fixed bug in saving crossval results
+**
+**  Revision 1.3  2004/08/26 15:22:59  ronneber
+**  - better default detail_level
+**
+**  Revision 1.2  2004/08/26 13:50:36  ronneber
+**  - fixed help texts
+**
+**  Revision 1.1  2004/08/26 08:36:59  ronneber
+**  initital import
+**
+**  
+**
+**
+**
+**************************************************************************/
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  main( argc, argv, ...)
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename ALGORITHMS, typename LOAD_SAVE_POLICY> 
+int svt::SVMApplication<FV,ALGORITHMS,LOAD_SAVE_POLICY>::
+main( int argc, const char** argv, std::ostream& os)
+{
+  /*-----------------------------------------------------------------------
+   *  Interpret Commandline
+   *-----------------------------------------------------------------------*/
+  try
+  {
+    setProgramName( argv[0]);
+    
+    StDataCmdLine cmdLine( argc, argv);
+
+    return main( cmdLine, os);
+  }
+  catch( SVMError& err)
+  {
+    std::cerr << err.what() << std::endl;
+    std::cerr << "try '-h' or '--help' for help\n";
+    return 1;
+  }
+  
+}
+
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  main( StDataCmdLine ...)
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename ALGORITHMS, typename LOAD_SAVE_POLICY> 
+int svt::SVMApplication<FV,ALGORITHMS,LOAD_SAVE_POLICY>::
+main( StDataCmdLine& cmdLine, std::ostream& os)
+{
+  /*-----------------------------------------------------------------------
+   *  write general Help, if requested
+   *-----------------------------------------------------------------------*/
+  const std::string& mode = cmdLine.mode();
+  if( mode == "" && cmdLine.helpRequested())
+  {
+    os << 
+        "usage: " << programName() << " train [options] trainfile\n"
+        "       " << programName() << " classify [options] testfile\n"
+        "       " << programName() << " crossval [options] trainfile\n"
+        "       " << programName() << " gridsearch [options] trainfile\n"
+        "\n"
+        "Please use '" << programName() << " train --help', etc. for\n"
+        "furter help.\n";
+    return 0;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  depending on mode, call the appropriate subroutine
+   *-----------------------------------------------------------------------*/
+  if( mode == "train")
+  {
+    return doTraining( cmdLine, os);
+  }
+  else if( mode == "classify")
+  {
+    return doClassification( cmdLine, os);
+  }
+  else if( mode == "crossval")
+  {
+    return doCrossValidation( cmdLine, os);
+  }
+  else if( mode == "gridsearch")
+  {
+    return doGridSearch( cmdLine, os);
+  }
+  else
+  {
+    ParseCmdLineError  err;
+    err << "Unknown mode: `" << mode << "'\n";
+    throw err;
+  }
+  
+  return 0;
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+  
+      
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION: checkWrongParameters
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename ALGORITHMS, typename LOAD_SAVE_POLICY> 
+void svt::SVMApplication<FV,ALGORITHMS,LOAD_SAVE_POLICY>::
+checkWrongParameters( StDataCmdLine& cmdline)
+{
+  std::vector<std::string> wrongParameters;
+  cmdline.findUnusedParameters( wrongParameters);
+  if( wrongParameters.size() != 0)
+  {
+    svt::CmdLineError err;
+      
+    err << "error: the following parameters are misspelled\n"
+        "or not allowed for the requested multiclass / twoclass "
+        "/ kernel combination:\n";
+    for( unsigned int i = 0; i < wrongParameters.size(); ++i)
+    {
+      err << "    ";
+      if( wrongParameters[i][0] != '-') err << "--";
+      err << wrongParameters[i] << "\n";
+    }
+    throw err;
+ 
+  }
+}
+
+    
+  
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  doTraining
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename ALGORITHMS, typename LOAD_SAVE_POLICY> 
+int svt::SVMApplication<FV,ALGORITHMS,LOAD_SAVE_POLICY>::
+doTraining( StDataCmdLine& cmdline, 
+            std::ostream& os)
+{
+  /*-----------------------------------------------------------------------
+   *  Get infos from all available parameters
+   *-----------------------------------------------------------------------*/
+  std::vector<svt::ParamInfo> inOutParams;
+  LOAD_SAVE_POLICY::getParamInfosForLoadFeatureVectors( inOutParams);
+  LOAD_SAVE_POLICY::getParamInfosForSaveModel( inOutParams);
+  cmdline.updateShortCutTable( inOutParams);
+  
+  std::vector<svt::ParamInfo> localParams;
+  localParams.push_back( svt::ParamInfo("details", "dt"));
+  localParams.back().addAlternative( "0", "no details are printed / written "
+                                     "to model-file");
+  localParams.back().addAlternative( "1", "print statistics and write them "
+                                     "to model-file (default)");
+  localParams.back().addAlternative( "2", "print training infos from all "
+                                     "two-class trainings and write "
+                                     "them to model-file");
+  
+  localParams.push_back( svt::ParamInfo("print_train_error", "pt"));
+  localParams.back().addAlternative( "0", "do not calculate training "
+                                     "error (default)");
+  localParams.back().addAlternative( "1", "calculate the training error "
+                                     "(which is just classification of each "
+                                     "training vector) and print statistics");
+  
+  localParams.push_back( svt::ParamInfo("optimize_linear_kernel", "opt_lin"));
+  localParams.back().addAlternative( "0", "do not optimize ");
+  localParams.back().addAlternative( "1", "optimize (default) ");
+	  
+  cmdline.updateShortCutTable( localParams);
+
+  std::vector<svt::ParamInfo> prParams;
+  ProgressReporter::getParamInfos( prParams);
+  cmdline.updateShortCutTable( prParams);
+  
+  std::vector<svt::ParamInfo> svmSelectParams;
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::MCLIST>::
+      createParamInfoFromNamesDescriptions( "multi_class_type", "mc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::TCLIST>::
+      createParamInfoFromNamesDescriptions( "two_class_type", "tc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::OCLIST>::
+      createParamInfoFromNamesDescriptions( "one_class_type", "oc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::KFLIST>::
+      createParamInfoFromNamesDescriptions( "kernel_type", "kf"));
+  cmdline.updateShortCutTable( svmSelectParams);
+   
+  std::vector<svt::ParamInfo> svmParams;
+  HelpExtractor<typename ALGORITHMS::MCLIST>::collectParamInfos( svmParams);
+  HelpExtractor<typename ALGORITHMS::TCLIST>::collectParamInfos( svmParams);
+  HelpExtractor<typename ALGORITHMS::OCLIST>::collectParamInfos( svmParams);
+  svt::sortAndRemoveDuplicates( svmParams);
+  cmdline.updateShortCutTable( svmParams);
+  
+  std::vector<svt::ParamInfo> kernelParams;
+  HelpExtractor<typename ALGORITHMS::KFLIST>::collectParamInfos( kernelParams);
+  svt::sortAndRemoveDuplicates( kernelParams);
+  cmdline.updateShortCutTable( kernelParams);
+  
+
+  /*-----------------------------------------------------------------------
+   *  write help for training if requested
+   *-----------------------------------------------------------------------*/
+  if( cmdline.helpRequested())
+  {
+    PrettyOptionPrinter pop( os, _prettyPrintColumn);
+
+    std::ostringstream oss;
+    oss << "\nusage: " << programName() 
+       << " train [options] trainfile\n"
+        "\n"
+        "where options are:\n";
+
+    pop.printHeader( oss.str());
+    
+    pop.printOptions( "file input output",  inOutParams);
+    pop.printOptions( "training",           localParams);
+    pop.printOptions( "progress reporting", prParams);
+    pop.printOptions( "select algorithms",  svmSelectParams);
+    pop.printOptions( "svm parameters",     svmParams);
+    pop.printOptions( "kernel parameters",  kernelParams);
+
+    return 0;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  translate short keys
+   *-----------------------------------------------------------------------*/
+  cmdline.translateShortKeys();
+  
+  
+  /*-----------------------------------------------------------------------
+   *  Create the requested Support Vector Machine
+   *-----------------------------------------------------------------------*/
+  BasicSVMAdapter<FV,STDATA>* svm = svt::BasicSVMFactory<
+      FV, 
+      STDATA, 
+      typename ALGORITHMS::MCLIST, 
+      typename ALGORITHMS::TCLIST, 
+      typename ALGORITHMS::KFLIST>::createFromStData( cmdline);
+    
+  /*---------------------------------------------------------------------
+   *  Load parameters given in command line
+   *---------------------------------------------------------------------*/
+  svm->loadParameters( cmdline);
+
+  /*-----------------------------------------------------------------------
+   *  create progress reporter
+   *-----------------------------------------------------------------------*/
+  svt::ProgressReporter pr;
+  pr.loadParameters( cmdline);
+  pr.setMaxTaskLevel( TASK_LEVEL_MULTICLASS);
+  svm->setProgressReporter( &pr);
+
+  /*-----------------------------------------------------------------------
+   *  get detail level for training infos
+   *-----------------------------------------------------------------------*/
+  int detailLevel = 1;
+  cmdline.getValue( "details", detailLevel);
+  int printTrainError = 0;
+  cmdline.getValue( "print_train_error", printTrainError);
+  LOAD_SAVE_POLICY::checkParamsForLoadFeatureVectors(cmdline);
+  LOAD_SAVE_POLICY::checkParamsForSaveModel(cmdline);
+ 
+  int doLinearOptimaziation = 1;
+  cmdline.getValue("optimize_linear_kernel",doLinearOptimaziation);
+
+  /*---------------------------------------------------------------------
+   *  check for unused (== wrong) parameters
+   *---------------------------------------------------------------------*/
+  checkWrongParameters( cmdline);
+
+
+  /*---------------------------------------------------------------------
+   *  read input training file
+   *---------------------------------------------------------------------*/
+  std::vector<FV> featureVectors;
+  LOAD_SAVE_POLICY::loadFeatureVectors( cmdline, featureVectors);
+  
+  /*-----------------------------------------------------------------------
+   *  get dimension of feature vectors and pass it to Gauss-Kernel (or
+   *  other classes, that may be interested)
+   *-----------------------------------------------------------------------*/
+  cmdline.setValue( "feature_vector_dim", featureVectors[0].size());
+  svm->loadParameters( cmdline);
+
+
+  /*-----------------------------------------------------------------------
+   *  print resulting parameters
+   *-----------------------------------------------------------------------*/
+  os << "Selected SVM's\n"
+     << "--------------\n";
+  StDataASCII params;
+  svm->saveParameters( params);
+  os << "multi_class_type: `" << params.asString( "multi_class_type") << "'\n";
+  os << "two_class_type:   `" << params.asString( "two_class_type") <<  "'\n";
+  os << "kernel_type:      `" << params.asString( "kernel_type") <<  "'\n";
+  
+  StDataASCII resultingKernelParams;
+  svm->saveOnlyKernelParameters( resultingKernelParams);
+  for( std::map<std::string, std::string>::const_iterator 
+           p = resultingKernelParams.begin(); 
+       p != resultingKernelParams.end(); ++p)
+  {
+    os << p->first << ":  ";
+    if( p->second.size() > 60)
+    {
+      os << p->second.substr( 0, 60) << " ...";
+    }
+    else
+    {
+      os << p->second;
+    }
+    os << std::endl;
+  }
+  
+    
+  
+  /*---------------------------------------------------------------------
+   *  Do Training
+   *---------------------------------------------------------------------*/
+  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), 
+                                          featureVectors.end(),
+                                          svt::DirectAccessor());
+  svm->updateKernelCache( trainData);
+  svm->train( trainData);
+
+  /*---------------------------------------------------------------------
+   * Optimize Linear Model if flag is set 
+   * -------------------------------------------------------------------*/
+  if ((params.asString( "kernel_type")=="linear")&&(doLinearOptimaziation) )
+  {
+    svm->optimizeLinearModel();
+  }
+  
+  /*---------------------------------------------------------------------
+   *  save model
+   *---------------------------------------------------------------------*/
+  LOAD_SAVE_POLICY::saveModel( cmdline, svm, detailLevel, os);
+
+  /*-----------------------------------------------------------------------
+   *  If requested calculate the training error
+   *-----------------------------------------------------------------------*/
+  std::string classStatistics;
+  
+  if( printTrainError == 1)
+  {
+    std::vector<double> results( featureVectors.size());
+    std::vector<std::string> details( featureVectors.size());
+    
+    // prepare progress reporting
+    std::ostringstream oss;
+    oss << "Classification of " << results.size() << " vectors\n";
+    int reportProgressEveryNthEval = static_cast<int>(results.size() / 100);  
+    if( reportProgressEveryNthEval == 0) reportProgressEveryNthEval = 1;
+    int silentProgressCounter = reportProgressEveryNthEval;
+    
+    for( unsigned int i = 0; i < results.size(); ++i)
+    {
+      --silentProgressCounter;
+      if( silentProgressCounter <= 0)
+      {
+        silentProgressCounter = reportProgressEveryNthEval;
+        std::ostringstream oss2;
+        oss2 << i+1 << " of " << results.size();
+        pr.reportProgress( TASK_LEVEL_MULTICLASS, 
+                           oss.str(),
+                           static_cast<float>(i + 1) /
+                           static_cast<float>(results.size()), 
+                           oss2.str());
+      }
+      
+      
+      results[i] = svm->classify( featureVectors[i]);
+      
+    }
+    std::vector<double> trueLabels( featureVectors.size());
+    for( unsigned int i = 0; i < featureVectors.size(); ++i)
+    {
+      trueLabels[i] = featureVectors[i].getLabel();
+    }
+    std::vector<SingleClassResult> table;
+    ClassificationStatistics cs;
+    
+    cs.calcStatistics( trueLabels, results, table);
+    std::ostringstream oss3;
+    
+    cs.prettyPrintStatistics( table, oss3);
+    classStatistics = oss3.str();
+    
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  print training statistics to std::cout
+   *-----------------------------------------------------------------------*/
+  StDataASCII printOutData;
+  svm->saveTrainingInfos( printOutData, detailLevel);
+  printOutData.debugPrint( std::cout);
+  
+  if( printTrainError == 1)
+  {
+    /*-----------------------------------------------------------------------
+     *  print classification statistics
+     *-----------------------------------------------------------------------*/
+    os << classStatistics << std::endl;
+    
+  }
+  
+  delete svm;
+  
+  return 0;
+    
+}
+
+
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  doClassification
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename ALGORITHMS, typename LOAD_SAVE_POLICY> 
+int svt::SVMApplication<FV,ALGORITHMS,LOAD_SAVE_POLICY>::
+doClassification( StDataCmdLine& cmdline, 
+                  std::ostream& os)
+{
+  /*-----------------------------------------------------------------------
+   *  Get infos from all available parameters
+   *-----------------------------------------------------------------------*/
+  std::vector<svt::ParamInfo> inOutParams;
+  LOAD_SAVE_POLICY::getParamInfosForLoadFeatureVectors( inOutParams);
+  LOAD_SAVE_POLICY::getParamInfosForCreateSVMAndLoadModel( inOutParams);
+  LOAD_SAVE_POLICY::getParamInfosForSaveClassificationResults( inOutParams);
+  cmdline.updateShortCutTable( inOutParams);
+  
+  std::vector<svt::ParamInfo> localParams;
+  localParams.push_back( svt::ParamInfo("details", "dt"));
+  localParams.back().addAlternative( "0", "no details");
+  localParams.back().addAlternative( "1", "print correct/wrong "
+                                     "classifications (requires a labeled "
+                                     "test set) (default)");
+  localParams.back().addAlternative( "2", "save results from each two-class "
+                                     "classification to output file");
+  cmdline.updateShortCutTable( localParams);
+  
+  std::vector<svt::ParamInfo> prParams;
+  ProgressReporter::getParamInfos( prParams);
+  cmdline.updateShortCutTable( prParams);
+  
+  
+
+  /*-----------------------------------------------------------------------
+   *  write help for classication if requested
+   *-----------------------------------------------------------------------*/
+  if( cmdline.helpRequested())
+  {
+    PrettyOptionPrinter pop( os, _prettyPrintColumn);
+
+    std::ostringstream oss;
+    oss << "\nusage: " << programName() 
+       << " classify [options] testfile\n"
+        "\n"
+        "where options are:\n";
+    pop.printHeader( oss.str());
+
+    pop.printOptions( "file input output",  inOutParams);
+    pop.printOptions( "classification",     localParams);
+    pop.printOptions( "progress reporting", prParams);
+    
+    return 0;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  translate short keys
+   *-----------------------------------------------------------------------*/
+  cmdline.translateShortKeys();
+  
+  /*---------------------------------------------------------------------
+   *  read test file
+   *---------------------------------------------------------------------*/
+  std::vector<FV> featureVectors;
+  LOAD_SAVE_POLICY::loadFeatureVectors( cmdline, featureVectors);
+  
+  /*---------------------------------------------------------------------
+   *  create SVM and model from model file
+   *---------------------------------------------------------------------*/
+  BasicSVMAdapter<FV,STDATA>* svm = 
+      LOAD_SAVE_POLICY::template createSVMAndLoadModel<FV,ALGORITHMS>( cmdline);
+
+  /*-----------------------------------------------------------------------
+   *  get detail level from cdmline
+   *-----------------------------------------------------------------------*/
+  int detailLevel = 1;
+  cmdline.getValue( "details", detailLevel);
+  LOAD_SAVE_POLICY::checkParamsForLoadFeatureVectors(cmdline);
+  LOAD_SAVE_POLICY::checkParamsForSaveClassificationResults( cmdline);
+  
+
+
+  /*-----------------------------------------------------------------------
+   *  create progress reporter
+   *-----------------------------------------------------------------------*/
+  svt::ProgressReporter pr;
+  pr.loadParameters( cmdline);
+  pr.setMaxTaskLevel( TASK_LEVEL_MULTICLASS);
+  svm->setProgressReporter( &pr);
+
+  /*---------------------------------------------------------------------
+   *  check for unused (== wrong) parameters
+   *---------------------------------------------------------------------*/
+  checkWrongParameters( cmdline);
+
+
+  /*---------------------------------------------------------------------
+   *  Do classification for all given vectors
+   *---------------------------------------------------------------------*/
+
+  svm->updateTestKernelCache(featureVectors.begin(),featureVectors.end());
+  if( detailLevel >= 2)
+  {
+    svm->setStoreClassificationDetailsFlag( true);
+  }
+  
+  std::vector<double> results( featureVectors.size());
+  std::vector<StDataASCII> details( featureVectors.size());
+
+  // prepare progress reporting
+  std::ostringstream oss;
+  oss << "Classification of " << results.size() << " vectors\n";
+  int reportProgressEveryNthEval = static_cast<int>(results.size() / 100);  
+  if( reportProgressEveryNthEval == 0) reportProgressEveryNthEval = 1;
+  int silentProgressCounter = reportProgressEveryNthEval;
+
+
+  for( unsigned int i = 0; i < results.size(); ++i)
+  {
+    --silentProgressCounter;
+    if( silentProgressCounter <= 0)
+    {
+      silentProgressCounter = reportProgressEveryNthEval;
+      std::ostringstream oss2;
+      oss2 << i+1 << " of " << results.size();
+      pr.reportProgress( TASK_LEVEL_MULTICLASS, 
+                         oss.str(),
+                         static_cast<float>(i + 1) /
+                         static_cast<float>(results.size()), 
+                         oss2.str());
+    }
+    
+    results[i] = svm->classify( featureVectors[i]);
+    if( detailLevel >= 2)
+    {
+      svm->saveClassificationDetailsASCII( details[i]);
+    }
+  }
+  /*-----------------------------------------------------------------------
+   *  If requested, print statistics
+   *-----------------------------------------------------------------------*/
+  if( detailLevel >= 1)
+  {
+    std::vector<double> trueLabels( featureVectors.size());
+    for( unsigned int i = 0; i < featureVectors.size(); ++i)
+    {
+      trueLabels[i] = featureVectors[i].getLabel();
+    }
+    ClassificationStatistics cs;
+    std::vector<SingleClassResult> table;
+    
+    cs.calcStatistics( trueLabels, results, table);
+    cs.prettyPrintStatistics( table, os);
+    cs.prettyPrintConfusionTable(trueLabels, results, os);
+    
+  }
+  
+  /*---------------------------------------------------------------------
+   *  save classification results
+   *---------------------------------------------------------------------*/
+  LOAD_SAVE_POLICY::saveClassificationResults( cmdline, results, details, 
+                                               (detailLevel >= 2), os);
+
+  delete svm;
+  return 0;
+
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  doCrossValidation
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename ALGORITHMS, typename LOAD_SAVE_POLICY> 
+int svt::SVMApplication<FV,ALGORITHMS,LOAD_SAVE_POLICY>::
+doCrossValidation( StDataCmdLine& cmdline, 
+                   std::ostream& os)
+{
+  /*-----------------------------------------------------------------------
+   *  Get infos from all available parameters
+   *-----------------------------------------------------------------------*/
+  std::vector<svt::ParamInfo> inOutParams;
+  LOAD_SAVE_POLICY::getParamInfosForLoadFeatureVectors( inOutParams);
+  LOAD_SAVE_POLICY::getParamInfosForLoadSubsetLabels( inOutParams);
+  LOAD_SAVE_POLICY::getParamInfosForSaveClassificationResults( inOutParams);
+  cmdline.updateShortCutTable( inOutParams);
+
+  std::vector<svt::ParamInfo> localParams;
+  localParams.push_back( 
+      svt::ParamInfo("nfold", "v", "nsubsets",
+                     "number of subsets for cross validation (default 10). "
+                     "Values greater than the number of given feature vectors "
+                     "will be rounded down to that number, resulting in a "
+                     "leave-one-out test"));
+  localParams.push_back( svt::ParamInfo("shuffle_subsets", "ss"));
+  localParams.back().addAlternative( "0", "no shuffling");
+  localParams.back().addAlternative( "1", 
+                                     "shuffle data before splitting into "
+                                     "subsets for cross validation "
+                                     "(default)");
+  localParams.push_back( svt::ParamInfo("train_details", "td"));
+  localParams.back().addAlternative( "0", "no details");
+  localParams.back().addAlternative( "1", "print training statistics (default)");
+  
+  localParams.push_back( svt::ParamInfo("class_details", "cd"));
+  localParams.back().addAlternative( "0", "no details");
+  localParams.back().addAlternative( "1", "print correct/wrong "
+                                     "classifications per class (default)");
+  localParams.back().addAlternative( "2", "save individual classification "
+                                     "details for each feature vector");
+  cmdline.updateShortCutTable( localParams);
+  
+  std::vector<svt::ParamInfo> prParams;
+  ProgressReporter::getParamInfos( prParams);
+  cmdline.updateShortCutTable( prParams);
+  
+  std::vector<svt::ParamInfo> svmSelectParams;
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::MCLIST>::
+      createParamInfoFromNamesDescriptions( "multi_class_type", "mc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::TCLIST>::
+      createParamInfoFromNamesDescriptions( "two_class_type", "tc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::OCLIST>::
+      createParamInfoFromNamesDescriptions( "one_class_type", "oc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::KFLIST>::
+      createParamInfoFromNamesDescriptions( "kernel_type", "kf"));
+  cmdline.updateShortCutTable( svmSelectParams);
+   
+  std::vector<svt::ParamInfo> svmParams;
+  HelpExtractor<typename ALGORITHMS::MCLIST>::collectParamInfos( svmParams);
+  HelpExtractor<typename ALGORITHMS::TCLIST>::collectParamInfos( svmParams);
+  HelpExtractor<typename ALGORITHMS::OCLIST>::collectParamInfos( svmParams);
+  svt::sortAndRemoveDuplicates( svmParams);
+  cmdline.updateShortCutTable( svmParams);
+  
+  std::vector<svt::ParamInfo> kernelParams;
+  HelpExtractor<typename ALGORITHMS::KFLIST>::collectParamInfos( kernelParams);
+  svt::sortAndRemoveDuplicates( kernelParams);
+  cmdline.updateShortCutTable( kernelParams);
+  
+
+  /*-----------------------------------------------------------------------
+   *  write help for cross validation if requested
+   *-----------------------------------------------------------------------*/
+  if( cmdline.helpRequested())
+  {
+    PrettyOptionPrinter pop( os, _prettyPrintColumn);
+
+    std::ostringstream oss;
+    oss << "\nusage: " << programName() 
+       << " crossval [options] trainfile\n"
+        "\n"
+        "where options are:\n";
+    pop.printHeader( oss.str());
+    pop.printOptions( "file input output",  inOutParams);
+    pop.printOptions( "cross validation",   localParams);
+    pop.printOptions( "progress reporting", prParams);
+    pop.printOptions( "select algorithms",  svmSelectParams);
+    pop.printOptions( "svm parameters",     svmParams);
+    pop.printOptions( "kernel parameters",  kernelParams);
+    return 0;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  translate short keys
+   *-----------------------------------------------------------------------*/
+  cmdline.translateShortKeys();
+  
+  /*-----------------------------------------------------------------------
+   *  Create the requested Support Vector Machine
+   *-----------------------------------------------------------------------*/
+  svt::BasicCVAdapter<FV,svt::GroupedTrainingData<FV>,STDATA>* cv = 
+      svt::BasicCVFactory<
+      FV, 
+      svt::GroupedTrainingData<FV>,
+      STDATA, 
+      typename ALGORITHMS::MCLIST, 
+      typename ALGORITHMS::TCLIST, 
+      typename ALGORITHMS::KFLIST>::createFromStData( cmdline);
+    
+  /*---------------------------------------------------------------------
+   *  Load parameters given in command line
+   *---------------------------------------------------------------------*/
+  cv->loadParameters( cmdline);
+
+  int nFold = 10; // default is 10-fold cross validation
+  cmdline.getValue( "nfold", nFold);
+  
+  int shuffleSubsetsFlag = 1; // default is to shuffle subsets
+  cmdline.getValue( "shuffle_subsets", shuffleSubsetsFlag);
+
+  /*-----------------------------------------------------------------------
+   *  get detail level from cdmline
+   *-----------------------------------------------------------------------*/
+  int trainDetailLevel = 1;
+  cmdline.getValue( "train_details", trainDetailLevel);
+  int classDetailLevel = 1;
+  cmdline.getValue( "class_details", classDetailLevel);
+
+  LOAD_SAVE_POLICY::checkParamsForLoadFeatureVectors(cmdline);
+  bool loadSubsetLabelsFlag = 
+      LOAD_SAVE_POLICY::checkParamsForLoadSubsetLabels(cmdline);
+  bool saveResultsFlag = 
+      LOAD_SAVE_POLICY::checkParamsForSaveClassificationResults(cmdline);
+    
+  /*-----------------------------------------------------------------------
+   *  create progress reporter
+   *-----------------------------------------------------------------------*/
+  svt::ProgressReporter pr;
+  pr.setVerboseLevel( 3);
+  pr.loadParameters( cmdline);
+  pr.setMaxTaskLevel( TASK_LEVEL_CROSS_VAL);
+  cv->setProgressReporter( &pr);
+  
+
+  /*---------------------------------------------------------------------
+   *  check for unused (== wrong) parameters
+   *---------------------------------------------------------------------*/
+  checkWrongParameters( cmdline);
+
+  /*---------------------------------------------------------------------
+   *  read input training file
+   *---------------------------------------------------------------------*/
+  std::vector<FV> featureVectors;
+  LOAD_SAVE_POLICY::loadFeatureVectors( cmdline, featureVectors);
+
+  /*-----------------------------------------------------------------------
+   *  if requested load subset labels
+   *-----------------------------------------------------------------------*/
+  std::vector<int> subsetIndexByUID;
+  if( loadSubsetLabelsFlag)
+  {
+    LOAD_SAVE_POLICY::loadSubsetLabels( cmdline, subsetIndexByUID);
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  get dimension of feature vectors and pass it to Gauss-Kernel (or
+   *  other classes, that may be interested)
+   *-----------------------------------------------------------------------*/
+  cmdline.setValue( "feature_vector_dim", featureVectors[0].size());
+  cv->loadParameters( cmdline);
+
+  /*-----------------------------------------------------------------------
+   *  print resulting parameters
+   *-----------------------------------------------------------------------*/
+  os << "Selected SVM's\n"
+     << "--------------\n";
+  StDataASCII params;
+  cv->saveParameters( params);
+  os << "multi_class_type: `" << params.asString( "multi_class_type") << "'\n";
+  os << "two_class_type:         `" << params.asString( "two_class_type") <<  "'\n";
+  os << "kernel_type:      `" << params.asString( "kernel_type") <<  "'\n\n";
+
+  StDataASCII resultingKernelParams;
+  cv->saveOnlyKernelParameters( resultingKernelParams);
+  for( std::map<std::string, std::string>::const_iterator 
+           p = resultingKernelParams.begin(); 
+       p != resultingKernelParams.end(); ++p)
+  {
+    os << p->first << ":  ";
+    if( p->second.size() > 60)
+    {
+      os << p->second.substr( 0, 60) << " ...";
+    }
+    else
+    {
+      os << p->second;
+    }
+    os << std::endl;
+  }
+
+  /*---------------------------------------------------------------------
+   *  Do Cross validation
+   *---------------------------------------------------------------------*/
+  if( nFold > static_cast<int>(featureVectors.size()))
+  {
+    nFold = static_cast<int>(featureVectors.size());
+  }
+  
+
+  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), 
+                                          featureVectors.end(),
+                                          svt::DirectAccessor());
+  cv->setTrainingData( &trainData);
+  
+  if( loadSubsetLabelsFlag == false)
+  {
+    if( shuffleSubsetsFlag == false 
+        ||(unsigned int)nFold == trainData.nFeatureVectors())
+    {
+      // for leave-one-out we need no shuffled subsets
+      svt::generateSortedSubsets(
+          static_cast<int>(trainData.nFeatureVectors()), nFold,
+          subsetIndexByUID);
+    }
+    else
+    {
+      svt::generateShuffledSubsets(
+          static_cast<int>(trainData.nFeatureVectors()), nFold,
+          subsetIndexByUID);
+    }
+  }
+  
+  
+  if( classDetailLevel >= 2)
+  {
+    cv->setStoreClassificationDetailsFlag( true);
+  }
+
+  std::vector<double> predictedClassLabelByUID;
+  cv->updateKernelCache();
+  cv->preprocessTrainingData();
+  cv->doFullCV( subsetIndexByUID, predictedClassLabelByUID);
+  
+  /*---------------------------------------------------------------------
+   *  save classification results
+   *---------------------------------------------------------------------*/
+  if( saveResultsFlag)
+  {
+    LOAD_SAVE_POLICY::saveClassificationResults( 
+        cmdline, 
+        predictedClassLabelByUID,
+        cv->classificationDetailsByUID(),
+        (classDetailLevel >= 2),
+        os);
+  }
+  
+
+  /*-----------------------------------------------------------------------
+   *  If requested, print training statistics
+   *-----------------------------------------------------------------------*/
+  if( trainDetailLevel >= 1)
+  {
+    StDataASCII statistics;
+    cv->saveStatistics( statistics, 1);
+    statistics.debugPrint( os);
+  }
+  
+
+
+  /*-----------------------------------------------------------------------
+   *  If requested, print classification statistics
+   *-----------------------------------------------------------------------*/
+  if( classDetailLevel >= 1)
+  {
+    std::vector<double> trueLabels( featureVectors.size());
+    for( unsigned int i = 0; i < featureVectors.size(); ++i)
+    {
+      trueLabels[i] = featureVectors[i].getLabel();
+    }
+    ClassificationStatistics cs;
+    std::vector<SingleClassResult> table;
+    
+    cs.calcStatistics( trueLabels, predictedClassLabelByUID, table);
+    cs.prettyPrintStatistics( table, os);
+    cs.prettyPrintConfusionTable(trueLabels, predictedClassLabelByUID, os);
+  }
+
+  delete cv;
+  return 0;
+
+}    
+    
+ 
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  doGridSearch
+ *  ==> see headerfile
+ *=======================================================================*/
+
+template< typename FV, typename ALGORITHMS, typename LOAD_SAVE_POLICY> 
+int svt::SVMApplication<FV,ALGORITHMS,LOAD_SAVE_POLICY>::
+doGridSearch( StDataCmdLine& cmdline, 
+              std::ostream& os)
+{
+  /*-----------------------------------------------------------------------
+   *  Get infos from all available parameters
+   *-----------------------------------------------------------------------*/
+  std::vector<svt::ParamInfo> inOutParams;
+  LOAD_SAVE_POLICY::getParamInfosForLoadFeatureVectors( inOutParams);
+  LOAD_SAVE_POLICY::getParamInfosForLoadSubsetLabels( inOutParams);
+  cmdline.updateShortCutTable( inOutParams);
+
+  std::vector<svt::ParamInfo> localParams;
+  localParams.push_back( svt::ParamInfo("param1", "p1"));
+  localParams.back().addAlternative( "<keyname>:<from>,add<step>,<to>", 
+                                     "specify linear range for row "
+                                     "axis. e.g., 'cost:1,add1,5' results "
+                                     "in 1,2,3,4,5" );
+  localParams.back().addAlternative( "<keyname>:<from>,mul<factor>,<to>", 
+                                     "specify logarithmic range for row "
+                                     "axis. e.g., 'gamma:1,mul2,16' results "
+                                     "in 1,2,4,8,16" );
+ localParams.back().addAlternative( "<keyname>:<v1>,<v2>,<v3>,...", 
+                                   "specify list of values for row"
+                                    "axis. e.g. 'cost:-2,5,42,3'" );
+
+ localParams.push_back( 
+     svt::ParamInfo("param2", "p2", "<keyname>:<valuespec>",
+                    "range and parameter for column axis -- syntax of "
+                    "valuespec is the same as for 'param1'"));
+
+ localParams.push_back( svt::ParamInfo("print_grid", "pg"));
+ localParams.back().addAlternative( "0", "no output during evaluation");
+ localParams.back().addAlternative( "1", "print the grid during evaluation "
+                                    "(default)" );
+  cmdline.updateShortCutTable( localParams);
+
+  std::vector<svt::ParamInfo> cvParams;
+  cvParams.push_back( 
+      svt::ParamInfo("nfold", "v", "nsubsets",
+                     "number of subsets for cross validation (default 10). "
+                     "Values greater than the number of given feature vectors "
+                     "will be rounded down to that number, resulting in a "
+                     "leave-one-out test"));
+
+  cvParams.push_back( svt::ParamInfo("shuffle_subsets", "ss"));
+  cvParams.back().addAlternative( "0", "no shuffling");
+  cvParams.back().addAlternative( "1", 
+                                     "shuffle data before splitting into "
+                                     "subsets for cross validation "
+                                     "(default)");
+  cvParams.push_back( svt::ParamInfo("train_details", "td"));
+  cvParams.back().addAlternative( "0", "no details");
+  cvParams.back().addAlternative( "1", "print training statistics (default)");
+  
+  cvParams.push_back( svt::ParamInfo("class_details", "cd"));
+  cvParams.back().addAlternative( "0", "no details");
+  cvParams.back().addAlternative( "1", "print correct/wrong "
+                                     "classifications per class (default)");
+  cmdline.updateShortCutTable( cvParams);
+
+  std::vector<svt::ParamInfo> prParams;
+  ProgressReporter::getParamInfos( prParams);
+  cmdline.updateShortCutTable( prParams);
+  
+  std::vector<svt::ParamInfo> svmSelectParams;
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::MCLIST>::
+      createParamInfoFromNamesDescriptions( "multi_class_type", "mc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::TCLIST>::
+      createParamInfoFromNamesDescriptions( "two_class_type", "tc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::OCLIST>::
+      createParamInfoFromNamesDescriptions( "one_class_type", "oc"));
+  svmSelectParams.push_back( 
+      HelpExtractor<typename ALGORITHMS::KFLIST>::
+      createParamInfoFromNamesDescriptions( "kernel_type", "kf"));
+  cmdline.updateShortCutTable( svmSelectParams);
+   
+  std::vector<svt::ParamInfo> svmParams;
+  HelpExtractor<typename ALGORITHMS::MCLIST>::collectParamInfos( svmParams);
+  HelpExtractor<typename ALGORITHMS::TCLIST>::collectParamInfos( svmParams);
+  HelpExtractor<typename ALGORITHMS::OCLIST>::collectParamInfos( svmParams);
+  svt::sortAndRemoveDuplicates( svmParams);
+  cmdline.updateShortCutTable( svmParams);
+  
+  std::vector<svt::ParamInfo> kernelParams;
+  HelpExtractor<typename ALGORITHMS::KFLIST>::collectParamInfos( kernelParams);
+  svt::sortAndRemoveDuplicates( kernelParams);
+  cmdline.updateShortCutTable( kernelParams);
+
+  /*-----------------------------------------------------------------------
+   *  write help for grid search if requested
+   *-----------------------------------------------------------------------*/
+  if( cmdline.helpRequested())
+  {
+    PrettyOptionPrinter pop( os, _prettyPrintColumn);
+
+    std::ostringstream oss;
+    oss << "\nusage: " << programName() 
+       << " gridsearch [options] trainfile\n"
+        "\n"
+        "where options are:\n";
+    pop.printHeader( oss.str());
+
+    pop.printOptions( "file input output",  inOutParams);
+    pop.printOptions( "grid search",        localParams);
+    pop.printOptions( "cross validation",   cvParams);
+    pop.printOptions( "progress reporting", prParams);
+    pop.printOptions( "select algorithms",  svmSelectParams);
+    pop.printOptions( "svm parameters",     svmParams);
+    pop.printOptions( "kernel parameters",  kernelParams);
+ 
+   return 0;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  translate short keys
+   *-----------------------------------------------------------------------*/
+  cmdline.translateShortKeys();
+  
+  /*-----------------------------------------------------------------------
+   *  Create the requested Crossvalidator
+   *-----------------------------------------------------------------------*/
+  svt::BasicCVAdapter<FV,svt::GroupedTrainingData<FV>,STDATA>* cv = 
+      svt::BasicCVFactory<
+      FV, 
+      svt::GroupedTrainingData<FV>,
+      STDATA, 
+       typename ALGORITHMS::MCLIST, 
+       typename ALGORITHMS::TCLIST, 
+       typename ALGORITHMS::KFLIST>::createFromStData( cmdline);
+    
+  /*---------------------------------------------------------------------
+   *  Load parameters given in command line
+   *---------------------------------------------------------------------*/
+  cv->loadParameters( cmdline);
+
+  int nFold = 10; // default is 10-fold cross validation
+  cmdline.getValue( "nfold", nFold);
+  
+  int shuffleSubsetsFlag = 1; // default is to shuffle subsets
+  cmdline.getValue( "shuffle_subsets", shuffleSubsetsFlag);
+
+  std::string param1string;
+  std::string param2string;
+  cmdline.getValue( "param1", param1string);
+  cmdline.getValue( "param2", param2string);
+
+  if( param1string == "" || param2string == "")
+  {
+    CmdLineError err;
+    err << "command line options '--param1' and '--param2' must not "
+        "be ommited!\n";
+    throw err;
+  }
+  
+  
+  int trainDetailLevel = 1;
+  cmdline.getValue( "train_details", trainDetailLevel);
+  int classDetailLevel = 1;
+  cmdline.getValue( "class_details", classDetailLevel);
+    
+  int printGridFlag = 1;
+  cmdline.getValue( "print_grid", printGridFlag);
+
+  LOAD_SAVE_POLICY::checkParamsForLoadFeatureVectors(cmdline);
+  bool loadSubsetLabelsFlag = 
+      LOAD_SAVE_POLICY::checkParamsForLoadSubsetLabels(cmdline);
+
+  /*-----------------------------------------------------------------------
+   *  create progress reporter
+   *-----------------------------------------------------------------------*/
+  svt::ProgressReporter pr;
+  pr.setVerboseLevel( 2);
+  pr.loadParameters( cmdline);
+  pr.setMaxTaskLevel( TASK_LEVEL_GRID_SEARCH);
+  cv->setProgressReporter( &pr);
+  
+
+  /*---------------------------------------------------------------------
+   *  check for unused (== wrong) parameters
+   *---------------------------------------------------------------------*/
+  checkWrongParameters( cmdline);
+
+  /*---------------------------------------------------------------------
+   *  read input training file
+   *---------------------------------------------------------------------*/
+  std::vector<FV> featureVectors;
+  LOAD_SAVE_POLICY::loadFeatureVectors( cmdline, featureVectors);
+
+  /*-----------------------------------------------------------------------
+   *  if requested load subset labels
+   *-----------------------------------------------------------------------*/
+  std::vector<int> subsetIndexByUID;
+  if( loadSubsetLabelsFlag)
+  {
+    LOAD_SAVE_POLICY::loadSubsetLabels( cmdline, subsetIndexByUID);
+  }
+
+  /*-----------------------------------------------------------------------
+   *  get dimension of feature vectors and pass it to Gauss-Kernel (or
+   *  other classes, that may be interested)
+   *-----------------------------------------------------------------------*/
+  cmdline.setValue( "feature_vector_dim", featureVectors[0].size());
+  cv->loadParameters( cmdline);
+
+  /*-----------------------------------------------------------------------
+   *  print selected algorithms
+   *-----------------------------------------------------------------------*/
+  os << "Selected SVM's\n"
+     << "--------------\n";
+  StDataASCII params;
+  cv->saveParameters( params);
+  os << "multi_class_type: `" << params.asString( "multi_class_type") << "'\n";
+  os << "two_class_type:   `" << params.asString( "two_class_type") <<  "'\n";
+  os << "kernel_type:      `" << params.asString( "kernel_type") <<  "'\n\n";
+
+
+  if( nFold > static_cast<int>(featureVectors.size()))
+  {
+    nFold = static_cast<int>(featureVectors.size());
+  }
+  
+
+  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), 
+                                          featureVectors.end(),
+                                          svt::DirectAccessor());
+  cv->setTrainingData( &trainData);
+  
+  if( loadSubsetLabelsFlag == false)
+  {
+    if( shuffleSubsetsFlag == false 
+        ||(unsigned int)nFold == trainData.nFeatureVectors())
+    {
+      // for leave-one-out we need no shuffled subsets
+      svt::generateSortedSubsets(
+          static_cast<int>(trainData.nFeatureVectors()), nFold,
+          subsetIndexByUID);
+    }
+    else
+    {
+      svt::generateShuffledSubsets(
+          static_cast<int>(trainData.nFeatureVectors()), nFold,
+          subsetIndexByUID);
+    }
+  }
+  
+
+
+  /*-----------------------------------------------------------------------
+   *  create grid axis
+   *-----------------------------------------------------------------------*/
+  svt::GridAxis row( param1string);
+  svt::GridAxis col( param2string);
+
+  /*-----------------------------------------------------------------------
+   *  Check wether each axis changes the kernel or not
+   *-----------------------------------------------------------------------*/
+  StDataASCII resultingKernelParams;
+  cv->saveOnlyKernelParameters( resultingKernelParams);
+  row.setChangesKernel( resultingKernelParams.valueExists(row.keyName()));
+  col.setChangesKernel( resultingKernelParams.valueExists(col.keyName()));
+  
+  
+  std::vector<svt::StDataASCII> gridPointInfos;
+  svt::GridSearch grid;
+  grid.setPrintGridFlag( printGridFlag);
+  grid.setProgressReporter( &pr);
+  
+  unsigned int bestGridPointIndex;
+  std::vector<SingleClassResult> bestResultTable;
+  
+  grid.search2D( row, col, cv, subsetIndexByUID, 
+                 gridPointInfos, bestGridPointIndex,
+                 bestResultTable);
+  
+  // if grid wasn't printed during evaluation print it now
+  if( printGridFlag == 0)
+  {
+    
+    for( unsigned int r = 0; r < row.nValues(); ++r)
+    {
+      for( unsigned int c = 0; c < col.nValues(); ++c)
+      {
+        int index = r * static_cast<int>(col.nValues()) + c;
+        os << gridPointInfos[index].asDouble("nCorrect") 
+           << "\t";
+      }
+      os << std::endl;
+    }
+  }
+  
+  
+  os << "Best parameters:\n";
+  
+  gridPointInfos[bestGridPointIndex].debugPrint(os);
+  return 0;
+}
+
+
+
+

@@ -1,0 +1,206 @@
+/**************************************************************************
+**       Title: 
+**    $RCSfile$
+**   $Revision: 4820 $$Name$
+**       $Date: 2011-11-08 10:57:01 +0100 (Tue, 08 Nov 2011) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.2  2005/10/26 07:01:18  ronneber
+**  - added set/getStoreClassificationDetailsFlag()
+**  - now collects classification details and can return them via
+**    classificationDetailsByUID()
+**
+**  Revision 1.1  2004/08/26 08:36:58  ronneber
+**  initital import
+**
+**
+**
+**************************************************************************/
+
+
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  doFullCV
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename SVMTYPE, typename PROBLEM>
+int svt::CrossValidator<FV,SVMTYPE,PROBLEM>::doFullCV( 
+    const std::vector<int>& subsetIndexByUID,
+    std::vector<double>& predictedClassLabelByUID)
+{
+  SVM_ASSERT( _problem != 0);
+  
+
+  /*-----------------------------------------------------------------------
+   *  set statistics to zero (will be updated in doPartialCV())
+   *-----------------------------------------------------------------------*/
+  _sum_nSV = 0;
+  _sum_nFV = 0;
+  _sum_nBSV = 0;
+  
+  /*-----------------------------------------------------------------------
+   *  find out number of subsets
+   *-----------------------------------------------------------------------*/
+  int maxSubsetIndex = *(std::max_element( subsetIndexByUID.begin(), 
+                                           subsetIndexByUID.end()));
+  int nSubsets = maxSubsetIndex + 1;
+  
+  /*-----------------------------------------------------------------------
+   *  do a partial crossvalidation for each subset, and store
+   *  accuracies in given vector 
+   *-----------------------------------------------------------------------*/
+  int nTotalCorrect = 0;
+
+  std::ostringstream title;
+  title << nSubsets << "-fold Cross Validation";
+  predictedClassLabelByUID.resize( subsetIndexByUID.size());
+  if( _pr != 0)
+  {
+    std::ostringstream oss;
+    oss << "0 of " << nSubsets;
+    
+    _pr->reportProgress( TASK_LEVEL_CROSS_VAL, 
+                         title.str(), 0,
+                         oss.str());
+  }
+  for( int i = 0; i < nSubsets; ++i)
+  {
+    int nCorrect = doPartialCV( i, subsetIndexByUID, predictedClassLabelByUID);
+    nTotalCorrect += nCorrect;
+    if( _pr != 0)
+    {
+      std::ostringstream oss;
+      oss << i+1 << " of " << nSubsets;
+      
+      _pr->reportProgress(
+          TASK_LEVEL_CROSS_VAL, 
+          title.str(), static_cast<float>(i + 1) / static_cast<float>(nSubsets),
+          oss.str());
+    }
+  }
+  
+
+  /*-----------------------------------------------------------------------
+   *  that's it. Return total number of correct classifications
+   *-----------------------------------------------------------------------*/
+  return nTotalCorrect;
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  doPartialCV
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename SVMTYPE, typename PROBLEM>
+int svt::CrossValidator<FV,SVMTYPE,PROBLEM>::doPartialCV( 
+    int subsetIndex, 
+    const std::vector<int>& subsetIndexByUID,
+    std::vector<double>& predictedClassLabelByUID,
+    ModelType* partialModel)
+{
+  SVM_ASSERT( _problem != 0);
+  SVM_ASSERT( subsetIndexByUID.size() == predictedClassLabelByUID.size());
+
+  /*-----------------------------------------------------------------------
+   *  if storage of individual classification alphas is requested,
+   *  resize internal vector if necessary 
+   *-----------------------------------------------------------------------*/
+  if( _storeClassificationDetailsFlag
+      && _classificationDetailsByUID.size()!=subsetIndexByUID.size())
+  {
+    _classificationDetailsByUID.resize(subsetIndexByUID.size());
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  if no output partial model was given, create a private one
+   *-----------------------------------------------------------------------*/
+  bool owningPartialModel = false;
+  if( partialModel == 0)
+  {
+    partialModel = new ModelType;
+    owningPartialModel = true;
+  }
+  
+  
+  /*-----------------------------------------------------------------------
+   *  build the leave-out-flag array
+   *-----------------------------------------------------------------------*/
+  std::vector<char> leaveOutFlagsByUID( subsetIndexByUID.size());
+  for( unsigned int i = 0; i < subsetIndexByUID.size(); ++i)
+  {
+    leaveOutFlagsByUID[i] = (subsetIndexByUID[i] == subsetIndex)? 1 : 0;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  retrain the partial model with left out vectors
+   *-----------------------------------------------------------------------*/
+  _svm->retrainWithLeftOutVectors( *_problem, 
+                                   _fullModel,
+                                   leaveOutFlagsByUID,
+                                   *partialModel);
+  
+  /*-----------------------------------------------------------------------
+   *  Get statistics from training
+   *-----------------------------------------------------------------------*/
+  StDataASCII stat;
+  partialModel->saveTrainingInfoStatistics( stat);
+  stat.setExceptionFlag( true);
+  _sum_nFV  += stat.asUint( "sum_twoclass_nFV");
+  _sum_nSV  += stat.asUint( "sum_twoclass_nSV");
+  _sum_nBSV += stat.asUint( "sum_twoclass_nBSV");
+  
+
+  /*-----------------------------------------------------------------------
+   *  classify left out vectors with trained model
+   *-----------------------------------------------------------------------*/
+  int nCorrect = 0;
+  for( unsigned int i = 0; i < _problem->nFeatureVectors(); ++i)
+  {
+    FV* feaVect = _problem->featureVector(i);
+    unsigned int uid = feaVect->uniqueID();
+    if( leaveOutFlagsByUID[uid])
+    {
+      double predictedLabel;
+      if( _storeClassificationDetailsFlag)
+      {
+        typename SVMTYPE::DetailedResultType resultVector;
+        predictedLabel = _svm->classify( *feaVect, *partialModel, 
+                                         resultVector);
+        _svm->saveClassificationDetails( *partialModel, resultVector,
+                                         _classificationDetailsByUID[uid]);
+      }
+      else
+      {
+        predictedLabel = _svm->classify( *feaVect, *partialModel);
+      }
+      
+      predictedClassLabelByUID[uid] = predictedLabel;
+      double trueLabel = _problem->label( i);
+      if( std::abs( predictedLabel - trueLabel) <= _classificationDelta)
+      {
+        ++nCorrect;
+      }
+    }
+  }
+
+  /*-----------------------------------------------------------------------
+   *  delete partial model if it was allocated at the begin of this method
+   *-----------------------------------------------------------------------*/
+  if( owningPartialModel)
+  {
+    delete partialModel;
+  }
+  
+  
+  return nCorrect;
+}
+
+

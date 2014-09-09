@@ -1,0 +1,175 @@
+namespace atb
+{
+
+  template<typename DataT, int Dim>
+  void filterDericheAlongDim(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered,
+      double sigmaUm, int dim,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter */*pr*/)
+  {
+    if (&data != &filtered) filtered.resize(data.shape());
+
+    if (sigmaUm <= 0.0)
+    {
+      if (&data != &filtered)
+          std::memcpy(
+              filtered.data(), data.data(), data.size() * sizeof(DataT));
+      return filtered;
+    }
+
+    BlitzIndexT pad = static_cast<BlitzIndexT>(
+        5.0 * sigmaUm / elementSizeUm(dim) + 2.0);
+
+    double alpha =
+        5.0 / (2.0 * std::sqrt(M_PI) * sigmaUm / elementSizeUm(dim));
+
+    double expa = std::exp(-alpha);
+    double exp2a = std::exp(-2.0 * alpha);
+    double preFactor =
+        ((1.0 - expa) * (1.0 - expa)) / (1.0 + 2.0 * alpha * expa - exp2a);
+
+    double boundaryFactor = 
+        (1.0 + expa * (alpha - 1)) / (1.0 + 2.0 * alpha * expa - exp2a);
+
+    // Prepare boundary treatment object
+    BoundaryTreatment<DataT,Dim> *bt =
+        BoundaryTreatmentFactory<DataT,Dim>::get(btType, boundaryValue);
+
+    // Now the actual filtering starts
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0;
+         i < static_cast<ptrdiff_t>(data.size()) / data.extent(dim); ++i)
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> pos;
+      BlitzIndexT resid = satic_cast<BlitzIndexT>(i);
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        if (d != dim)
+        {
+          pos(d) = resid % data.extent(d);
+          resid /= data.extent(d);
+        }
+      }
+      pos(dim) = 0;
+
+      ptrdiff_t length = static_cast<ptrdiff_t>(data.extent(dim));
+      ptrdiff_t stride = static_cast<ptrdiff_t>(data.stride(dim));
+      DataT const *constLineIter = &data(pos);
+
+      // Copy the Array line into a temporary processing buffer
+      DataT *tmp = new DataT[length];
+      for (ptrdiff_t j = 0; j < length; ++j, constLineIter += stride)
+          tmp[j] = *constLineIter;
+
+      /*-------------------------------------------------------------------
+       *  Forward pass
+       *-------------------------------------------------------------------*/
+
+      DataT *f = new DataT[length];
+      ptrdiff_t p;
+
+      // Initialize f[0] and f[1]
+      if (btType == ValueBT)
+      {
+        DataT f_1 = boundaryValue * boundaryFactor;
+        p = 0;
+        f[p] = preFactor *
+            (expa * (alpha - 1.0) * boundaryValue + tmp[p]) +
+            2.0 * expa * f_1 - exp2a * f_1;
+        ++p;
+        f[p] = preFactor *
+            (expa * (alpha - 1.0) * tmp[p - 1] + tmp[p]) +
+            2.0 * expa * f[p - 1] - exp2a * f_1;
+      }
+      else
+      {
+        DataT f0, f_1, f_2;
+        p = -pad - 1;
+        f_2 = bt->get(tmp, p - 1, length) * boundaryFactor;
+        f_1 = bt->get(tmp, p, length) * boundaryFactor;
+        ++p;
+        for (; p < 2; ++p)
+        {
+          f0 = preFactor *
+              (expa * (alpha - 1.0) * bt->get(tmp, p - 1, length) +
+               bt->get(tmp, p, length)) + 2.0 * expa * f_1 - exp2a * f_2;
+          if (p >= 0) f[p] = f0;
+          f_2 = f_1;
+          f_1 = f0;
+        }
+      }
+      
+      for (; p < length; ++p)
+      {
+        f[p] = preFactor * (expa * (alpha - 1.0) * tmp[p - 1] + tmp[p]) +
+            2.0 * expa * f[p - 1] - exp2a * f[p - 2];
+      }
+      
+      /*-------------------------------------------------------------------
+       *  Backward pass
+       *-------------------------------------------------------------------*/ 
+
+      DataT g0, g1, g2;
+
+      // Initialize g(n-1) and g(n-2)
+      if (btType == ValueBT)
+      {
+        g1 = boundaryValue * boundaryFactor;
+        p = length - 1;
+        g0 = preFactor *
+            (expa * (alpha + 1.0) * boundaryValue - exp2a * boundaryValue) +
+            2.0 * expa * g1 - exp2a * g1;
+        f[p] += g0;
+        g2 = g1;
+        g1 = g0;
+        --p;
+        g0 = preFactor *
+            (expa * (alpha + 1.0) * tmp[p + 1] - exp2a * boundaryValue) +
+            2.0 * expa * g1 - exp2a * g2;
+        f[p] += g0;
+        g2 = g1;
+        g1 = g0;
+      }
+      else
+      {
+        p = length + pad;
+        g1 = bt->get(tmp, p + 1, length) * boundaryFactor;
+        g2 = bt->get(tmp, p + 2, length) * boundaryFactor;
+        for (; p > length - 3; --p)
+        {
+          g0 = preFactor *
+              (expa * (alpha + 1.0) * bt->get(tmp, p + 1, length) -
+               exp2a * bt->get(tmp, p + 2, length)) +
+              2.0 * expa * g1 - exp2a * g2;
+          if (p < length) f[p] += g0;
+          g2 = g1;
+          g1 = g0;
+        }
+      }
+
+      for (; p >= 0; --p)
+      {
+        g0 = preFactor *
+            (expa * (alpha + 1.0) * tmp[p + 1] - exp2a * tmp[p + 2]) +
+            2.0 * expa * g1 - exp2a * g2;
+        f[p] += g0;
+        g2 = g1;
+        g1 = g0;
+      }
+
+      DataT *lineIter = &filtered(pos);
+      for (ptrdiff_t j = 0; j < length; ++j, lineIter += stride)
+          *lineIter = f[j];
+
+      delete[] tmp;
+      delete[] f;
+    }
+    delete bt;
+  }
+
+}

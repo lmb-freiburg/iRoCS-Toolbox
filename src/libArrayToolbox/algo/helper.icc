@@ -1,0 +1,74 @@
+template<typename Type>
+void randomSample(
+    std::vector<Type>& dataset, std::vector<Type>& samples, int numberOfSamples)
+{
+  int numberOfData = dataset.size();
+  numberOfSamples = std::min(numberOfSamples, numberOfData);
+  std::vector<int> index;
+  index.resize(numberOfData);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (int i = 0; i < numberOfData; i++) index[i] = i;
+  int pos = 0;
+  for (int i = 0; i < numberOfSamples; i++)
+  {
+    pos = ((int) (pos + float(std::rand()) / RAND_MAX * numberOfData)) %
+        numberOfData;
+    //        std::cerr << pos << ":";
+    samples.push_back(dataset[index[pos]]);
+    //        std::cerr << dataset[pos] << std::endl;
+    index.erase(index.begin() + pos);
+    numberOfData--;
+  }
+}
+
+template<typename Type>
+void downSample(
+    std::vector<Type>& dataset, std::vector<Type>& samples, float downSample)
+{
+  int numberOfData = dataset.size();
+  int numberOfSamples = ceil(numberOfData / downSample);
+  samples.resize(numberOfSamples);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for (int i = 0; i < numberOfSamples; i++)
+  {
+    samples[i] = dataset[i * downSample];
+  }
+}
+
+template<typename Type, typename Type2, typename Type3>
+void keepInRange3D(Type& input, Type2 lb, Type3 ub)
+{
+  input[0] = std::max(double(input[0]), double(lb[0]));
+  input[1] = std::max(double(input[1]), double(lb[1]));
+  input[2] = std::max(double(input[2]), double(lb[2]));
+  input[0] = std::min(double(input[0]), double(ub[0]));
+  input[1] = std::min(double(input[1]), double(ub[1]));
+  input[2] = std::min(double(input[2]), double(ub[2]));
+}
+
+template<typename Type, typename Type2>
+void keepHigherThan3D(Type& input, Type2 lb)
+{
+  input[0] = lmax((input[0]), (lb[0]));
+  input[1] = lmax((input[1]), (lb[1]));
+  input[2] = lmax((input[2]), (lb[2]));
+}
+
+template<typename Type, typename Type2>
+void keepLowerThan3D(Type& input, Type2 ub)
+{
+  input[0] = lmin((input[0]), (ub[0]));
+  input[1] = lmin((input[1]), (ub[1]));
+  input[2] = lmin((input[2]), (ub[2]));
+}
+
+template<typename Type, typename Type2, typename Type3>
+bool testInRange3D(Type& input, Type2 lb, Type3 ub)
+{
+  return input[0] >= lb[0] && input[1] >= lb[1] && input[2] >= lb[2] &&
+      input[0] <= ub[0] && input[1] <= ub[1] && input[2] <= ub[2];
+}

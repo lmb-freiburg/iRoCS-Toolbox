@@ -1,0 +1,161 @@
+/**************************************************************************
+**       Title: SurfaceMarker-OrthoView Renderer
+**    $RCSfile$
+**   $Revision: 3880 $ $Name$
+**       $Date: 2008-01-17 18:05:50 +0100 (Thu, 17 Jan 2008) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**    This class is the interface between the different View- and Marker
+**    types. For each Marker type and each View type one such interface
+**    class needs to be implemented. This is the specific implementation
+**    for SurfaceMarker <=> OrthoView
+**
+**************************************************************************/
+
+#ifndef SURFACEMARKERORTHOVIEWRENDERER_HH
+#define SURFACEMARKERORTHOVIEWRENDERER_HH
+
+#include "PointMarkerOrthoViewRenderer.hh"
+
+#include <vector>
+
+class SurfaceMarker;
+class OrthoViewWidget;
+
+/*======================================================================*/
+/*!
+ *  \class SurfaceMarkerOrthoViewRendererCache SphereMarkerOrthoViewRenderer.hh "SphereMarkerOrthoViewRenderer.hh"
+ *  \brief The SurfaceMarkerOrthoViewRendererCache class stores and replays
+ *    marker geometry information using a QPainter.
+ */
+/*======================================================================*/
+class SurfaceMarkerOrthoViewRendererCache :
+    public PointMarkerOrthoViewRendererCache
+{
+
+public:
+  
+  SurfaceMarkerOrthoViewRendererCache();
+  SurfaceMarkerOrthoViewRendererCache(
+      SurfaceMarkerOrthoViewRendererCache const &cache);
+  virtual ~SurfaceMarkerOrthoViewRendererCache();
+
+/*======================================================================*/
+/*! 
+ *   Get a new copy of this cache
+ *
+ *   \return The address to the clone of this cache.
+ */
+/*======================================================================*/
+  virtual MarkerOrthoViewRendererCache *clone() const;
+  
+/*======================================================================*/
+/*! 
+ *   Render the content of the cache into the given painter. This function
+ *   is called from the MarkerOrthoViewRenderer::render(QPainter*) method at
+ *   every repaint. Pen color and width are already set when this function is
+ *   called to reflect label and selection status, so change these pen
+ *   properties only if you want to highlight or demote parts of the
+ *   visualization.
+ *
+ *   \param painter The painter to pass painter commands to
+ */
+/*======================================================================*/
+  virtual void render(QPainter *painter) const;
+
+/*======================================================================*/
+/*! 
+ *   Get read-only access to the lines vector.
+ *
+ *   \return A read-only reference to the lines vector
+ */
+/*======================================================================*/
+   std::vector< blitz::TinyVector<QPointF,2> > const &lines() const;
+
+/*======================================================================*/
+/*! 
+ *   Get random access to the lines vector.
+ *
+ *   \return A random access reference to the lines vector
+ */
+/*======================================================================*/
+   std::vector< blitz::TinyVector<QPointF,2> > &lines();
+
+protected:
+  
+  std::vector< blitz::TinyVector<QPointF,2> > _lines;
+
+};
+
+
+class SurfaceMarkerOrthoViewRenderer : public PointMarkerOrthoViewRenderer
+{
+
+Q_OBJECT
+
+public:
+  
+  SurfaceMarkerOrthoViewRenderer(
+      SurfaceMarker* marker, OrthoViewWidget* view);
+  SurfaceMarkerOrthoViewRenderer(
+      SurfaceMarkerOrthoViewRenderer const &renderer);
+  virtual ~SurfaceMarkerOrthoViewRenderer();
+  
+  virtual MarkerRenderer *clone() const;
+
+  virtual void render(
+      QXmlStreamWriter &svgStream,
+      blitz::TinyVector<double,3> const &shapePx,
+      blitz::TinyVector<double,3> const &lowerBoundUm,
+      blitz::TinyVector<double,3> const &upperBoundUm,
+      std::string const &font, double fontSizePt,
+      iRoCS::ProgressReporter *pr = NULL) const;
+
+  virtual void userInteractionEvent(UserInteractionEvent *event);
+
+/*======================================================================*/
+/*! 
+ *   Compute the intersection point of a line segment and an axis-aligned
+ *   plane
+ *
+ *   \param p1            The first end point of the line segment
+ *   \param p2            The second end point of the line segment
+ *   \param sliceDim      The dimension orthogonal to the plane
+ *   \param slicePosition The position along the slice dimension
+ *
+ *   \return The in-plane coordinates of the intersection point or special
+ *     values (inf,inf) if there is no intersection, or (0, inf) if the line
+ *     is on the plane.
+ */
+/*======================================================================*/
+  static blitz::TinyVector<double,2> intersectLineNPlane(
+      const blitz::TinyVector<double,3>& p1,
+      const blitz::TinyVector<double,3>& p2,
+      int sliceDim, double slicePosition);
+
+public slots:
+
+/*======================================================================*/
+/*! 
+ *   Update the rendering cache for the specified orthoview dimension. This
+ *   function is called by the updateCache()-Method for every direction.
+ *   On crosshair position change the view widget explicitely calls this
+ *   function with the dimensions orthogonal to the cross hair position
+ *   change. Reimplement this function if you have expensive computations
+ *   that should not be done at every repaint. The default implementation only
+ *   calls the update() function of the view. You can disable the cacheUpdates
+ *   using the setCacheUpdatesEnabled() function. This is important if you
+ *   programmatically perform many operations on the ChannelSpecs, of which
+ *   each would need a cache update. After the sequence of operations, you
+ *   have to call updateCache() explicitely to apply the changes. After cache
+ *   update update() of the view is called to visualize the changes. So if
+ *   many channels are involved you should call setUpdatesEnabled(false)
+ *   to the view before these changes.
+ */
+/*======================================================================*/
+  virtual void updateCache(int direction) const;
+
+};
+
+#endif

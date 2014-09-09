@@ -1,0 +1,188 @@
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  collectSupportVectorsFromTCModels
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename TCModel>
+template< typename ForwardIter>
+void svt::Model_MC<TCModel>::collectSupportVectorsFromTCModels(
+    const ForwardIter& modelsBegin, 
+    const ForwardIter& modelsEnd)
+{
+  /*-----------------------------------------------------------------------
+   *  find maximum unique ID of feature vectors
+   *-----------------------------------------------------------------------*/
+  _maxUniqueID = 0;
+  
+  for( ForwardIter model = modelsBegin; model != modelsEnd; ++model)
+  {
+    for( unsigned int i = 0; i < model->size(); ++i)
+    {
+      if( model->supportVector(i)->uniqueID() > _maxUniqueID)
+      {
+        _maxUniqueID = model->supportVector(i)->uniqueID();
+      }
+    }
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  setup an array to find out the uniqueID's of the support vectors and 
+   *  count them
+   *-----------------------------------------------------------------------*/
+  std::vector<FV*> supportVectorsByUid( _maxUniqueID+1, 0);
+  unsigned int nSupportVectors = 0;
+  
+  for( ForwardIter model = modelsBegin; model != modelsEnd; ++model)
+  {
+    for( unsigned int i = 0; i < model->size(); ++i)
+    {
+      unsigned int uid = model->supportVector(i)->uniqueID();
+      if( supportVectorsByUid[uid] == 0)
+      {
+        ++nSupportVectors;
+        supportVectorsByUid[uid] = model->supportVector(i);
+      }
+    }
+  }
+ 
+  /*-----------------------------------------------------------------------
+   *  resize Space for support vectors if necessary
+   *-----------------------------------------------------------------------*/
+  resizeCollectedSupportVectors( nSupportVectors);
+    
+  /*-----------------------------------------------------------------------
+   *  now copy the pointers to the support vectors into
+   * _collectedSupportVectors array
+   *-----------------------------------------------------------------------*/
+  typename std::vector<FV*>::iterator svIter = _collectedSupportVectors.begin();
+  
+  for( unsigned int i = 0; i < supportVectorsByUid.size(); ++i)
+  {
+    if( supportVectorsByUid[i] != 0)
+    {
+      *svIter = supportVectorsByUid[i];
+      ++svIter;
+    }
+  }
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  saveSupportVectorsAndClassLabels
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename TCModel>
+template<typename STDATA>
+void svt::Model_MC<TCModel>::saveSupportVectorsAndClassLabels( 
+    STDATA& stData) const
+{
+  /*-----------------------------------------------------------------------
+   *  store unique id's of the support vectors
+   *-----------------------------------------------------------------------*/
+  std::vector<unsigned int> uids( _collectedSupportVectors.size());
+  for( unsigned int i = 0; i < _collectedSupportVectors.size(); ++i)
+  {
+    uids[i] = _collectedSupportVectors[i]->uniqueID();
+  }
+  stData.setArray( "sv_uids", uids.begin(), uids.size());
+  
+  /*-----------------------------------------------------------------------
+   *  store support vectors
+   *-----------------------------------------------------------------------*/
+  stData.setFVArray("sv_values", _collectedSupportVectors.begin(), 
+                  _collectedSupportVectors.size());
+  
+  
+
+  /*-----------------------------------------------------------------------
+   *  store translation table for class indizes to labels
+   *-----------------------------------------------------------------------*/
+  stData.setArray( "class_labels", _classIndexToLabel.begin(), 
+                   _classIndexToLabel.size());
+  stData.setValue( "n_support_vectors", _collectedSupportVectors.size());
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  loadSupportVectorsAndClassLabels
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename TCModel>
+template<typename STDATA>
+void svt::Model_MC<TCModel>::loadSupportVectorsAndClassLabels( 
+    STDATA& stData)
+{
+  
+  /*-----------------------------------------------------------------------
+   *  get number of support vectors to resize internal
+   *  structures appropriately  
+   *-----------------------------------------------------------------------*/
+  unsigned int n_support_vectors;
+  stData.getValue( "n_support_vectors", n_support_vectors);
+  resizeCollectedSupportVectors( n_support_vectors);
+  unsigned int n_classes;
+  stData.getValue( "n_classes", n_classes);
+  _classIndexToLabel.resize( n_classes);
+  
+  /*-----------------------------------------------------------------------
+   *  load the support vectors 
+   *-----------------------------------------------------------------------*/
+  for( int unsigned i = 0; i < n_support_vectors; ++i)
+  {
+    _collectedSupportVectors[i] = new FV;
+  }
+  _owningSupportVectors = true;
+  stData.getFVArray( "sv_values", _collectedSupportVectors.begin(), 
+                     static_cast<int>(_collectedSupportVectors.size()));
+  
+  
+  /*-----------------------------------------------------------------------
+   *  read uniqueID's into the support vectors
+   *-----------------------------------------------------------------------*/
+  std::vector<unsigned int> uids( n_support_vectors);
+  stData.getArray( "sv_uids", uids.begin(), static_cast<int>(uids.size()));
+  _maxUniqueID = uids.back();  // best guess for _maxUniqueID
+  for( unsigned int i = 0; i < n_support_vectors; ++i)
+  {
+    _collectedSupportVectors[i]->setUniqueID( uids[i]);
+    if( uids[i] > _maxUniqueID) _maxUniqueID = uids[i];
+  }
+
+  /*-----------------------------------------------------------------------
+   *  get the translation table for class indizes to labels
+   *-----------------------------------------------------------------------*/
+  stData.getArray( "class_labels", _classIndexToLabel.begin(),
+                   static_cast<int>(_classIndexToLabel.size()));
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  calcTrainingStatisticsFromTCModels
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename TCModel>
+template< typename ForwardIter, typename STDATA>
+void svt::Model_MC<TCModel>::calcTrainingStatisticsFromTCModels(
+    const ForwardIter& modelsBegin, 
+    const ForwardIter& modelsEnd,
+    STDATA& statistics)
+{
+  
+  int sum_nSV = 0;
+  int sum_nFV = 0;
+  int sum_nBSV = 0;
+  int sum_iterations = 0;
+  
+  for( ForwardIter model = modelsBegin; model != modelsEnd; ++model)
+  {
+    sum_nSV        += (int)model->getTrainingInfoValue("nSV");
+    sum_nFV        += (int)model->getTrainingInfoValue("nFV");
+    sum_nBSV       += (int)model->getTrainingInfoValue("nBSV");
+    sum_iterations += (int)model->getTrainingInfoValue("iterations");
+  }
+ 
+  statistics.setValue( "total_nSV", collectedSupportVectors().size());
+  statistics.setValue( "sum_twoclass_nBSV", sum_nBSV);
+  statistics.setValue( "sum_twoclass_nSV", sum_nSV);
+  statistics.setValue( "sum_twoclass_nFV", sum_nFV);
+  statistics.setValue( "sum_iterations", sum_iterations);
+}

@@ -1,0 +1,40 @@
+/**************************************************************************
+**	Title: BlitzAnalyzeTraits inline/template implementation
+**	$RCSfile$
+**	$Revision: $$Name$
+**	$Date: $
+**	Copyright: GPL $Author: $
+**	Description:
+**
+**************************************************************************/
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename T>
+BlitzAnalyzeTraits<T>* BlitzAnalyzeTraits<T>::_instance = 0;
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename T>
+BlitzAnalyzeTraits<T>*
+BlitzAnalyzeTraits<T>::Instance()
+{
+	if (_instance == 0) {
+		_instance = new BlitzAnalyzeTraits<T>;
+	}
+	return _instance;
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename T>
+BlitzAnalyzeTraits<T>::~BlitzAnalyzeTraits()
+{
+
+}

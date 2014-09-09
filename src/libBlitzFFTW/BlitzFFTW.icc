@@ -1,0 +1,1486 @@
+/**************************************************************************
+**       Title: fftw Wrapper for fast fftw Calculation using blitz++ Arrays
+**    $RCSfile$
+**   $Revision: 4956 $$Name$
+**       $Date: 2012-07-24 18:02:54 +0200 (Tue, 24 Jul 2012) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**   Wrapper for libfftw and libblitz++, providing arbitrary dimensional
+**   fft's
+**
+**************************************************************************/
+#ifndef BLITZFFTW_ICC
+#define BLITZFFTW_ICC
+
+template<typename DataT>
+BlitzFFTW<DataT>* BlitzFFTW<DataT>::p_instance = 0;
+
+template<typename DataT>
+std::set<size_t> BlitzFFTW<DataT>::_bestFFTSizes;
+
+template<typename DataT>
+BlitzFFTW<DataT>::BlitzFFTW(const BlitzFFTW<DataT>& /* original */)
+{}
+
+
+template<typename DataT>
+BlitzFFTW<DataT>::~BlitzFFTW()
+{
+  (*blitz_fftw_cleanup)();
+}
+
+
+template<typename DataT>
+void BlitzFFTW<DataT>::clear()
+{
+#ifdef _OPENMP
+#pragma omp critical (clear)
+  {
+#endif
+    if (p_instance != 0)
+    {
+      p_instance->saveWisdom();
+      delete p_instance;
+      p_instance = 0;
+    }
+#ifdef _OPENMP
+  }
+#endif
+}
+
+
+template<typename DataT>
+BlitzFFTW<DataT>*
+BlitzFFTW<DataT>::instance()
+{
+  BlitzFFTWError err(
+      "libBlitzFFTW: Instantiation for unknown data type requested, error.");
+  throw err;
+
+  return NULL;
+}
+
+
+template<typename DataT>
+void BlitzFFTW<DataT>::prepareFFTSizes()
+{
+  if( _bestFFTSizes.empty())
+  {
+    for(size_t i2 = 1; i2 <= maxPrepareFFTSize; i2 *= 2)
+    {
+      for(size_t i3 = 1; i3 <= maxPrepareFFTSize; i3 *= 3)
+      {
+        size_t i2i3 = i2*i3;
+
+        // omit sizes over maxPrepareFFTSize
+        if( i2i3 > maxPrepareFFTSize) continue;
+
+        for(size_t i5 = 1; i5 <= maxPrepareFFTSize; i5 *= 5)
+        {
+          size_t i2i3i5 = i2i3*i5;
+          // omit sizes over maxPrepareFFTSize
+          if( i2i3i5 > maxPrepareFFTSize) continue;
+
+          // omit uneven sizes
+          if( (i2i3i5 % 2) == 0) _bestFFTSizes.insert( i2i3i5);
+        }
+      }
+    }
+  }
+}
+
+
+template<typename DataT>
+size_t BlitzFFTW<DataT>::nextBestFFTSize(const size_t size)
+{
+  BlitzFFTW<DataT>::prepareFFTSizes();
+
+  std::set<size_t>::const_iterator p = _bestFFTSizes.find( size);
+  if( p == _bestFFTSizes.end())
+  {
+    p = _bestFFTSizes.upper_bound( size);
+  }
+
+  if( p == _bestFFTSizes.end())
+  {
+    std::cerr << "Do you really want to calculate an FFT with size "
+              << size << "?" << std::endl
+              << "if yes, please increase the limit in BlitzFFTW.icc"
+              << std::endl;
+    return size;
+  }
+  return *p;
+}
+
+
+template<typename DataT>
+size_t BlitzFFTW<DataT>::prevBestFFTSize(const size_t size)
+{
+  BlitzFFTW<DataT>::prepareFFTSizes();
+
+  std::set<size_t>::const_iterator p = _bestFFTSizes.find( size);
+  if( p == _bestFFTSizes.begin())
+  {
+    return 0;
+  }
+  --p;
+
+  return *p;
+}
+
+
+template<typename DataT>
+const std::set<size_t>& BlitzFFTW<DataT>::nextBestFFTSizes()
+{
+  // We need the fftw sizes to set moving/fixed window sizes
+  BlitzFFTW<DataT>::prepareFFTSizes();
+
+  return _bestFFTSizes;
+}
+
+
+template<typename DataT>
+template<int Dim, typename IndexT>
+blitz::TinyVector<IndexT,Dim>
+BlitzFFTW<DataT>::getPaddedShape(const blitz::TinyVector<IndexT,Dim>& minimumExtents) const
+{
+  blitz::TinyVector<BlitzIndexT,Dim> shape = minimumExtents;
+  for (int d = 0; d < Dim; ++d) shape(d) = nextBestFFTSize(shape(d));
+  return shape;
+}
+
+
+template<typename DataT>
+template<int Dim, typename IndexT>
+void
+BlitzFFTW<DataT>::pad(const blitz::Array<DataT,Dim>& in,
+                      blitz::Array<DataT,Dim>& out,
+                      blitz::TinyVector<IndexT,Dim>& lb,
+                      blitz::TinyVector<IndexT,Dim>& ub,
+                      const blitz::TinyVector<IndexT,Dim>& minimumExtents,
+                      const PaddingType paddingMode,
+                      const DataT paddingValue) const
+{
+  blitz::TinyVector<BlitzIndexT,Dim> destSize =
+      blitz::max(in.shape(), minimumExtents);
+  blitz::TinyVector<BlitzIndexT,Dim> shape = getPaddedShape(destSize);
+
+  lb = (shape - in.shape() + 1) / 2;
+  ub = lb + in.shape() - 1;
+  blitz::RectDomain<Dim> domain(lb, ub);
+
+  // if data and padded are the same array, use temporary
+  const blitz::Array<DataT,Dim>* src;
+  blitz::Array<DataT,Dim> tmp;
+  if (&in == &out)
+  {
+    tmp.resize(in.shape());
+    tmp = in;
+    src = &tmp;
+  }
+  else src = &in;
+
+  out.resize(shape);
+
+  if (paddingMode == REPEATBORDER)
+  {
+    typename blitz::Array<DataT,Dim>::iterator it = out.begin();
+    for (; it != out.end(); ++it)
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> sPos = it.position() - lb;
+      for (int d = 0; d < Dim; ++d)
+      {
+        if (sPos(d) < 0) sPos(d) = 0;
+        if (sPos(d) >= src->extent(d)) sPos(d) = src->extent(d) - 1;
+      }
+      *it = (*src)(sPos);
+    }
+  }
+  else if (paddingMode == MIRRORBORDER)
+  {
+    typename blitz::Array<DataT,Dim>::iterator it = out.begin();
+    for (; it != out.end(); ++it)
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> sPos = it.position() - lb;
+      for (int d = 0; d < Dim; ++d)
+      {
+        if (sPos(d) < 0) sPos(d) = -sPos(d);
+        BlitzIndexT n = sPos(d) / (src->extent(d) - 1);
+        bool inc = (n % 2 == 0);
+        if (inc) sPos(d) -= n * (src->extent(d) - 1);
+        else sPos(d) = (n + 1) * (src->extent(d) - 1) - sPos(d);
+      }
+      *it = (*src)(sPos);
+    }    
+  }
+  else if (paddingMode == CYCLICBORDER)
+  {
+    typename blitz::Array<DataT,Dim>::iterator it = out.begin();
+    for (; it != out.end(); ++it)
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> sPos = it.position() - lb;
+      for (int d = 0; d < Dim; ++d)
+      {
+        sPos(d) = sPos(d) % src->extent(d);
+        if (sPos(d) < 0) sPos(d) += src->extent(d);
+      }
+      *it = (*src)(sPos);
+    }    
+  }
+  else
+  {
+    out = paddingValue;
+    out(domain) = *src;
+  }
+}
+
+template<typename DataT>
+template<int Dim, typename IndexT>
+void
+BlitzFFTW<DataT>::pad(const blitz::Array<std::complex<DataT>,Dim>& in,
+                      blitz::Array<std::complex<DataT>,Dim>& out,
+                      blitz::TinyVector<IndexT,Dim>& lb,
+                      blitz::TinyVector<IndexT,Dim>& ub,
+                      const blitz::TinyVector<IndexT,Dim>& minimumExtents,
+                      const PaddingType paddingMode,
+                      const std::complex<DataT> paddingValue) const
+{
+  blitz::TinyVector<BlitzIndexT,Dim> destSize =
+      blitz::max(in.shape(), minimumExtents);
+  blitz::TinyVector<BlitzIndexT,Dim> shape = getPaddedShape(destSize);
+
+  lb = (shape - in.shape() + 1) / 2;
+  ub = lb + in.shape() - 1;
+  blitz::RectDomain<Dim> domain(lb, ub);
+
+  // if data and padded are the same array, use temporary
+  const blitz::Array<std::complex<DataT>,Dim>* src;
+  blitz::Array<std::complex<DataT>,Dim> tmp;
+  if (&in == &out)
+  {
+    tmp.resize(in.shape());
+    tmp = in;
+    src = &tmp;
+  }
+  else src = &in;
+
+  out.resize(shape);
+
+  if (paddingMode == REPEATBORDER)
+  {
+    typename blitz::Array<std::complex<DataT>,Dim>::iterator it = out.begin();
+    for (; it != out.end(); ++it)
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> sPos = it.position() - lb;
+      for (int d = 0; d < Dim; ++d)
+      {
+        if (sPos(d) < 0) sPos(d) = 0;
+        if (sPos(d) >= src->extent(d)) sPos(d) = src->extent(d) - 1;
+      }
+      *it = (*src)(sPos);
+    }
+  }
+  else if (paddingMode == MIRRORBORDER)
+  {
+    typename blitz::Array<std::complex<DataT>,Dim>::iterator it = out.begin();
+    for (; it != out.end(); ++it)
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> sPos = it.position() - lb;
+      for (int d = 0; d < Dim; ++d)
+      {
+        if (sPos(d) < 0) sPos(d) = -sPos(d);
+        BlitzIndexT n = sPos(d) / (src->extent(d) - 1);
+        bool inc = (n % 2 == 0);
+        if (inc) sPos(d) -= n * (src->extent(d) - 1);
+        else sPos(d) = (n + 1) * (src->extent(d) - 1) - sPos(d);
+      }
+      *it = (*src)(sPos);
+    }
+  }
+  else if (paddingMode == CYCLICBORDER)
+  {
+    typename blitz::Array<std::complex<DataT>,Dim>::iterator it = out.begin();
+    for (; it != out.end(); ++it)
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> sPos = it.position() - lb;
+      for (int d = 0; d < Dim; ++d)
+      {
+        sPos(d) = sPos(d) % src.extent(d);
+        if (sPos(d) < 0) sPos(d) += src.extent(d);
+      }
+      *it = (*src)(sPos);
+    }    
+  }
+  else
+  {
+    out = paddingValue;
+    out(domain) = *src;
+  }
+}
+
+
+template<typename DataT>
+template<int Dim, typename IndexT>
+void BlitzFFTW<DataT>::unpad(const blitz::Array<DataT,Dim>& in,
+                             blitz::Array<DataT,Dim>& out,
+                             const blitz::TinyVector<IndexT,Dim>& lb,
+                             const blitz::TinyVector<IndexT,Dim>& ub) const
+{
+  blitz::TinyVector<BlitzIndexT,Dim> outShape = ub - lb + 1;
+
+  blitz::Array<DataT,Dim>* p_out;
+  if (&in == &out) p_out = new blitz::Array<DataT,Dim>();
+  else p_out = &out;
+  p_out->resize(outShape);
+
+  blitz::RectDomain<Dim> domain(lb, ub);
+  *p_out = in(domain);
+  if (&in == &out)
+  {
+    out.resize(outShape);
+    out = *p_out;
+    delete p_out;
+  }
+}
+
+template<typename DataT>
+template<int Dim, typename IndexT>
+void BlitzFFTW<DataT>::unpad(const blitz::Array<std::complex<DataT>,Dim>& in,
+                             blitz::Array<std::complex<DataT>,Dim>& out,
+                             const blitz::TinyVector<IndexT,Dim>& lb,
+                             const blitz::TinyVector<IndexT,Dim>& ub) const
+{
+  blitz::TinyVector<BlitzIndexT,Dim> outShape = ub - lb + 1;
+
+  blitz::Array<std::complex<DataT>,Dim>* p_out;
+  if (&in == &out) p_out = new blitz::Array<std::complex<DataT>,Dim>();
+  else p_out = &out;
+  p_out->resize(outShape);
+
+  blitz::RectDomain<Dim> domain(lb, ub);
+  *p_out = in(domain);
+  if (&in == &out)
+  {
+    out.resize(outShape);
+    out = *p_out;
+    delete p_out;
+  }
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::plan_forward(blitz::Array<DataT,Dim>& in,
+                               blitz::Array<std::complex<DataT>,Dim>& out,
+                               const DataPreservePolicy policy,
+                               const unsigned int plan_flags) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+  outShape[Dim - 1] = in.extent(Dim - 1) / 2 + 1;
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::plan(RC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::plan(RC): dimensions of outArray do not"
+            << " match inArray, need to exit.\n"
+            << out.shape() << " vs " << outShape << ".\n";
+    throw (err);
+  }
+
+  blitz::Array<DataT,Dim>* p_in;
+  blitz::Array<std::complex<DataT>,Dim>* p_out;
+  const bool useTempMem =
+          ((plan_flags != FFTW_ESTIMATE && policy == PRESERVE)
+           || !in.isStorageContiguous() || !out.isStorageContiguous());
+  if (useTempMem)
+  {
+    p_in = new blitz::Array<DataT,Dim>(in.shape());
+    p_out = new blitz::Array<std::complex<DataT>,Dim>(out.shape());
+  }
+  else
+  {
+    p_in = &in;
+    p_out = &out;
+  }
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft_r2c)(
+      Dim, dims, reinterpret_cast<DataT*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(p_out->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_out->data()), plan_flags);
+  (*blitz_fftw_destroy_plan)(plan);
+  if (useTempMem)
+  {
+    delete p_in;
+    delete p_out;
+  }
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::plan_backward(blitz::Array<std::complex<DataT>,Dim>& in,
+                                blitz::Array<DataT,Dim>& out,
+                                const DataPreservePolicy policy,
+                                const unsigned int plan_flags) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim-1; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+  dims[Dim - 1] = static_cast<int>((in.extent(Dim - 1) - 1) * 2);
+  outShape[Dim - 1] = (in.extent(Dim - 1) - 1) * 2;
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::plan_backward(CR): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+      out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::plan_backward(CR): dimensions of outArray do not"
+            << " match inArray, need to exit.\n"
+            << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  blitz::Array<DataT,Dim>* p_out;
+  const bool useTempMem =
+          ((plan_flags != FFTW_ESTIMATE && policy == PRESERVE)
+           || !in.isStorageContiguous() || !out.isStorageContiguous());
+  if (useTempMem)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    p_out = new blitz::Array<DataT,Dim>(out.shape());
+  }
+  else
+  {
+    p_in = &in;
+    p_out = &out;
+  }
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft_c2r)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      reinterpret_cast<DataT*>(p_out->data()), plan_flags);
+  (*blitz_fftw_destroy_plan)(plan);
+  if (useTempMem)
+  {
+    delete p_in;
+    delete p_out;
+  }
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::plan_forward(blitz::Array<std::complex<DataT>,Dim>& in,
+                               blitz::Array<std::complex<DataT>,Dim>& out,
+                               const DataPreservePolicy policy,
+                               const unsigned int plan_flags) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::plan_forward(CC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::plan_forward(CC): dimensions of outArray do not"
+            << " match inArray, need to exit.\n"
+            << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  blitz::Array<std::complex<DataT>,Dim>* p_out;
+  const bool useTempMem =
+          ((plan_flags != FFTW_ESTIMATE && policy == PRESERVE)
+           || !in.isStorageContiguous() || !out.isStorageContiguous());
+  if (useTempMem)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    p_out = new blitz::Array<std::complex<DataT>,Dim>(out.shape());
+  }
+  else
+  {
+    p_in = &in;
+    p_out = &out;
+  }
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(p_out->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_out->data()), 1, plan_flags);
+  (*blitz_fftw_destroy_plan)(plan);
+  if (useTempMem)
+  {
+    delete p_in;
+    delete p_out;
+  }
+}
+
+
+template<typename DataT>
+template<int Dim>
+typename BlitzFFTW<DataT>::blitz_fftw_plan
+BlitzFFTW<DataT>::get_plan_forward(blitz::Array<std::complex<DataT>,Dim>& in,
+                                         blitz::Array<std::complex<DataT>,Dim>& out,
+                                         const DataPreservePolicy policy,
+                                         const unsigned int plan_flags) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::get_plan_forward(CC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::get_plan_forward(CC): dimensions of outArray do not"
+            << " match inArray, need to exit.\n"
+            << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  blitz::Array<std::complex<DataT>,Dim>* p_out;
+  const bool useTempMem =
+          ((plan_flags != FFTW_ESTIMATE && policy == PRESERVE)
+           || !in.isStorageContiguous() || !out.isStorageContiguous());
+  if (useTempMem)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    p_out = new blitz::Array<std::complex<DataT>,Dim>(out.shape());
+  }
+  else
+  {
+    p_in = &in;
+    p_out = &out;
+  }
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(p_out->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_out->data()), 1, plan_flags);
+  if (useTempMem)
+  {
+    delete p_in;
+    delete p_out;
+  }
+
+  return plan;
+}
+
+
+template<typename DataT>
+template<int Dim>
+typename BlitzFFTW<DataT>::blitz_fftw_plan
+BlitzFFTW<DataT>::get_plan_forward(blitz::Array<DataT,Dim>& in,
+                                   blitz::Array<std::complex<DataT>,Dim>& out,
+                                   const DataPreservePolicy policy,
+                                   const unsigned int plan_flags) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim-1; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+  dims[Dim-1] = static_cast<int>(in.extent(Dim-1)/2+1);
+  outShape[Dim-1] = in.extent(Dim-1)/2+1;
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::get_plan_forward(RC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::get_plan_forward(RC): dimensions of outArray do not"
+            << " match inArray, need to exit.\n"
+            << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<DataT,Dim>* p_in;
+  blitz::Array<std::complex<DataT>,Dim>* p_out;
+  const bool useTempMem =
+          ((plan_flags != FFTW_ESTIMATE && policy == PRESERVE)
+           || !in.isStorageContiguous() || !out.isStorageContiguous());
+  if (useTempMem)
+  {
+    p_in = new blitz::Array<DataT,Dim>(in.shape());
+    p_out = new blitz::Array<std::complex<DataT>,Dim>(out.shape());
+  }
+  else
+  {
+    p_in = &in;
+    p_out = &out;
+  }
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft_r2c)(
+      Dim, dims,
+      reinterpret_cast<DataT*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(p_out->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_out->data()), plan_flags);
+  if (useTempMem)
+  {
+    delete p_in;
+    delete p_out;
+  }
+
+  return plan;
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::plan_backward(blitz::Array<std::complex<DataT>,Dim>& in,
+                                blitz::Array<std::complex<DataT>,Dim>& out,
+                                const DataPreservePolicy policy,
+                                const unsigned int plan_flags) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::plan_backward(CC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::plan_backward(CC): dimensions of outArray do not"
+            << " match inArray, need to exit.\n"
+            << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  blitz::Array<std::complex<DataT>,Dim>* p_out;
+  const bool useTempMem =
+          ((plan_flags != FFTW_ESTIMATE && policy == PRESERVE)
+           || !in.isStorageContiguous() || !out.isStorageContiguous());
+  if (useTempMem)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    p_out = new blitz::Array<std::complex<DataT>,Dim>(out.shape());
+  }
+  else
+  {
+    p_in = &in;
+    p_out = &out;
+  }
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(p_out->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_out->data()), -1, plan_flags);
+  (*blitz_fftw_destroy_plan)(plan);
+  if (useTempMem)
+  {
+    delete p_in;
+    delete p_out;
+  }
+}
+
+
+template<typename DataT>
+template<int Dim>
+typename BlitzFFTW<DataT>::blitz_fftw_plan
+BlitzFFTW<DataT>::get_plan_backward(blitz::Array<std::complex<DataT>,Dim>& in,
+                                    blitz::Array<std::complex<DataT>,Dim>& out,
+                                    const DataPreservePolicy policy,
+                                    const unsigned int plan_flags) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::get_plan_backward(CC): outArray resize "
+                << "has runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::get_plan_backward(CC): dimensions of outArray "
+        << "do not match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  blitz::Array<std::complex<DataT>,Dim>* p_out;
+  const bool useTempMem =
+          ((plan_flags != FFTW_ESTIMATE && policy == PRESERVE)
+           || !in.isStorageContiguous() || !out.isStorageContiguous());
+  if (useTempMem)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    p_out = new blitz::Array<std::complex<DataT>,Dim>(out.shape());
+  }
+  else
+  {
+    p_in = &in;
+    p_out = &out;
+  }
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(p_out->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_out->data()), -1, plan_flags);
+  if (useTempMem)
+  {
+    delete p_in;
+    delete p_out;
+  }
+  return plan;
+}
+
+
+template<typename DataT>
+template<int Dim>
+typename BlitzFFTW<DataT>::blitz_fftw_plan
+BlitzFFTW<DataT>::get_plan_backward(blitz::Array<std::complex<DataT>,Dim>& in,
+                                          blitz::Array<DataT,Dim>& out,
+                                          const DataPreservePolicy policy,
+                                          const unsigned int plan_flags) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim-1; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+  dims[Dim-1] = static_cast<int>((in.extent(Dim-1)-1)*2);
+  outShape[Dim-1] = (in.extent(Dim-1)-1)*2;
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::get_plan_backward(CR): outArray resize "
+                << "has runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::get_plan_backward(CR): dimensions of outArray "
+        << "do not match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  blitz::Array<DataT,Dim>* p_out;
+  const bool useTempMem =
+          ((plan_flags != FFTW_ESTIMATE && policy == PRESERVE)
+           || !in.isStorageContiguous() || !out.isStorageContiguous());
+  if (useTempMem)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    p_out = new blitz::Array<DataT,Dim>(out.shape());
+  }
+  else
+  {
+    p_in = &in;
+    p_out = &out;
+  }
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft_c2r)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      reinterpret_cast<DataT*>(p_out->data()), plan_flags);
+  if (useTempMem)
+  {
+    delete p_in;
+    delete p_out;
+  }
+  return plan;
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::forward(const blitz::Array<DataT,Dim>& in,
+                          blitz::Array<std::complex<DataT>,Dim>& out) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+  outShape[Dim - 1] = in.extent(Dim - 1)/2+1;
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::forward(RC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::forward(RC): dimensions of outArray do not"
+        << " match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  if (!in.isStorageContiguous() || !out.isStorageContiguous()) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::forward(RC): Arrays do not have"
+            << " contiguous memory storage. Can not execute.\n";
+    throw(err);
+  }
+
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft_r2c)(
+      Dim, dims,
+      const_cast<DataT*>(in.data()),
+      /* reinterpret_cast<std::complex<DataT>*>(out.data()), */
+      reinterpret_cast<blitz_fftw_complex*>(out.data()), FFTW_ESTIMATE);
+  (*blitz_fftw_execute)(plan);
+  (*blitz_fftw_destroy_plan)(plan);
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::forward(blitz::Array<std::complex<DataT>,Dim>& in,
+                          blitz::Array<std::complex<DataT>,Dim>& out) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::forward(CC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::forward(CC): dimensions of outArray do not"
+        << " match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  if (!in.isStorageContiguous() || !out.isStorageContiguous()) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::forward(CC): Arrays do not have"
+        << " contiguous memory storage. Can not execute.\n";
+    throw(err);
+  }
+
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(in.data()), */
+      reinterpret_cast<blitz_fftw_complex*>(in.data()),
+      /* reinterpret_cast<std::complex<DataT>*>(out.data()), */
+      reinterpret_cast<blitz_fftw_complex*>(out.data()), 1, FFTW_ESTIMATE);
+  (*blitz_fftw_execute)(plan);
+  (*blitz_fftw_destroy_plan)(plan);
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::backward(blitz::Array<std::complex<DataT>,Dim>& in,
+                           blitz::Array<DataT,Dim>& out,
+                           const DataPreservePolicy policy) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+  dims[Dim - 1] = static_cast<int>((in.extent(Dim - 1) - 1) * 2);
+  outShape[Dim - 1] = (in.extent(Dim - 1) - 1) * 2;
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::backward(CR): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::backward(CR): dimensions of outArray do not"
+        << " match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  if (policy == PRESERVE)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    *p_in = in;
+  }
+  else
+  {
+    p_in = &in;
+  }
+
+  if (!p_in->isStorageContiguous() || !out.isStorageContiguous()) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::backward(CR): Arrays do not have"
+            << " contiguous memory storage. Can not execute.\n";
+    throw(err);
+  }
+
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft_c2r)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      reinterpret_cast<DataT*>(out.data()), FFTW_ESTIMATE);
+  (*blitz_fftw_execute)(plan);
+  (*blitz_fftw_destroy_plan)(plan);
+  if (policy == PRESERVE) delete p_in;
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::exec_guru_plan(blitz::Array<std::complex<DataT>,Dim>& in,
+                                 blitz::Array<std::complex<DataT>,Dim>& out,
+                                 blitz_fftw_plan plan,
+                                 const DataPreservePolicy policy) const
+{
+//   int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+//     dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::exec_guru_plan(CC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::exec_guru_plan(CC): dimensions of outArray do not"
+        << " match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  if (policy == PRESERVE)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    *p_in = in;
+  }
+  else
+  {
+    p_in = &in;
+  }
+
+  if (!p_in->isStorageContiguous() || !out.isStorageContiguous()) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::backward(CC): Arrays do not have"
+        << " contiguous memory storage. Can not execute.\n";
+    throw(err);
+  }
+
+
+  (*blitz_fftw_execute_dft)(
+      plan,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(out.data())); */
+      reinterpret_cast<blitz_fftw_complex*>(out.data()));
+  if (policy == PRESERVE) delete p_in;
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::exec_guru_plan_r2c(blitz::Array<DataT,Dim>& in,
+                                     blitz::Array<std::complex<DataT>,Dim>& out,
+                                     blitz_fftw_plan plan,
+                                     const DataPreservePolicy policy) const
+{
+  // int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim -1; ++d) {
+    // dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+  // dims[Dim -1] = static_cast<int>(in.extent(Dim-1)/2+1);
+  outShape[Dim -1] = in.extent(Dim-1)/2+1;
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::exec_guru_plan_r2c(CR): outArray resize "
+                << "has runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::exec_guru_plan_r2c(CR): dimensions of outArray "
+        << "do not match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<DataT,Dim>* p_in;
+  if (policy == PRESERVE)
+  {
+    p_in = new blitz::Array<DataT,Dim>(in.shape());
+    *p_in = in;
+  }
+  else
+  {
+    p_in = &in;
+  }
+
+  if (!p_in->isStorageContiguous() || !out.isStorageContiguous()) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::backward(CC): Arrays do not have"
+        << " contiguous memory storage. Can not execute.\n";
+    throw(err);
+  }
+
+
+  (*blitz_fftw_execute_dft_r2c)(
+      plan,
+      reinterpret_cast<DataT*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(out.data())); */
+      reinterpret_cast<blitz_fftw_complex*>(out.data()));
+  if (policy == PRESERVE) delete p_in;
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::exec_guru_plan_c2r(blitz::Array<std::complex<DataT>,Dim>& in,
+                                     blitz::Array<DataT,Dim>& out,
+                                     blitz_fftw_plan plan,
+                                     const DataPreservePolicy policy) const
+{
+  // int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim -1; ++d) {
+    // dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+  // dims[Dim -1] = static_cast<int>((in.extent(Dim-1)-1)*2);
+  outShape[Dim -1] = (in.extent(Dim-1)-1)*2;
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::exec_guru_plan_c2r(CR): outArray resize "
+                << "has runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::exec_guru_plan_c2r(CR): dimensions of outArray "
+        << "do not match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  if (policy == PRESERVE)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    *p_in = in;
+  }
+  else
+  {
+    p_in = &in;
+  }
+
+  if (!p_in->isStorageContiguous() || !out.isStorageContiguous()) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::backward(CC): Arrays do not have"
+        << " contiguous memory storage. Can not execute.\n";
+    throw(err);
+  }
+
+
+  (*blitz_fftw_execute_dft_c2r)(
+      plan,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      reinterpret_cast<DataT*>(out.data()));
+  if (policy == PRESERVE) delete p_in;
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::backward(blitz::Array<std::complex<DataT>,Dim>& in,
+                           blitz::Array<std::complex<DataT>,Dim>& out,
+                           const DataPreservePolicy policy) const
+{
+  int dims[Dim];
+  blitz::TinyVector<BlitzIndexT,Dim> outShape;
+  for(int d = 0; d < Dim; ++d) {
+    dims[d] = static_cast<int>(in.extent(d));
+    outShape[d] = in.extent(d);
+  }
+
+  if( out.size() == 0) {
+#ifdef _OPENMP
+#pragma omp critical (consoleout)
+    {
+#endif
+      std::cerr << "BlitzFFTW<DataT>::backward(CC): outArray resize has"
+                << " runtime penalty. Better use temporary memory!"
+                << std::endl;
+#ifdef _OPENMP
+    }
+#endif
+    out.resize( outShape);
+  }
+  if( !blitz::all( out.shape() == outShape)) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::backward(CC): dimensions of outArray do not"
+        << " match inArray, need to exit.\n"
+        << out.shape() << " vs " << outShape << ".\n";
+    throw(err);
+  }
+
+  blitz::Array<std::complex<DataT>,Dim>* p_in;
+  if (policy == PRESERVE)
+  {
+    p_in = new blitz::Array<std::complex<DataT>,Dim>(in.shape());
+    *p_in = in;
+  }
+  else
+  {
+    p_in = &in;
+  }
+
+  if (!p_in->isStorageContiguous() || !out.isStorageContiguous()) {
+    BlitzFFTWError err;
+    err << "BlitzFFTW<DataT>::backward(CR): Arrays do not have"
+        << " contiguous memory storage. Can not execute.\n";
+    throw(err);
+  }
+
+
+  blitz_fftw_plan plan;
+#ifdef _OPENMP
+#pragma omp critical (fftwplan)
+#endif
+  plan = (*blitz_fftw_plan_dft)(
+      Dim, dims,
+      /* reinterpret_cast<std::complex<DataT>*>(p_in->data()), */
+      reinterpret_cast<blitz_fftw_complex*>(p_in->data()),
+      /* reinterpret_cast<std::complex<DataT>*>(out.data()), */
+      reinterpret_cast<blitz_fftw_complex*>(out.data()), -1, FFTW_ESTIMATE);
+  (*blitz_fftw_execute)(plan);
+  (*blitz_fftw_destroy_plan)(plan);
+  if (policy == PRESERVE) delete p_in;
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::unShuffle( const blitz::Array<DataT,Dim>& in,
+                             blitz::Array<DataT,Dim>& out) const
+{
+  // sanity check:
+  if( blitz::any(in.shape() % 2 != 0)) {
+    BlitzFFTWError err;
+    err << "unshuffeling of uneven array sizes not supported.\n";
+    throw(err);
+  }
+  translate(in, out, blitz::TinyVector<BlitzIndexT,Dim>(in.shape() / 2));
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::translate(const blitz::Array<DataT,Dim>& data,
+                            blitz::Array<DataT,Dim>& dataTrans,
+                            const BlitzIndexT t,
+                            const int d) const
+{
+  BlitzIndexT tr = t;
+
+  while(tr < 0) tr += data.extent(d);
+  tr = tr % data.extent(d);
+
+  if (tr == 0)
+  {
+    if (&data == &dataTrans) return;
+    else
+    {
+      dataTrans = data;
+      return;
+    }
+  }
+
+  blitz::TinyVector<BlitzIndexT,Dim> ls_start = BlitzIndexT(0);
+  blitz::TinyVector<BlitzIndexT,Dim> ls_end = data.shape() - 1;
+  ls_end(d) = tr - 1;
+  blitz::RectDomain<Dim> left_source(ls_start, ls_end);
+
+  blitz::TinyVector<BlitzIndexT,Dim> ld_start = BlitzIndexT(0);
+  ld_start(d) = data.extent(d) - tr;
+  blitz::TinyVector<BlitzIndexT,Dim> ld_end = data.shape() - 1;
+  blitz::RectDomain<Dim> left_dest(ld_start, ld_end);
+
+  blitz::TinyVector<BlitzIndexT,Dim> rs_start = BlitzIndexT(0);
+  rs_start(d) = tr;
+  blitz::TinyVector<BlitzIndexT,Dim> rs_end = data.shape() - 1;
+  blitz::RectDomain<Dim> right_source(rs_start, rs_end);
+
+  blitz::TinyVector<BlitzIndexT,Dim> rd_start = BlitzIndexT(0);
+  blitz::TinyVector<BlitzIndexT,Dim> rd_end = data.shape() - 1;
+  rd_end(d) = data.extent(d) - tr - 1;
+  blitz::RectDomain<Dim> right_dest(rd_start, rd_end);
+
+  if (&data == &dataTrans)
+  {
+    blitz::Array<DataT,Dim> tmp(data.shape());
+    tmp = data;
+    dataTrans(left_dest) = tmp(left_source);
+    dataTrans(right_dest) = tmp(right_source);
+  }
+  else
+  {
+    dataTrans.resize(data.shape());
+    dataTrans(left_dest) = data(left_source);
+    dataTrans(right_dest) = data(right_source);
+  }
+}
+
+
+template<typename DataT>
+template<int Dim>
+void
+BlitzFFTW<DataT>::translate(const blitz::Array<DataT,Dim>& data,
+                            blitz::Array<DataT,Dim>& dataTrans,
+                            const blitz::TinyVector<BlitzIndexT,Dim>& t) const
+{
+  translate(data, dataTrans, t(0), 0);
+  for (int d = 1; d < Dim; ++d)
+    translate(dataTrans, dataTrans, t(d), d);
+}
+
+
+#endif
+
