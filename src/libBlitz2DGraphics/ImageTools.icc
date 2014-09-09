@@ -1,0 +1,55 @@
+/**********************************************************
+ *                                                          
+ *  ColorConvert.cc
+ *  Implements the ColorConvert class
+ *  => for a precise description of the classes see 
+ *  respective header files
+ *                                                       
+ **********************************************************
+ *
+ *
+ *********************************************************/	
+
+#include "ImageTools.hh"
+
+
+template<typename DataType>
+void ImageTools::layeredToVectorial(
+    const blitz::Array<DataType,3>& layered,
+    blitz::Array<blitz::TinyVector<DataType,3>,2>& vectorial) {
+    
+    int h = layered.extent(1);
+    int w = layered.extent(2);
+    
+    vectorial.resize(h,w);
+    
+    for (int i=0; i<h; ++i) {
+        for (int j=0; j<w; ++j) {
+            vectorial(i,j)[0] = layered(0,i,j);
+            vectorial(i,j)[1] = layered(1,i,j);
+            vectorial(i,j)[2] = layered(2,i,j);            
+        }
+    }
+}
+
+template<typename DataType>
+void ImageTools::vectorialToLayered(
+    const blitz::Array<blitz::TinyVector<DataType,3>,2>& vectorial,
+    blitz::Array<DataType,3>& layered) {
+
+    int h = vectorial.extent(0);
+    int w = vectorial.extent(1);
+    
+    layered.resize(3,h,w);
+    
+    for (int i=0; i<h; ++i) {
+        for (int j=0; j<w; ++j) {
+            layered(0,i,j) = vectorial(i,j)[0];
+            layered(1,i,j) = vectorial(i,j)[1];
+            layered(2,i,j) = vectorial(i,j)[2];            
+        }
+    }
+}
+
+
+

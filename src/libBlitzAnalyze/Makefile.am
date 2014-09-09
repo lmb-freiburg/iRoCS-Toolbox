@@ -2,7 +2,7 @@ lib_LTLIBRARIES = libBlitzAnalyze.la
 blitzanalyzeincludedir = $(pkgincludedir)/libBlitzAnalyze
 
 AM_CPPFLAGS = -I$(top_srcdir)/src
-AM_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
+AM_LDFLAGS = -version-info 1:0:0
 
 blitzanalyzeinclude_HEADERS = \
 	BlitzAnalyzeError.hh \

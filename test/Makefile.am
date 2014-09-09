@@ -6,5 +6,6 @@ SUBDIRS = \
 	libBlitzAnalyze \
 	libBlitzHdf5 \
 	libBlitzFFTW \
+	libBlitz2DGraphics \
 	lmbs2kit \
 	libArrayToolbox

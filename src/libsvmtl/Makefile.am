@@ -2,7 +2,7 @@ lib_LTLIBRARIES = libsvmtl.la
 svmtlincludedir = $(pkgincludedir)/libsvmtl
 svt_checkincludedir=$(pkgincludedir)/libsvmtl/svt_check
 
-AM_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
+AM_LDFLAGS = -version-info 1:0:0
 
 svmtlinclude_HEADERS =					\
 	AlgorithmLists.hh				\

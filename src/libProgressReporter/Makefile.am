@@ -4,7 +4,7 @@ progressreporterincludedir = $(pkgincludedir)/libProgressReporter
 MOC = @QT4_MOC@
 
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
+AM_LDFLAGS = -version-info 1:0:0
 
 MOC_GEN_SOURCES = \
 	moc_ProgressReporterQt4.cc

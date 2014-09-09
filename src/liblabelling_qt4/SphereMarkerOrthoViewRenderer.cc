@@ -49,7 +49,9 @@ MarkerOrthoViewRendererCache *SphereMarkerOrthoViewRendererCache::clone() const
 void SphereMarkerOrthoViewRendererCache::render(QPainter *painter) const
 {
   if (painter == NULL || !painter->isActive()) return;
+
   PointMarkerOrthoViewRendererCache::render(painter);
+
   if (_radius > 0.0f) painter->drawEllipse(_point, _radius, _radius);
 }
 

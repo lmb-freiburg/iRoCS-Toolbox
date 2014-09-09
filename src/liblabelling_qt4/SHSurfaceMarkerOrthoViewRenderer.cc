@@ -50,10 +50,12 @@ MarkerOrthoViewRendererCache *SHSurfaceMarkerOrthoViewRendererCache::clone()
 void SHSurfaceMarkerOrthoViewRendererCache::render(QPainter *painter) const
 {
   if (painter == NULL || !painter->isActive()) return;
+
   if (_lines.size() != 0) 
   {
     for (size_t i = 0; i < _lines.size(); ++i)
         painter->drawLine(_lines[i](0), _lines[i](1));
+
     if (_showHelperLines)
     {
       painter->save();

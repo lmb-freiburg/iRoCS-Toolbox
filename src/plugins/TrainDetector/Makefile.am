@@ -4,6 +4,7 @@ MOC = @QT4_MOC@
 
 AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
+AM_LDFLAGS = -version-info 1:0:0
 
 libPluginTrainDetector_la_LIBADD = $(top_builddir)/src/libIRoCS/libIRoCS.la
 

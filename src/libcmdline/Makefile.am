@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libcmdline.la
 cmdlineincludedir = $(pkgincludedir)/libcmdline
 
-AM_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
+AM_LDFLAGS = -version-info 1:0:0
 
 libcmdline_la_SOURCES = \
 	CmdArg.cc \

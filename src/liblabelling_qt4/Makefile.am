@@ -8,7 +8,7 @@ RCC = @QT4_RCC@
 AM_CXXFLAGS = -Wno-long-long
 AM_CPPFLAGS = -DVERSIONSTRING="\"@lt_major@.@lt_revision@.@lt_age@"\" \
 	-DDATADIR="\"$(lbldatadir)\"" -I$(top_srcdir)/src
-AM_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
+AM_LDFLAGS = -version-info 1:1:0
 
 lbldata_DATA = liblabelling_qt4.rcc
 

@@ -1,13 +1,10 @@
-AC_INIT([iRoCS-Toolbox], [1.0.0], [tschmidt@cs.uni-freiburg.de])
+AC_INIT(
+  [iRoCS-Toolbox], [1.0.0],
+  [tschmidt@cs.uni-freiburg.de],
+  [irocs-toolbox],
+  [http://lmb.informatik.uni-freiburg.de/lmbsoft/iRoCS])
 AC_CONFIG_HEADERS([src/config.hh])
 AM_INIT_AUTOMAKE([subdir-objects])
-
-lt_major=1
-lt_revision=0
-lt_age=0
-AC_SUBST(lt_major)
-AC_SUBST(lt_revision)
-AC_SUBST(lt_age)
 
 AC_ARG_ENABLE([debug],
 	    AC_HELP_STRING([--enable-debug], []), [enable_debug=1],
@@ -81,8 +78,24 @@ fi
 #
 # Basic libraries
 #
-AC_SEARCH_LIBS([compress2], [z], [],
+AC_CHECK_LIB([z], [compress2], [],
   AC_MSG_ERROR([libz is missing (Needed for Qt4 and HDF5)]))
+
+#
+# Check for libjpeg
+#
+AC_CHECK_HEADER([jpeglib.h], [], AC_MSG_WARN(
+  [jpeg headers not found. JPEG related parts will be disabled.]))
+AC_CHECK_LIB([jpeg], [jpeg_read_scanlines], [],
+  AC_MSG_WARN([libjpeg not found. JPEG related parts will be disabled.]))
+
+#
+# Check for libtiff
+#
+AC_CHECK_HEADER([tiffio.h], [], AC_MSG_WARN(
+  [tiff headers not found. TIFF related parts will be disabled.]))
+AC_CHECK_LIB([tiff], [TIFFGetField], [],
+  AC_MSG_WARN([libtiff not found. TIFF related parts will be disabled.]))
 
 #
 # Check for blitz++
@@ -376,24 +389,24 @@ else
     AC_MSG_ERROR([libX11 is missing (Needed for QT4)]))
   AC_CHECK_LIB(Xext, DPMSInfo, [],
     AC_MSG_ERROR([libXext is missing (Needed for QT4)]))
-  AC_CHECK_LIB(fontconfig, FcAtomicCreate, [],
-    AC_MSG_ERROR([libfontconfig is missing (Needed for QT4)]))
-  AC_CHECK_LIB(freetype, FT_Stream_Open, [],
-    AC_MSG_ERROR([libfreetype is missing (Needed for QT4)]))
-  AC_CHECK_LIB(Xinerama, XPanoramiXAllocInfo, [],
-    AC_MSG_ERROR([libXinerama is missing (Needed for QT4)]))
-  AC_CHECK_LIB(Xcursor, XcursorCursorsCreate, [],
-    AC_MSG_ERROR([libXcursor is missing (Needed for QT4)]))
-  AC_CHECK_LIB(Xrender, XRenderComposite, [],
-    AC_MSG_ERROR([libXrender is missing (Needed for QT4)]))
-  AC_CHECK_LIB(Xrandr, XRRCreateMode, [],
-    AC_MSG_ERROR([libXrandr is missing (Needed for QT4)]))
-  AC_CHECK_LIB(Xi, XCloseDevice, [],
-    AC_MSG_ERROR([libXi is missing (Needed for QT4)]))
-  AC_CHECK_LIB(ICE, IceAcceptConnection, [],
-    AC_MSG_ERROR([libICE is missing (Needed for QT4)]))
-  AC_CHECK_LIB(SM, SmcCloseConnection, [],
-    AC_MSG_ERROR([libSM is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(fontconfig, FcAtomicCreate, [],
+#    AC_MSG_ERROR([libfontconfig is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(freetype, FT_Stream_Open, [],
+#    AC_MSG_ERROR([libfreetype is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(Xinerama, XPanoramiXAllocInfo, [],
+#    AC_MSG_ERROR([libXinerama is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(Xcursor, XcursorCursorsCreate, [],
+#    AC_MSG_ERROR([libXcursor is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(Xrender, XRenderComposite, [],
+#    AC_MSG_ERROR([libXrender is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(Xrandr, XRRCreateMode, [],
+#    AC_MSG_ERROR([libXrandr is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(Xi, XCloseDevice, [],
+#    AC_MSG_ERROR([libXi is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(ICE, IceAcceptConnection, [],
+#    AC_MSG_ERROR([libICE is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(SM, SmcCloseConnection, [],
+#    AC_MSG_ERROR([libSM is missing (Needed for QT4)]))
   AC_CHECK_LIB(QtCore,main,[],
     AC_MSG_ERROR([QT4 libraries not found in standard libaray path. Please provide the path to your Qt4 installation using the --with-qt4 option]))
   AC_CHECK_LIB(QtGui,main,[],
@@ -435,6 +448,7 @@ AC_CONFIG_FILES([src/libBaseFunctions/Makefile])
 AC_CONFIG_FILES([src/libBlitzAnalyze/Makefile])
 AC_CONFIG_FILES([src/libBlitzHdf5/Makefile])
 AC_CONFIG_FILES([src/libBlitzFFTW/Makefile])
+AC_CONFIG_FILES([src/libBlitz2DGraphics/Makefile])
 AC_CONFIG_FILES([src/lmbs2kit/Makefile])
 AC_CONFIG_FILES([src/libArrayToolbox/Makefile])
 AC_CONFIG_FILES([src/libsegmentation/Makefile])
@@ -475,6 +489,7 @@ AC_CONFIG_FILES([test/libBaseFunctions/Makefile])
 AC_CONFIG_FILES([test/libBlitzAnalyze/Makefile])
 AC_CONFIG_FILES([test/libBlitzHdf5/Makefile])
 AC_CONFIG_FILES([test/libBlitzFFTW/Makefile])
+AC_CONFIG_FILES([test/libBlitz2DGraphics/Makefile])
 AC_CONFIG_FILES([test/lmbs2kit/Makefile])
 AC_CONFIG_FILES([test/libArrayToolbox/Makefile])
 AC_OUTPUT

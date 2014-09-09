@@ -105,16 +105,18 @@ void NucleusMarkerOrthoViewRendererCache::render(QPainter *painter) const
 
   painter->save();
   painter->setFont(QFont("Helvetica", _fontSize));
+
   if (_continuity >= 0)
       painter->drawText(
           QPointF(_point.x() + 3.0f, _point.y() - 3.0f),
           QString::number(_continuity));
+
   if (_predictedContinuity >= 0)
       painter->drawText(
           QPointF(_point.x() + 3.0f, _point.y() + (_fontSize + 3.0f)),
           QString::number(_predictedContinuity));
-  painter->restore();
 
+  painter->restore();
   SHSurfaceMarkerOrthoViewRendererCache::render(painter);
 }
 

@@ -3,7 +3,7 @@ labelling_baseincludedir = $(pkgincludedir)/libLabelling_base
 
 AM_CXXFLAGS = -Wno-long-long
 AM_CPPFLAGS = -I$(top_srcdir)/src
-AM_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
+AM_LDFLAGS = -version-info 1:0:0
 
 libLabelling_base_la_include_HEADERS = \
     Marker.hh \

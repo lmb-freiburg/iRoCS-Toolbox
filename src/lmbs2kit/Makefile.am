@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = liblmbs2kit.la
 lmbs2kitincludedir = $(pkgincludedir)/lmbs2kit
 
-AM_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
+AM_LDFLAGS = -version-info 1:0:0
 
 lmbs2kitinclude_HEADERS = \
     seminaive.h \
