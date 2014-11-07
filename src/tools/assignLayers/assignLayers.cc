@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     {
       pr.updateProgressMessage(
           "Loading '" + inFileName.value() + ":" + datasetName.value() + "'");
-      data.load(inFileName.value(), datasetName.value());
+      data.load(inFileName.value(), datasetName.value(), &pr);
     }
     catch(BlitzH5Error &e)
     {
@@ -116,6 +116,7 @@ int main(int argc, char **argv)
     /*---------------------------------------------------------------------
      *  Run classifier
      *---------------------------------------------------------------------*/
+    pr.updateProgressMessage("Starting layer assignment");
     iRoCS::assignLayers(
         data, nuclei, iRoCS, modelFileName.value(), cacheFileName.value(),
         updateMitoses.given(), cacheCoordinates.given(),
