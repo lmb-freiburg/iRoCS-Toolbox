@@ -84,6 +84,419 @@ hid_t test_traits<long double>::h5Type = H5T_NATIVE_LDOUBLE;
 template<>
 std::string test_traits<long double>::name = "ldouble";
 
+template<typename DatasetT, typename DataT>
+static void testReadScalarDataset()
+{
+  std::string datasetName = std::string("/testReadDatasetSimpleScalar/data_") +
+      test_traits<DatasetT>::name + "_" + test_traits<DataT>::name;
+
+  hid_t fileId = H5Fcreate(
+      "testReadDatasetSimple.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+
+  DatasetT data = 42;
+
+  hid_t dataspaceId = H5Screate(H5S_SCALAR);
+  if (dataspaceId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+  hid_t datasetId =
+      H5Dcreate2(fileId, datasetName.c_str(), test_traits<DatasetT>::h5Type,
+                 dataspaceId, linkCreationPropertiesId,
+                 H5P_DEFAULT, H5P_DEFAULT);
+  if (datasetId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create dataset");
+  herr_t err = H5Dwrite(datasetId, test_traits<DatasetT>::h5Type, H5S_ALL,
+                        dataspaceId, H5P_DEFAULT, &data);
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not write dataset");
+  H5Dclose(datasetId);
+  H5Sclose(dataspaceId);
+  H5Fclose(fileId);
+
+  BlitzH5File inFile("testReadDatasetSimple.h5");
+
+  DataT loaded;
+  inFile.readDataset(loaded, datasetName.c_str());
+  
+  LMBUNIT_ASSERT_EQUAL(static_cast<DataT>(data), loaded);
+}
+
+template<typename DatasetT, typename DataT>
+static void testRead0DDataset()
+{
+  std::string datasetName = std::string("/testReadDatasetSimple0D/data_") +
+      test_traits<DatasetT>::name + "_" + test_traits<DataT>::name;
+
+  hid_t fileId = H5Fcreate(
+      "testReadDatasetSimple.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+
+  DatasetT data = 42;
+
+  hsize_t dims[] = { 1 };
+  hid_t dataspaceId = H5Screate_simple(1, dims, NULL);
+  if (dataspaceId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+  hid_t datasetId =
+      H5Dcreate2(fileId, datasetName.c_str(), test_traits<DatasetT>::h5Type,
+                 dataspaceId, linkCreationPropertiesId,
+                 H5P_DEFAULT, H5P_DEFAULT);
+  if (datasetId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create dataset");
+  herr_t err = H5Dwrite(datasetId, test_traits<DatasetT>::h5Type, H5S_ALL,
+                        dataspaceId, H5P_DEFAULT, &data);
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not write dataset");
+  H5Dclose(datasetId);
+  H5Sclose(dataspaceId);
+  H5Fclose(fileId);
+
+  BlitzH5File inFile("testReadDatasetSimple.h5");
+
+  DataT loaded;
+  inFile.readDataset(loaded, datasetName.c_str());
+  
+  LMBUNIT_ASSERT_EQUAL(static_cast<DataT>(data), loaded);
+}
+
+template<typename DatasetT, typename DataT, int Dim>
+static void testReadTinyVectorDataset()
+{
+  std::string datasetName = std::string(
+      "/testReadDatasetSimpleTinyVector/data_") +
+      test_traits<DatasetT>::name + "_" + test_traits<DataT>::name;
+
+  hid_t fileId = H5Fcreate(
+      "testReadDatasetSimple.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+
+  blitz::TinyVector<DatasetT,Dim> data;
+  for (int d = 0; d < Dim; ++d)
+      data(d) = static_cast<DatasetT>(
+          100 * static_cast<double>(std::rand()) / RAND_MAX);
+
+  hsize_t dims[] = { Dim };
+  hid_t dataspaceId = H5Screate_simple(1, dims, NULL);
+  if (dataspaceId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+  hid_t datasetId =
+      H5Dcreate2(fileId, datasetName.c_str(), test_traits<DatasetT>::h5Type,
+                 dataspaceId, linkCreationPropertiesId,
+                 H5P_DEFAULT, H5P_DEFAULT);
+  if (datasetId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create dataset");
+  herr_t err = H5Dwrite(datasetId, test_traits<DatasetT>::h5Type, H5S_ALL,
+                        dataspaceId, H5P_DEFAULT, data.data());
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not write dataset");
+  H5Dclose(datasetId);
+  H5Sclose(dataspaceId);
+  H5Fclose(fileId);
+
+  BlitzH5File inFile("testReadDatasetSimple.h5");
+
+  blitz::TinyVector<DataT,Dim> loaded;
+  inFile.readDataset(loaded, datasetName.c_str());
+  
+  int nErrors = 0;
+  for (int d = 0; d < Dim; ++d)
+      if (static_cast<DataT>(data(d)) != loaded(d)) nErrors++;
+
+  LMBUNIT_DEBUG_STREAM
+      << "data = " << data << std::endl;
+  LMBUNIT_DEBUG_STREAM
+      << "loaded = " << loaded << std::endl;
+  if (nErrors > 0)
+      LMBUNIT_WRITE_FAILURE(
+          "Read Array contains different values than written array");
+}
+
+template<typename DatasetT, typename DataT, int NRows, int NCols>
+static void testReadVectorIntoTinyMatrixDataset()
+{
+  std::string datasetName = std::string(
+      "/testReadDatasetSimpleTinyMatrix/data_") +
+      test_traits<DatasetT>::name + "_" + test_traits<DataT>::name;
+
+  hid_t fileId = H5Fcreate(
+      "testReadDatasetSimple.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+
+  blitz::TinyVector<DatasetT,NRows*NCols> data;
+  for (int d = 0; d < NRows * NCols; ++d)
+      data(d) = static_cast<DatasetT>(
+          100 * static_cast<double>(std::rand()) / RAND_MAX);
+
+  hsize_t dims[] = { NRows * NCols };
+  hid_t dataspaceId = H5Screate_simple(1, dims, NULL);
+  if (dataspaceId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+  hid_t datasetId =
+      H5Dcreate2(fileId, datasetName.c_str(), test_traits<DatasetT>::h5Type,
+                 dataspaceId, linkCreationPropertiesId,
+                 H5P_DEFAULT, H5P_DEFAULT);
+  if (datasetId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create dataset");
+  herr_t err = H5Dwrite(datasetId, test_traits<DatasetT>::h5Type, H5S_ALL,
+                        dataspaceId, H5P_DEFAULT, data.data());
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not write dataset");
+  H5Dclose(datasetId);
+  H5Sclose(dataspaceId);
+  H5Fclose(fileId);
+
+  BlitzH5File inFile("testReadDatasetSimple.h5");
+
+  blitz::TinyMatrix<DataT,NRows,NCols> loaded;
+  inFile.readDataset(loaded, datasetName.c_str());
+  
+  int nErrors = 0;
+  for (int r = 0; r < NRows; ++r)
+      for (int c = 0; c < NCols; ++c)
+          if (static_cast<DataT>(data(r * NCols + c)) != loaded(r, c))
+              nErrors++;
+
+  LMBUNIT_DEBUG_STREAM
+      << "data = " << data << std::endl;
+  LMBUNIT_DEBUG_STREAM
+      << "loaded = " << loaded << std::endl;
+  if (nErrors > 0)
+      LMBUNIT_WRITE_FAILURE(
+          "Read Array contains different values than written array");
+}
+
+template<typename DatasetT, typename DataT, int NRows, int NCols>
+static void testReadTinyMatrixDataset()
+{
+  std::string datasetName = std::string(
+      "/testReadDatasetSimpleTinyMatrix/data_") +
+      test_traits<DatasetT>::name + "_" + test_traits<DataT>::name;
+
+  hid_t fileId = H5Fcreate(
+      "testReadDatasetSimple.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+
+  blitz::TinyMatrix<DatasetT,NRows,NCols> data;
+  for (int r = 0; r < NRows; ++r)
+      for (int c = 0; c < NCols; ++c)
+          data(r, c) = static_cast<DatasetT>(
+          100 * static_cast<double>(std::rand()) / RAND_MAX);
+
+  hsize_t dims[] = { NRows, NCols };
+  hid_t dataspaceId = H5Screate_simple(2, dims, NULL);
+  if (dataspaceId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+  hid_t datasetId =
+      H5Dcreate2(fileId, datasetName.c_str(), test_traits<DatasetT>::h5Type,
+                 dataspaceId, linkCreationPropertiesId,
+                 H5P_DEFAULT, H5P_DEFAULT);
+  if (datasetId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create dataset");
+  herr_t err = H5Dwrite(datasetId, test_traits<DatasetT>::h5Type, H5S_ALL,
+                        dataspaceId, H5P_DEFAULT, data.data());
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not write dataset");
+  H5Dclose(datasetId);
+  H5Sclose(dataspaceId);
+  H5Fclose(fileId);
+
+  BlitzH5File inFile("testReadDatasetSimple.h5");
+
+  blitz::TinyMatrix<DataT,NRows,NCols> loaded;
+  inFile.readDataset(loaded, datasetName.c_str());
+  
+  int nErrors = 0;
+  for (int r = 0; r < NRows; ++r)
+      for (int c = 0; c < NCols; ++c)
+          if (static_cast<DataT>(data(r, c)) != loaded(r, c)) nErrors++;
+
+  LMBUNIT_DEBUG_STREAM
+      << "data = " << data << std::endl;
+  LMBUNIT_DEBUG_STREAM
+      << "loaded = " << loaded << std::endl;
+  if (nErrors > 0)
+      LMBUNIT_WRITE_FAILURE(
+          "Read Array contains different values than written array");
+}
+
+template<typename DatasetT, typename DataT, int Dim>
+static void testReadStdVectorDataset()
+{
+  std::string datasetName = std::string(
+      "/testReadDatasetSimpleTinyVector/data_") +
+      test_traits<DatasetT>::name + "_" + test_traits<DataT>::name;
+
+  hid_t fileId = H5Fcreate(
+      "testReadDatasetSimple.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+
+  blitz::TinyVector<DatasetT,Dim> data;
+  for (int d = 0; d < Dim; ++d)
+      data(d) = static_cast<DatasetT>(
+          100 * static_cast<double>(std::rand()) / RAND_MAX);
+
+  hsize_t dims[] = { Dim };
+  hid_t dataspaceId = H5Screate_simple(1, dims, NULL);
+  if (dataspaceId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+  hid_t datasetId =
+      H5Dcreate2(fileId, datasetName.c_str(), test_traits<DatasetT>::h5Type,
+                 dataspaceId, linkCreationPropertiesId,
+                 H5P_DEFAULT, H5P_DEFAULT);
+  if (datasetId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create dataset");
+  herr_t err = H5Dwrite(datasetId, test_traits<DatasetT>::h5Type, H5S_ALL,
+                        dataspaceId, H5P_DEFAULT, data.data());
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not write dataset");
+  H5Dclose(datasetId);
+  H5Sclose(dataspaceId);
+  H5Fclose(fileId);
+
+  BlitzH5File inFile("testReadDatasetSimple.h5");
+
+  std::vector<DataT> loaded;
+  inFile.readDataset(loaded, datasetName.c_str());
+  
+  LMBUNIT_ASSERT_EQUAL(Dim, loaded.size());
+
+  int nErrors = 0;
+  for (int d = 0; d < Dim; ++d)
+      if (static_cast<DataT>(data(d)) != loaded[d]) nErrors++;
+
+  LMBUNIT_DEBUG_STREAM << "data = " << data << std::endl;
+  LMBUNIT_DEBUG_STREAM << "loaded = ";
+  for (int d = 0; d < Dim; ++d) LMBUNIT_DEBUG_STREAM << loaded[d] << " ";
+  LMBUNIT_DEBUG_STREAM << std::endl;
+  if (nErrors > 0)
+      LMBUNIT_WRITE_FAILURE(
+          "Read Array contains different values than written array");
+}
+
+static void testReadStringDatasetS1Fixed()
+{
+  std::string datasetName = std::string(
+      "/testReadDatasetSimpleS1FixedString/data");
+
+  hid_t fileId = H5Fcreate(
+      "testReadDatasetSimple.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+
+  std::string data("Teststring");
+
+  hid_t dataspaceId = H5Screate(H5S_SCALAR);
+  if (dataspaceId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+          
+  hid_t datatypeId = H5Tcopy(H5T_C_S1);
+  if (datatypeId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create string type");
+  herr_t err = H5Tset_size(datatypeId, data.size());
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not set string length");
+  
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+
+  hid_t datasetId = H5Dcreate2(
+      fileId, datasetName.c_str(), datatypeId, dataspaceId,
+      linkCreationPropertiesId, H5P_DEFAULT, H5P_DEFAULT);
+  H5Pclose(linkCreationPropertiesId);
+  if (datasetId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create dataset");
+  
+  char *buf = new char[data.size() + 1];
+  for (size_t i = 0; i < data.size(); ++i) buf[i] = data[i];
+  buf[data.size()] = 0;
+  err = H5Dwrite(datasetId, datatypeId, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
+  H5Dclose(datasetId);
+  H5Tclose(datatypeId);
+  H5Sclose(dataspaceId);
+  H5Fclose(fileId);
+  delete[] buf;
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not weite string dataset");
+
+  BlitzH5File inFile("testReadDatasetSimple.h5");
+
+  std::string loaded;
+  inFile.readDataset(loaded, datasetName);
+  
+  LMBUNIT_ASSERT_EQUAL(data, loaded);
+}
+
+static void testReadStringDatasetCharArray()
+{
+  std::string datasetName = std::string(
+      "/testReadDatasetSimpleCharArrayString/data");
+
+  hid_t fileId = H5Fcreate(
+      "testReadDatasetSimple.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+
+  std::string data("Teststring");
+
+  hsize_t dims[] = { data.size() };
+  hid_t dataspaceId = H5Screate_simple(1, dims, NULL);
+  if (dataspaceId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+          
+  hid_t datatypeId = H5Tcopy(H5T_C_S1);
+  if (datatypeId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create string type");
+  herr_t err = H5Tset_size(datatypeId, 1);
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not set string length");
+  
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+
+  hid_t datasetId = H5Dcreate2(
+      fileId, datasetName.c_str(), datatypeId, dataspaceId,
+      linkCreationPropertiesId, H5P_DEFAULT, H5P_DEFAULT);
+  H5Pclose(linkCreationPropertiesId);
+  if (datasetId < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not create dataset");
+  
+  char *buf = new char[data.size()];
+  for (size_t i = 0; i < data.size(); ++i) buf[i] = data[i];
+  err = H5Dwrite(datasetId, datatypeId, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
+  H5Dclose(datasetId);
+  H5Tclose(datatypeId);
+  H5Sclose(dataspaceId);
+  H5Fclose(fileId);
+  delete[] buf;
+  if (err < 0)
+      LMBUNIT_WRITE_FAILURE("Internal error: Could not weite string dataset");
+
+   BlitzH5File inFile("testReadDatasetSimple.h5");
+
+  std::string loaded;
+  inFile.readDataset(loaded, datasetName);
+  
+  LMBUNIT_ASSERT_EQUAL(data, loaded);
+}
+
 template<typename DatasetT, typename ArrayT>
 static void testReadDatasetSimple1D()
 {
@@ -1455,6 +1868,48 @@ static void testReadDatasetSimple2DVecChunkedInto3DContainer()
 int main(int, char**)
 {
   LMBUNIT_WRITE_HEADER();
+
+  LMBUNIT_RUN_TEST((testReadScalarDataset<unsigned char,unsigned char>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<char,char>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<unsigned short,unsigned short>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<short,short>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<unsigned int,unsigned int>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<int,int>()));  
+  LMBUNIT_RUN_TEST((testReadScalarDataset<int,float>()));  
+  LMBUNIT_RUN_TEST((testReadScalarDataset<int,double>()));  
+  LMBUNIT_RUN_TEST((testReadScalarDataset<unsigned long,unsigned long>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<long,long>()));  
+  LMBUNIT_RUN_TEST(
+      (testReadScalarDataset<unsigned long long,unsigned long long>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<long long,long long>()));  
+  LMBUNIT_RUN_TEST((testReadScalarDataset<float,float>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<float,double>()));
+  LMBUNIT_RUN_TEST((testReadScalarDataset<double,double>()));  
+  LMBUNIT_RUN_TEST((testReadScalarDataset<double,float>()));  
+  LMBUNIT_RUN_TEST((testReadScalarDataset<double,int>()));  
+  LMBUNIT_RUN_TEST((testReadScalarDataset<long double,long double>()));  
+
+  LMBUNIT_RUN_TEST((testRead0DDataset<float,double>()));
+
+  LMBUNIT_RUN_TEST((testReadTinyVectorDataset<float,float,3>()));
+  LMBUNIT_RUN_TEST((testReadTinyVectorDataset<float,double,3>()));
+  LMBUNIT_RUN_TEST((testReadTinyVectorDataset<double,double,3>()));
+  LMBUNIT_RUN_TEST((testReadTinyVectorDataset<double,float,3>()));
+  LMBUNIT_RUN_TEST((testReadVectorIntoTinyMatrixDataset<float,float,3,4>()));
+  LMBUNIT_RUN_TEST((testReadVectorIntoTinyMatrixDataset<float,double,3,4>()));
+  LMBUNIT_RUN_TEST((testReadVectorIntoTinyMatrixDataset<double,double,3,4>()));
+  LMBUNIT_RUN_TEST((testReadVectorIntoTinyMatrixDataset<double,float,3,4>()));
+  LMBUNIT_RUN_TEST((testReadTinyMatrixDataset<float,float,3,4>()));
+  LMBUNIT_RUN_TEST((testReadTinyMatrixDataset<float,double,3,4>()));
+  LMBUNIT_RUN_TEST((testReadTinyMatrixDataset<double,double,3,4>()));
+  LMBUNIT_RUN_TEST((testReadTinyMatrixDataset<double,float,3,4>()));
+  LMBUNIT_RUN_TEST((testReadStdVectorDataset<float,float,3>()));
+  LMBUNIT_RUN_TEST((testReadStdVectorDataset<float,double,3>()));
+  LMBUNIT_RUN_TEST((testReadStdVectorDataset<double,double,3>()));
+  LMBUNIT_RUN_TEST((testReadStdVectorDataset<double,float,3>()));
+
+  LMBUNIT_RUN_TEST(testReadStringDatasetS1Fixed());
+  LMBUNIT_RUN_TEST(testReadStringDatasetCharArray());
 
   LMBUNIT_RUN_TEST((testReadDatasetSimple1D<float,float>()));
   LMBUNIT_RUN_TEST((testReadDatasetSimple1D<unsigned short,unsigned int>()));

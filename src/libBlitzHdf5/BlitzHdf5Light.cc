@@ -489,6 +489,7 @@ void BlitzH5File::writeDataset(
   H5Dclose(datasetId);
   H5Tclose(datatypeId);
   H5Sclose(dataspaceId);
+  delete[] buf;
   if (err < 0)
       throw BlitzH5Error()
           << "Could not write dataset '" << name << "'. H5Dwrite failed.";

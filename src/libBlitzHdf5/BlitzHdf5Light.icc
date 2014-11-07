@@ -14,8 +14,9 @@ BlitzH5Error &BlitzH5Error::operator<<(DataT const &data)
 /*-----------------------------------------------------------------------
  *  BlitzH5File class implementation
  *-----------------------------------------------------------------------*/
-template<typename ScalarT>
-void BlitzH5File::readDataset(ScalarT &data, std::string const &name) const
+template<typename FixedSizeNumericT>
+void BlitzH5File::readDataset(
+    FixedSizeNumericT &data, std::string const &name) const
 {
   if (_fileId < 0)
       throw BlitzH5Error()
@@ -49,26 +50,22 @@ void BlitzH5File::readDataset(ScalarT &data, std::string const &name) const
     throw BlitzH5Error()
         << "Could not read dataset '" << name << "'. Could not get dataspace.";
   }
-  if (BlitzH5Traits<ScalarT>::h5Dims(data) != 1 ||
-      BlitzH5Traits<ScalarT>::h5Dims(data)[0] != 1)
+  std::vector<hsize_t> dataDims(BlitzH5Traits<FixedSizeNumericT>::h5Dims(data));
+  size_t nElementsData = 1;
+  for (size_t i = 0; i < dataDims.size(); ++i) nElementsData *= dataDims[i];
+  size_t nElementsDataset = H5Sget_simple_extent_npoints(dataspaceId);
+  if (nElementsData != nElementsDataset)
   {
     H5Sclose(dataspaceId);
     H5Tclose(datatypeId);
     H5Dclose(datasetId);
     throw BlitzH5Error()
-        << "Cannot read dataset '" << name << "' using the scalar "
-        << "readDataset() method. The given container type is no scalar!";
+        << "Cannot read dataset '" << name << "' with " << nElementsDataset
+        << " elements into a fixed size container with " << nElementsData
+        << " elements. The container size must equal the datset size!";
   }
-  if (getDatasetShape(name).size() != 0)
-  {
-    H5Sclose(dataspaceId);
-    H5Tclose(datatypeId);
-    H5Dclose(datasetId);
-    throw BlitzH5Error()
-        << "Could not read dataset '" << name << "' into scalar container. "
-        << "The dataset is not scalar.";
-  }
-  char *buf = new char[H5Tget_size(datatypeId)];
+
+  char *buf = new char[nElementsData * H5Tget_size(datatypeId)];
   herr_t err = H5Dread(
       datasetId, datatypeId, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
   H5Sclose(dataspaceId);
@@ -80,34 +77,73 @@ void BlitzH5File::readDataset(ScalarT &data, std::string const &name) const
         << "Could not read dataset '" << name << "'. H5Dread failed.";
   }
 
+  typename BlitzH5Traits<FixedSizeNumericT>::BasicT* dataPtr =
+      reinterpret_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT*>(
+          BlitzH5Traits<FixedSizeNumericT>::data(data));
+
   if (H5Tequal(datatypeId, H5T_NATIVE_UCHAR))
-      data = static_cast<ScalarT>(*reinterpret_cast<unsigned char*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned char*>(buf)[i]);
   else if (H5Tequal(datatypeId, H5T_NATIVE_CHAR) ||
            H5Tequal(datatypeId, H5T_NATIVE_SCHAR))
-      data = static_cast<ScalarT>(*buf);
+      std::memcpy(dataPtr, buf, nElementsData);
   else if(H5Tequal(datatypeId, H5T_NATIVE_USHORT))
-      data = static_cast<ScalarT>(*reinterpret_cast<unsigned short*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned short*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_SHORT))
-      data = static_cast<ScalarT>(*reinterpret_cast<short*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<short*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_UINT))
-      data = static_cast<ScalarT>(*reinterpret_cast<unsigned int*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned int*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_INT))
-      data = static_cast<ScalarT>(*reinterpret_cast<int*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<int*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_ULONG))
-      data = static_cast<ScalarT>(*reinterpret_cast<unsigned long*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned long*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_LONG))
-      data = static_cast<ScalarT>(*reinterpret_cast<long*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<long*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_ULLONG))
-      data = static_cast<ScalarT>(
-          *reinterpret_cast<unsigned long long*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned long long*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_LLONG))
-      data = static_cast<ScalarT>(*reinterpret_cast<long long*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<long long*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_FLOAT))
-      data = static_cast<ScalarT>(*reinterpret_cast<float*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<float*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_DOUBLE))
-      data = static_cast<ScalarT>(*reinterpret_cast<double*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<double*>(buf)[i]);
   else if(H5Tequal(datatypeId, H5T_NATIVE_LDOUBLE))
-      data = static_cast<ScalarT>(*reinterpret_cast<long double*>(buf));
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<long double*>(buf)[i]);
   else
   {
     H5Tclose(datatypeId);
@@ -115,6 +151,119 @@ void BlitzH5File::readDataset(ScalarT &data, std::string const &name) const
         << "Could not read dataset '" << name << "'. Datatype not supported.";
   }
   H5Tclose(datatypeId);
+}
+
+template<typename DataT>
+void BlitzH5File::readDataset(
+    std::vector<DataT> &data, std::string const &name) const
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name
+          << "'. The BlitzH5File is not open.";
+  hid_t datasetId = H5Dopen2(_fileId, name.c_str(), H5P_DEFAULT);
+  if (datasetId < 0)
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name << "'. Dataset not found.";
+  hid_t datatypeId = H5Dget_type(datasetId);
+  if (datatypeId < 0)
+  {
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Could not get datatype.";
+  }
+  if (H5Tget_class(datatypeId) != H5T_INTEGER &&
+      H5Tget_class(datatypeId) != H5T_FLOAT)
+  {
+    H5Tclose(datatypeId);
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name
+        << "'. Only numerical scalar datasets supported.";
+  }
+  hid_t dataspaceId = H5Dget_space(datasetId);
+  if (dataspaceId < 0)
+  {
+    H5Tclose(datatypeId);
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Could not get dataspace.";
+  }
+  size_t nElementsDataset = H5Sget_simple_extent_npoints(dataspaceId);
+  data.resize(nElementsDataset);
+  
+  char *buf = new char[nElementsDataset * H5Tget_size(datatypeId)];
+  herr_t err = H5Dread(
+      datasetId, datatypeId, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
+  H5Sclose(dataspaceId);
+  H5Dclose(datasetId);  
+  if (err < 0)
+  {
+    H5Tclose(datatypeId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. H5Dread failed.";
+  }
+
+  DataT* dataPtr = data.data();
+
+  if (H5Tequal(datatypeId, H5T_NATIVE_UCHAR))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned char*>(buf)[i]);
+  else if (H5Tequal(datatypeId, H5T_NATIVE_CHAR) ||
+           H5Tequal(datatypeId, H5T_NATIVE_SCHAR))
+      std::memcpy(dataPtr, buf, nElementsDataset);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_USHORT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned short*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_SHORT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<short*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_UINT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned int*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_INT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<int*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_ULONG))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LONG))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_ULLONG))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned long long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LLONG))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<long long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_FLOAT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<float*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_DOUBLE))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<double*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LDOUBLE))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<long double*>(buf)[i]);
+  else
+  {
+    H5Tclose(datatypeId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Datatype not supported.";
+  }
+  H5Tclose(datatypeId);  
 }
 
 template<typename DataT, int Rank>
@@ -152,7 +301,7 @@ void BlitzH5File::readDataset(
           << "The given Array can store " << blitzDims[Rank]
           << "-D vectors but the dataset contains "
           << datasetDims[Rank] << "-D vectors.";
-          
+  
   // Resize blitz++ Array to dataset shape (if the dataset rank is less than
   // the blitz Array rank, set the extra-dimensions to 1)
   blitz::TinyVector<int,Rank> dataShape(1);
@@ -264,20 +413,14 @@ void BlitzH5File::readDataset(
           _loadChunkedDataset<long double>(
               datasetId, datasetDims, chunkDims, 
               reinterpret_cast<DestT*>(data.data()), pr);
-      else
-      {
-        H5Dclose(datasetId);
-        H5Tclose(datasetTypeId);
-        throw BlitzH5Error() << "Dataset type not supported.";
-      }
+      else throw BlitzH5Error() << "Dataset type not supported.";
     }
     catch (BlitzH5Error &e)
     {
       H5Dclose(datasetId);
       H5Tclose(datasetTypeId);
       throw BlitzH5Error()
-          << "Could not read dataset '" << name
-          << "'. " << e.what();
+          << "Could not read dataset '" << name << "'. " << e.what();
     }
   }
   else
@@ -325,12 +468,7 @@ void BlitzH5File::readDataset(
       else if(H5Tequal(datasetTypeId, H5T_NATIVE_LDOUBLE))
           _loadContiguousDataset<long double>(
               datasetId, reinterpret_cast<DestT*>(data.data()));
-      else
-      {
-        H5Dclose(datasetId);
-        H5Tclose(datasetTypeId);
-        throw BlitzH5Error() << "Dataset type not supported.";
-      }
+      else throw BlitzH5Error() << "Dataset type not supported.";
     }
     catch (BlitzH5Error &e)
     {
@@ -362,14 +500,10 @@ void BlitzH5File::writeDataset(
 
   hid_t dataspaceId = -1;
   std::vector<hsize_t> dataShape(BlitzH5Traits<DataT>::h5Dims(data));
-  if (dataShape.size() == 1 || dataShape[0] == 1)
+  if (dataShape.size() == 1 && dataShape[0] == 1)
       dataspaceId = H5Screate(H5S_SCALAR);
   else
-  {
-    std::vector<hsize_t> maxDims(dataShape.size(), H5S_UNLIMITED);
-    dataspaceId = H5Screate_simple(
-        dataShape.size(), dataShape.data(), maxDims.data());
-  }
+      dataspaceId = H5Screate_simple(dataShape.size(), dataShape.data(), NULL);
   if (dataspaceId < 0)
       throw BlitzH5Error()
           << "Could not write dataset '" << name
@@ -1079,7 +1213,8 @@ void BlitzH5File::_loadChunkedDataset(
   std::cerr << " ], chunkDims = [" << std::flush;
   for (size_t i = 0; i < chunkDims.size(); ++i)
       std::cerr << " " << chunkDims[i] << std::flush;
-  std::cerr << " ], target = " << target << ", pr = " << pr << std::endl;
+  std::cerr << " ], target = " << reinterpret_cast<void*>(target) << ", pr = "
+            << pr << std::endl;
 #endif
 
   // Compute chunk size

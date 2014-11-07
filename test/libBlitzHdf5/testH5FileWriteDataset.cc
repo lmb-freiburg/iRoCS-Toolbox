@@ -84,6 +84,302 @@ hid_t test_traits<long double>::h5Type = H5T_NATIVE_LDOUBLE;
 template<>
 std::string test_traits<long double>::name = "ldouble";
 
+template<typename DataT>
+static void testWriteScalarDataset()
+{
+  std::string datasetName = std::string("/testWriteDatasetScalar/data_") +
+      test_traits<DataT>::name;
+
+  DataT data = 42;
+  try
+  {
+    BlitzH5File outFile("testWriteDatasetSimple.h5", BlitzH5File::Replace);
+    outFile.writeDataset(data, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during write: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during write: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during write");
+  }
+
+  DataT loaded;
+  try
+  {
+    BlitzH5File inFile("testWriteDatasetSimple.h5");
+    inFile.readDataset(loaded, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during read: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during read: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during read");
+  }
+
+  LMBUNIT_ASSERT_EQUAL(data, loaded);
+}
+
+template<typename DataT>
+static void testWrite0DDataset()
+{
+  std::string datasetName = std::string(
+      "/testWriteDatasetScalarFromOneElementVector/data_") +
+      test_traits<DataT>::name;
+
+  std::vector<DataT> data(1, static_cast<DataT>(42));
+
+  try
+  {
+    BlitzH5File outFile("testWriteDatasetSimple.h5", BlitzH5File::Replace);
+    outFile.writeDataset(data, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during write: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during write: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during write");
+  }
+
+  DataT loaded;
+  try
+  {
+    BlitzH5File inFile("testWriteDatasetSimple.h5");
+    inFile.readDataset(loaded, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during read: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during read: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during read");
+  }
+
+  LMBUNIT_ASSERT_EQUAL(data[0], loaded);
+}
+
+template<typename DataT, int Dim>
+static void testWriteTinyVectorDataset()
+{
+  std::string datasetName = std::string("/testWriteDatasetTinyVector/data_") +
+      test_traits<DataT>::name;
+
+  blitz::TinyVector<DataT,Dim> data;
+  for (int d = 0; d < Dim; ++d)
+      data(d) = static_cast<DataT>(100 * static_cast<double>(std::rand()) /
+                                   RAND_MAX);
+  try
+  {
+    BlitzH5File outFile("testWriteDatasetSimple.h5", BlitzH5File::Replace);
+    outFile.writeDataset(data, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during write: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during write: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during write");
+  }
+
+  blitz::TinyVector<DataT,Dim> loaded;
+  try
+  {
+    BlitzH5File inFile("testWriteDatasetSimple.h5");
+    inFile.readDataset(loaded, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during read: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during read: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during read");
+  }
+
+  int nErrors = 0;
+  for (int d = 0; d < Dim; ++d) if (data(d) != loaded(d)) nErrors++;
+
+  LMBUNIT_DEBUG_STREAM
+      << "data = " << data << std::endl;
+  LMBUNIT_DEBUG_STREAM
+      << "loaded = " << loaded << std::endl;
+  if (nErrors > 0)
+      LMBUNIT_WRITE_FAILURE(
+          "Read Array contains different values than written array");
+}
+
+template<typename DataT, int NRows, int NCols>
+static void testWriteTinyMatrixDataset()
+{
+  std::string datasetName = std::string("/testWriteDatasetTinyMatrix/data_") +
+      test_traits<DataT>::name;
+
+  blitz::TinyMatrix<DataT,NRows,NCols> data;
+  for (int d = 0; d < NRows * NCols; ++d)
+      data.data()[d] = static_cast<DataT>(
+          100 * static_cast<double>(std::rand()) / RAND_MAX);
+  try
+  {
+    BlitzH5File outFile("testWriteDatasetSimple.h5", BlitzH5File::Replace);
+    outFile.writeDataset(data, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during write: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during write: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during write");
+  }
+
+  blitz::TinyMatrix<DataT,NRows,NCols> loaded;
+  try
+  {
+    BlitzH5File inFile("testWriteDatasetSimple.h5");
+    inFile.readDataset(loaded, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during read: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during read: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during read");
+  }
+
+  int nErrors = 0;
+  for (int d = 0; d < NRows * NCols; ++d)
+      if (data.data()[d] != loaded.data()[d]) nErrors++;
+
+  LMBUNIT_DEBUG_STREAM
+      << "data = " << data << std::endl;
+  LMBUNIT_DEBUG_STREAM
+      << "loaded = " << loaded << std::endl;
+  if (nErrors > 0)
+      LMBUNIT_WRITE_FAILURE(
+          "Read Array contains different values than written array");
+}
+
+template<typename DataT, int Dim>
+static void testWriteStdVectorDataset()
+{
+  std::string datasetName = std::string("/testWriteDatasetTinyVector/data_") +
+      test_traits<DataT>::name;
+
+  std::vector<DataT> data(Dim);
+  for (int d = 0; d < Dim; ++d)
+      data[d] = static_cast<DataT>(100 * static_cast<double>(std::rand()) /
+                                   RAND_MAX);
+  try
+  {
+    BlitzH5File outFile("testWriteDatasetSimple.h5", BlitzH5File::Replace);
+    outFile.writeDataset(data, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during write: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during write: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during write");
+  }
+
+  std::vector<DataT> loaded;
+  try
+  {
+    BlitzH5File inFile("testWriteDatasetSimple.h5");
+    inFile.readDataset(loaded, datasetName);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught BlitzH5Error during read: ") + e.what());
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(
+        std::string("Caught std::exception during read: ") + e.what());
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error during read");
+  }
+
+  int nErrors = 0;
+  for (int d = 0; d < Dim; ++d) if (data[d] != loaded[d]) nErrors++;
+
+  LMBUNIT_DEBUG_STREAM << "data = ";
+  for (int d = 0; d < Dim; ++d) LMBUNIT_DEBUG_STREAM << data[d] << " ";
+  LMBUNIT_DEBUG_STREAM << std::endl;
+  LMBUNIT_DEBUG_STREAM << "loaded = ";
+  for (int d = 0; d < Dim; ++d) LMBUNIT_DEBUG_STREAM << loaded[d] << " ";
+  LMBUNIT_DEBUG_STREAM << std::endl;
+  if (nErrors > 0)
+      LMBUNIT_WRITE_FAILURE(
+          "Read Array contains different values than written array");
+}
+
 template<typename DatasetT, typename ArrayT>
 static void testWriteDatasetSimple2D()
 {
@@ -660,6 +956,31 @@ static void testOverwriteDatasetDifferentShape()
 int main(int, char**)
 {
   LMBUNIT_WRITE_HEADER();
+
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<unsigned char>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<char>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<unsigned short>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<short>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<unsigned int>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<int>()));  
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<float>()));  
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<double>()));  
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<unsigned long>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<long>()));  
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<unsigned long long>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<long long>()));  
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<float>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<double>()));
+  LMBUNIT_RUN_TEST((testWriteScalarDataset<long double>()));  
+
+  LMBUNIT_RUN_TEST((testWrite0DDataset<float>()));
+
+  LMBUNIT_RUN_TEST((testWriteTinyVectorDataset<float,3>()));
+  LMBUNIT_RUN_TEST((testWriteTinyVectorDataset<double,3>()));
+  LMBUNIT_RUN_TEST((testWriteTinyMatrixDataset<float,3,4>()));
+  LMBUNIT_RUN_TEST((testWriteTinyMatrixDataset<double,3,4>()));
+  LMBUNIT_RUN_TEST((testWriteStdVectorDataset<float,3>()));
+  LMBUNIT_RUN_TEST((testWriteStdVectorDataset<double,3>()));
 
   LMBUNIT_RUN_TEST((testWriteDatasetSimple2D<float,float>()));
   LMBUNIT_RUN_TEST((testWriteDatasetSimple2D<unsigned short,unsigned int>()));

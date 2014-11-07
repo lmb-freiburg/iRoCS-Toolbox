@@ -21,6 +21,10 @@
 #ifndef BLITZHDF5LIGHT_HH
 #define BLITZHDF5LIGHT_HH
 
+#if defined HAVE_CONFIG_H && !defined PACKAGE
+#include <config.hh>
+#endif
+
 // general includes
 #include <cstring>
 #include <sstream>
@@ -233,7 +237,9 @@ public:
 
   /*======================================================================*/
   /*!
-   *   Reads a simple, scalar data set.
+   *   Reads a simple, fixed size numeric data set. This can be a simple
+   *   scalar, a TinyVector or a TinyMatrix. Complex should also work but is
+   *   not tested.
    *
    *   \param data  output variable
    *   \param name  dataset path descriptor
@@ -244,8 +250,27 @@ public:
    *   \sa existsDataset() to query the existence of a dataset before reading
    */
   /*======================================================================*/
-  template<typename ScalarT>
-  void readDataset(ScalarT &data, std::string const &name) const;
+  template<typename FixedNumericT>
+  void readDataset(FixedNumericT &data, std::string const &name) const;
+
+  /*======================================================================*/
+  /*!
+   *   Reads a simple, 1D vectorial numerical data set.
+   *   The type is automatically converted to the vector type and the output
+   *   vector will be resized to fit the dataset extents.
+   *
+   *   \param data  output vector
+   *   \param name  dataset path descriptor
+   *
+   *   \exception BlitzH5Error If the dataset can not be read this error is
+   *     thrown
+   *
+   *   \sa existsDataset() to query the existence of a dataset before reading
+   */
+  /*======================================================================*/
+  template<typename DataT>
+  void readDataset(
+      std::vector<DataT> &data, std::string const &name) const;
 
   /*======================================================================*/
   /*!
@@ -255,7 +280,7 @@ public:
    *
    *   \param data  output array
    *   \param name  dataset path descriptor
-   *   \param pr    If given progress will be reported to this PorgressReporter
+   *   \param pr    If given progress will be reported to this ProgressReporter
    *
    *   \exception BlitzH5Error If the dataset can not be read this error is
    *     thrown

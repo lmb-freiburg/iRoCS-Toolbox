@@ -3,7 +3,7 @@ blitzhdf5includedir = $(pkgincludedir)/libBlitzHdf5
 
 AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info 1:0:0
+AM_LDFLAGS = -version-info 2:0:1
 
 libBlitzHdf5_la_SOURCES = \
 	BlitzH5Traits.cc \
