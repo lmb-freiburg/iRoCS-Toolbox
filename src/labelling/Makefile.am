@@ -1,8 +1,7 @@
 bin_PROGRAMS = labelling
 lbldatadir = $(pkgdatadir)
 
-AM_CPPFLAGS = -DDATADIR="\"$(shell (cd \$(lbldatadir); pwd))\"" \
-	-I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long 
 AM_LDFLAGS = -rdynamic
 
