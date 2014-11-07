@@ -119,7 +119,7 @@ namespace atb
  *      chaining
  */
 /*======================================================================*/
-    virtual Interpolator<DataT,Dim> &operator=(
+    Interpolator<DataT,Dim> &operator=(
         Interpolator<DataT,Dim> const &ip);
 
 /*======================================================================*/

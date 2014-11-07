@@ -4,7 +4,7 @@ arraytoolboxalgoincludedir = $(pkgincludedir)/libArrayToolbox/algo
 
 AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info 1:0:0
+AM_LDFLAGS = -version-info 1:1:0
 
 arraytoolboxalgoinclude_HEADERS = \
 	algo/DisjointSets.hh \

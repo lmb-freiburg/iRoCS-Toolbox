@@ -610,9 +610,7 @@ namespace atb
   {
     p_ccm->axis().save(outFile, groupName + "/axis");
     p_ccm->thickness().save(outFile, groupName + "/thickness");
-    blitz::Array<double,2> trafo(4, 4);
-    for (int i = 0; i < 16; ++i) trafo.data()[i] = _trafo.data()[i];
-    outFile.writeDataset(trafo, groupName + "/normalizeTrafo");
+    outFile.writeDataset(_trafo, groupName + "/normalizeTrafo");
     outFile.writeAttribute(_qcPos, "qcPositionUm", groupName);
     outFile.writeAttribute(_kappa, "kappa", groupName);
     outFile.writeAttribute(_lambda, "lambda", groupName);
@@ -630,9 +628,7 @@ namespace atb
 
     p_ccm->axis().load(inFile, groupName + "/axis");
     p_ccm->thickness().load(inFile, groupName + "/thickness");
-    blitz::Array<double,2> trafo(4, 4);
-    inFile.readDataset(trafo, groupName + "/normalizeTrafo");
-    for (int i = 0; i < 16; ++i) _trafo.data()[i] = trafo.data()[i];
+    inFile.readDataset(_trafo, groupName + "/normalizeTrafo");
     _trafoInv = invert(_trafo);
     inFile.readAttribute(_qcPos, "qcPositionUm", groupName);
 
