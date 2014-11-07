@@ -48,8 +48,6 @@
 #include "CSVDataIO.hh"
 #include "ColorMapEditorWidget.hh"
 
-// #include <blitz/tinyvec-et.h>
-
 #ifdef DEBUG
 std::string const LabellingMainWidget::__labellingVersionString =
     std::string("iRoCS Toolbox rev. " + std::string(VERSIONSTRING) +
@@ -69,10 +67,9 @@ LabellingMainWidget::LabellingMainWidget(
   QCoreApplication::setOrganizationName("LMB");
   QCoreApplication::setOrganizationDomain("lmb.informatik.uni-freiburg.de");
   QCoreApplication::setApplicationName("IRoCS Toolbox");
-#ifdef DATADIR
-  QString resourceDir = DATADIR;
+  QString resourceDir =
+      QCoreApplication::applicationDirPath() + "/../share/irocs-toolbox";
   QResource::registerResource(resourceDir + "/liblabelling_qt4.rcc");
-#endif
   setWindowIcon(QIcon(":/labellingIcon.svg"));
   QSettings settings;
   resize(settings.value("MainWindow/size", QSize(800, 600)).toSize());
@@ -221,6 +218,10 @@ LabellingMainWidget::LabellingMainWidget(
   menuBar()->addMenu(p_viewMenu);
 
   p_pluginMenu = new QMenu(tr("&Plugins"));
+  QAction *setPluginFolderAction =
+      p_pluginMenu->addAction(tr("Set Plugin Folder..."));
+  connect(setPluginFolderAction, SIGNAL(triggered()), SLOT(setPluginFolder()));
+  p_pluginMenu->addSeparator();
   searchPlugins();
   menuBar()->addMenu(p_pluginMenu);
   connect(p_pluginMenu, SIGNAL(triggered(QAction*)), SLOT(runPlugin(QAction*)));
@@ -509,9 +510,9 @@ void LabellingMainWidget::showHelperLines(bool show)
 
 void LabellingMainWidget::runPlugin(QAction* action)
 {
-  if (_plugins.contains(action->text()))
+  if (_plugins.contains(action))
   {
-    QPluginLoader loader(_plugins[action->text()], this);
+    QPluginLoader loader(action->data().toString(), this);
     PluginInterface* plugin =
         qobject_cast<PluginInterface*>(loader.instance());
     plugin->setLabellingMainWidget(this);
@@ -521,19 +522,72 @@ void LabellingMainWidget::runPlugin(QAction* action)
   }
 }
 
+void LabellingMainWidget::setPluginFolder()
+{
+  if (_pluginsRunning.size() != 0)
+  {
+    QMessageBox::information(
+        this, tr("Plugin folder locked"),
+        tr("The plugin folder cannot be changed while plugins are "
+           "executed. Please wait until all running plugins finished and "
+           "try again."));
+    return;
+  }
+  QSettings settings;
+  QString pluginFolder = settings.value(
+      "PluginFolder", "").toString();
+  QString newPluginFolder = QFileDialog::getExistingDirectory(
+      this, tr("Set plugin folder"), pluginFolder,
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  if (!newPluginFolder.isNull() && newPluginFolder != pluginFolder)
+  {
+    for (QList<QAction*>::iterator it = _plugins.begin();
+         it != _plugins.end(); ++it)
+    {
+      QPluginLoader loader((*it)->data().toString(), this);
+      if (loader.isLoaded() && !loader.unload())
+      {
+        std::cerr << "Could not unload plugin '" << (*it)->text().toStdString()
+                  << "'. The plugin seems to be running." << std::endl;
+      }
+      else
+      {
+        p_pluginMenu->removeAction(*it);
+        delete *it;
+        it = _plugins.erase(it);
+        --it;
+      }
+    }
+    settings.setValue("PluginFolder", newPluginFolder);
+    searchPlugins();
+  }
+}
+
 void LabellingMainWidget::runPlugin(
     QString const &name, std::map<std::string,std::string> const &parameters)
 {
-  if (_plugins.contains(name))
+  QList<QAction*>::const_iterator it = _plugins.begin();
+  while (it != _plugins.end() && (*it)->text() != name) ++it;
+  if (it == _plugins.end()) return;
+
+  QPluginLoader loader((*it)->data().toString(), this);
+  PluginInterface* plugin =
+      qobject_cast<PluginInterface*>(loader.instance());
+  if (plugin != NULL)
   {
-    QPluginLoader loader(_plugins[name], this);
-    PluginInterface* plugin =
-        qobject_cast<PluginInterface*>(loader.instance());
     plugin->setLabellingMainWidget(this);
     plugin->setParameters(parameters);
     _pluginsRunning.push_back(plugin);
     plugin->run();
     _pluginsRunning.remove(plugin);
+    loader.unload();
+  }
+  else
+  {
+    QMessageBox::critical(
+        this, tr("Plugin execution failed"),
+        tr("The plugin could not be loaded. Make sure the plugin file exists "
+           "and you have read permissions."));
   }
 }
 
@@ -587,31 +641,22 @@ size_t LabellingMainWidget::memoryLimit() const
 
 void LabellingMainWidget::searchPlugins()
 {
-#ifdef DATADIR
-  QDir pluginsDir = QDir(DATADIR);
-#else
-  QDir pluginsDir = QDir(qApp->applicationDirPath());
-  #if defined(Q_OS_WIN)
-  std::cout << "Searching plugins in "
-            << pluginsDir.absolutePath().toStdString() << std::endl;
-  if (pluginsDir.dirName().toLower() == "debug" ||
-      pluginsDir.dirName().toLower() == "release")
-      pluginsDir.cdUp();
-  #elif defined(Q_OS_MAC)
-  if (pluginsDir.dirName() == "MacOS")
+  QSettings settings;
+  QString pluginFolder = settings.value("PluginFolder", "").toString();
+  QDir pluginsDir;
+  if (pluginFolder == "")
   {
+    pluginsDir = QDir(qApp->applicationDirPath());
     pluginsDir.cdUp();
-    pluginsDir.cdUp();
-    pluginsDir.cdUp();
+    pluginsDir.cd("share");
+    pluginsDir.cd("irocs-toolbox");
+    pluginsDir.cd("plugins");
+    pluginFolder = pluginsDir.absolutePath();
+    settings.setValue("PluginFolder", pluginFolder);
   }
-  #endif
-  pluginsDir.cdUp();
-  pluginsDir.cd("share");
-  pluginsDir.cd("labelling_qt4");
-#endif
-  pluginsDir.cd("plugins");
+  else pluginsDir = QDir(pluginFolder);
   std::cout << "Searching plugins in "
-            << pluginsDir.absolutePath().toStdString() << std::endl;
+            << pluginFolder.toStdString() << std::endl;
 
   foreach (QString fileName, pluginsDir.entryList(QDir::Files))
   {
@@ -627,9 +672,14 @@ void LabellingMainWidget::searchPlugins()
       PluginInterface* iPlugin = qobject_cast<PluginInterface*>(plugin);
       if (iPlugin)
       {
-        std::cout << "Loading plugin: " << iPlugin->name().toStdString()
+        std::cout << "Registering plugin: " << iPlugin->name().toStdString()
                   << std::endl;
-        _plugins[iPlugin->name()] = pluginsDir.absoluteFilePath(fileName);
+        QAction *action = new QAction(iPlugin->name(), NULL);
+        action->setData(pluginsDir.absoluteFilePath(fileName));
+        QList<QAction*>::iterator it = _plugins.begin();
+        while (it != _plugins.end() &&
+               (*it)->text().compare(iPlugin->name()) < 0) ++it;
+        _plugins.insert(it, action);
       }
       else
       {
@@ -638,6 +688,7 @@ void LabellingMainWidget::searchPlugins()
                   << "implement the PluginInterface class or does not "
                   << "inherit from QObject" << std::endl;
       }
+      loader.unload();
     }
     else
     {
@@ -645,8 +696,8 @@ void LabellingMainWidget::searchPlugins()
                 << loader.errorString().toStdString() << std::endl;
     }
   }
-  for (QMap<QString,QString>::const_iterator it = _plugins.begin();
-  it != _plugins.end(); ++it) p_pluginMenu->addAction(it.key());
+  for (QList<QAction*>::iterator it = _plugins.begin();
+       it != _plugins.end(); ++it) p_pluginMenu->addAction(*it);
 }
 
 std::string LabellingMainWidget::getOpenFileName() 

@@ -180,12 +180,7 @@ void SplineCurveChannelSpecs::init()
   p_channelColor->setSingleStep(blitz::TinyVector<double,3>(0.01, 0.01, 0.01));
   connect(p_channelColor, SIGNAL(valueChanged()), SLOT(updateChannelColor()));
   colorLayout->addWidget(p_channelColor);
-#ifdef DATADIR
-  QPushButton *colorChooserButton = new QPushButton(
-      QIcon((std::string(DATADIR) + "/palette.png").c_str()), "");
-#else
   QPushButton *colorChooserButton = new QPushButton(QIcon(":/palette.png"), "");
-#endif
   colorLayout->addWidget(colorChooserButton);
   connect(colorChooserButton, SIGNAL(pressed()), SLOT(chooseColor()));
   p_channelControlLayout->addLayout(colorLayout);

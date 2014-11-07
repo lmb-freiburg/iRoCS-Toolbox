@@ -77,6 +77,7 @@ public slots:
   void setInterpolation(bool interpolation);
   void snapToVoxelGrid(bool snap);
   void showHelperLines(bool show);
+  void setPluginFolder();
   void runPlugin(QAction* action);
 
   void about();
@@ -125,7 +126,7 @@ private:
   QDockWidget* p_debugWidget;
   QTextEdit* p_debugTextEdit;
 
-  QMap<QString, QString> _plugins;
+  QList<QAction*> _plugins;
   std::list<PluginInterface*> _pluginsRunning;
 
   QProgressBar *p_progressBar;
