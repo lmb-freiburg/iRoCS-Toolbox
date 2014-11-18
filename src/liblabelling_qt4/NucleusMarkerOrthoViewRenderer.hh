@@ -85,7 +85,7 @@ public:
 /*! 
  *   Set continuity
  *
- *   \param The new continuity 
+ *   \param continuity The new continuity 
  */
 /*======================================================================*/
   void setContinuity(int continuity);

@@ -43,7 +43,7 @@ enum TypeIdentifier {
 
 /*======================================================================*/
 /*!
- *  \struct BlitzH5Type BlitzH5Type.hh
+ *  \struct BlitzH5Type SvmH5Type.hh "libsvmtl/SvmH5Type.hh"
  *
  *  Default type trait.
  */

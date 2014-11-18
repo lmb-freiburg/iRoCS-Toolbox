@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/FastNormalizedCorrelationFilter.hh
+ *  \file FastNormalizedCorrelationFilter.hh
  *  \brief Fast n-D correlation using the Fast Fourier Transform (FFT)
  */
 /*======================================================================*/
@@ -31,7 +31,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class FastNormalizedCorrelationFilter "atb/FastNormalizedCorrelationFilter.hh"
+ *  \class FastNormalizedCorrelationFilter "libArrayToolbox/FastNormalizedCorrelationFilter.hh"
  *  \brief The FastNormalizedCorrelationFilter class provides normalized
  *    cross-correlation for n-D Arrays employing the Fast Fourier Transform.
  *

@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/FastCorrelationFilter.hh
+ *  \file FastCorrelationFilter.hh
  *  \brief Fast n-D correlation using the Fast Fourier Transform (FFT)
  */
 /*======================================================================*/
@@ -29,7 +29,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class FastCorrelationFilter "atb/FastCorrelationFilter.hh"
+ *  \class FastCorrelationFilter FastCorrelationFilter.hh "libArrayToolbox/FastCorrelationFilter.hh"
  *  \brief The FastCorrelationFilter class provides n-D Array correlation
  *    using the Fast Fourier Transform.
  *

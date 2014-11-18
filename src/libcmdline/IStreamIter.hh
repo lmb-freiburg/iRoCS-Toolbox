@@ -46,7 +46,7 @@
 
 /*======================================================================*/
 /*!
- *  \class IStreamIter ISteramIter.hh
+ *  \class IStreamIter IStreamIter.hh "libcmdline/IStreamIter.hh"
  *  \brief The IStreamIter class fetches arguments from an input stream.
  *
  *  The ArgvIter class fetches arguments from an input stream. If you

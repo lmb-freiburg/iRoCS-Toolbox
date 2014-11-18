@@ -13,7 +13,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/BoundaryTreatment.hh
+ *  \file BoundaryTreatment.hh
  *  \brief Classes and functions for handling out-of-Array access.
  */
 /*======================================================================*/
@@ -31,7 +31,7 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   \enum BoundaryTreatmentType BoundaryTreatment.hh "atb/BoundaryTreatment.hh"
+ *   \enum BoundaryTreatmentType BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *   \brief The BoundaryTreatmentType enum contains entries for all
  *     implemented boundary treatments.
  *
@@ -61,7 +61,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class BoundaryTreatment BoundaryTreatment.hh "atb/BoundaryTreatment.hh"
+ *  \class BoundaryTreatment BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *  \brief The BoundaryTreatment class provides the interface to all
  *    specific BoundaryTreatment subclasses.
  */
@@ -216,7 +216,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class ValueBoundaryTreatment BoundaryTreatment.hh "atb/BoundaryTreatment.hh"
+ *  \class ValueBoundaryTreatment BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *  \brief The ValueBoundaryTreatment class implements constant value border
  *    treatment when accessing Arrays. The default constant is zero.
  */
@@ -393,7 +393,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class CyclicBoundaryTreatment BoundaryTreatment.hh "atb/BoundaryTreatment.hh"
+ *  \class CyclicBoundaryTreatment BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *  \brief The CyclicBoundaryTreatment class implements cyclic border treatment
  *    when accessing Arrays.
  */
@@ -540,7 +540,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class RepeatBoundaryTreatment BoundaryTreatment.hh "atb/BoundaryTreatment.hh"
+ *  \class RepeatBoundaryTreatment BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *  \brief The RepeatBoundaryTreatment class implements repeating border
  *    treatment when accessing Arrays.
  */
@@ -687,7 +687,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class MirrorBoundaryTreatment BoundaryTreatment.hh "atb/BoundaryTreatment.hh"
+ *  \class MirrorBoundaryTreatment BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *  \brief The MirrorBoundaryTreatment class implements mirroring border
  *    treatment when accessing Arrays.
  */
@@ -834,7 +834,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class CropBoundaryTreatment BoundaryTreatment.hh "atb/BoundaryTreatment.hh"
+ *  \class CropBoundaryTreatment BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *  \brief The CropBoundaryTreatment class has actually no function.
  *    It only exists for convenience and throws a RuntimeError when
  *    used with out-of-Array positions, because, there
@@ -988,7 +988,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class BoundaryTreatmentFactory BoundaryTreatment.hh "atb/BoundaryTreatment.hh"
+ *  \class BoundaryTreatmentFactory BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *  \brief The BoundaryTreatmentFactory class contains a factory method
  *    for creating a BoundaryTreatment object from the given
  *    BoundaryTreatment enumeration value.

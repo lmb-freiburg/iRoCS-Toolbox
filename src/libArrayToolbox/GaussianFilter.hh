@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/GaussianFilter.hh
+ *  \file GaussianFilter.hh
  *  \brief The Implementation of the convolution of the input data with
  *    a Gaussian
  */
@@ -28,7 +28,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class GaussianFilter GaussianFilter.hh "atb/GaussianFilter.hh"
+ *  \class GaussianFilter GaussianFilter.hh "libArrayToolbox/GaussianFilter.hh"
  *  \brief The GaussianFilter class implements the Filter interface and
  *    provides a Gaussian smoothing filter
  */

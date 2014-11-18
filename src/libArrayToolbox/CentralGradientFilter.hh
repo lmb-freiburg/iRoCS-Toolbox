@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/CentralGradientFilter.hh
+ *  \file CentralGradientFilter.hh
  *  \brief The Implementation of the filter computing the gradient of
  *    the input data using central differences
  */
@@ -26,7 +26,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class CentralGradientFilter CentralGradientFilter.hh "atb/CentralGradientFilter.hh"
+ *  \class CentralGradientFilter CentralGradientFilter.hh "libArrayToolbox/CentralGradientFilter.hh"
  *  \brief The CentralGradientFilter class implements the SeparableFilter
  *    interface and provides gradient computation using central differences
  */

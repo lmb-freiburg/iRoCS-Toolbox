@@ -44,7 +44,7 @@ public:
   
 /*======================================================================*/
 /*!
- *  \enum Marker::MarkerType Marker.hh "liblabelling_qt4/Marker.hh"
+ *  \enum MarkerType Marker.hh "liblabelling_qt4/Marker.hh"
  *  \brief The MarkerType enumeration enumerates all available marker types.
  *
  *  If you want to add a new marker type you will have to add it to this

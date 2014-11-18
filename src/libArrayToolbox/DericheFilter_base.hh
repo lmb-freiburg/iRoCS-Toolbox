@@ -13,7 +13,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/DericheFilter_base.hh
+ *  \file DericheFilter_base.hh
  *  \brief Implementation of the basic Deriche filter function approximating
  *    Gaussian filtering using recursion (IIR).
  */

@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/LocalSumFilter.hh
+ *  \file LocalSumFilter.hh
  *  \brief Implementation of the local sum filter.
  *
  *    At each position the local sum in a specified box-shaped neighborhood
@@ -28,7 +28,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class LocalSumFilter LocalSumFilter.hh "atb/LocalSumFilter.hh"
+ *  \class LocalSumFilter LocalSumFilter.hh "libArrayToolbox/LocalSumFilter.hh"
  *  \brief The LocalSumFilter class is a box filter with a filter kernel
  *    containing only ones.
  *

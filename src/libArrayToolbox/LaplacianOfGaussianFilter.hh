@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/LaplacianOfGaussianFilter.hh
+ *  \file LaplacianOfGaussianFilter.hh
  *  \brief The Laplacian of Gaussian filter
  */
 /*======================================================================*/

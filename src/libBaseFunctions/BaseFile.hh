@@ -146,11 +146,11 @@ public:
   static bool Copy(const std::string& aOldName, const std::string& aNewName);
 
   /**
+   * Generates a new unique file name using pattern
    *
-   *
-   * @param
-   * @param
-   * @return
+   * @param aBaseName Prefix
+   * @param aPattern Pattern
+   * @return A new filename
    */
   static std::string
   FindUniqueUnexistingName(const std::string aBaseName, const char aPattern);

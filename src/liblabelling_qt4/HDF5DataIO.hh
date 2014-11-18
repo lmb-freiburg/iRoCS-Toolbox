@@ -38,7 +38,7 @@ struct ChannelMetaData
 
 /*======================================================================*/
 /*! 
- *   Load the general metadata of channel with index <index> out of the
+ *   Load the general metadata of channel with index &lt;index&gt; out of the
  *   .labelling_qt4 group of the hdf5 file specified by filename
  *
  *   \param h5FileName  The name of the hdf5 file to read the metadata from

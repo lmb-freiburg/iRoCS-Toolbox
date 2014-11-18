@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/SeparableFilter.hh
+ *  \file SeparableFilter.hh
  *  \brief Filter Interface additions that apply to separable filters
  */
 /*======================================================================*/
@@ -25,7 +25,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class SeparableFilter SeparableFilter.hh "atb/SeparableFilter.hh"
+ *  \class SeparableFilter SeparableFilter.hh "libArrayToolbox/SeparableFilter.hh"
  *  \brief The SeparableFilter class specifies methods a separable filter
  *    provides additionally to the filter methods defined in
  *    Filter.

@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/LaplacianFilter.hh
+ *  \file LaplacianFilter.hh
  *  \brief The Implementation of the filter computing the Laplacian of
  *    the input data using Forward-backward-differences
  */
@@ -26,7 +26,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class LaplacianFilter LaplacianFilter.hh "atb/LaplacianFilter.hh"
+ *  \class LaplacianFilter LaplacianFilter.hh "libArrayToolbox/LaplacianFilter.hh"
  *  \brief The LaplacianFilter class implements the Filter interface and
  *    provides laplacian computation using forward-backward differences
  */

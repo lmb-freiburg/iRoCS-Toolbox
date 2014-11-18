@@ -13,7 +13,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/MarchingCubes.hh
+ *  \file MarchingCubes.hh
  *  \brief The marching cubes algorithm to convert the zero
  *    levelset of a 3D function into a polygon mesh.
  */
@@ -44,7 +44,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class MarchingCubes MarchingCubes.hh "atb/MarchingCubes.hh"
+ *  \class MarchingCubes MarchingCubes.hh "libArrayToolbox/MarchingCubes.hh"
  *  \brief The MarchingCubes class provides the Marching Cubes Algorithm
  *     for isosurface tesselation of real scalar volume data.
  *

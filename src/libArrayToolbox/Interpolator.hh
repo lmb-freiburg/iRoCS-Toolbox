@@ -13,7 +13,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/Interpolator.hh
+ *  \file Interpolator.hh
  *  \brief Classes and functions for sub-pixel Array access with different
  *    interpolation strategies.
  */
@@ -41,7 +41,7 @@ namespace atb
   
 /*======================================================================*/
 /*! 
- *   \enum InterpolationType Interpolator.hh "atb/Interpolator.hh"
+ *   \enum InterpolationType Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *   \brief The InterpolatorType enum contains entries for all
  *     implemented interpolation strategies when accessing sub-pixel positions
  *     within an Array.
@@ -67,7 +67,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class Interpolator Interpolator.hh "atb/Interpolator.hh"
+ *  \class Interpolator Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *  \brief The Interpolator class is the base class of all classes
  *    implementing interpolation strategies for sub-pixel Array access.
  *
@@ -197,7 +197,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class NearestInterpolator Interpolator.hh "atb/Interpolator.hh"
+ *  \class NearestInterpolator Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *  \brief The NearestInterpolator class provides sub-pixel access to blitz++
  *     Arrays using the nearest neighbor startegy.
  *
@@ -290,7 +290,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class LinearInterpolator Interpolator.hh "atb/Interpolator.hh"
+ *  \class LinearInterpolator Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *  \brief The LinearInterpolator class provides sub-pixel access to blitz++
  *     Arrays using linear interpolation.
  *
@@ -383,7 +383,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class CubicInterpolator Interpolator.hh "atb/Interpolator.hh"
+ *  \class CubicInterpolator Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *  \brief The CubicInterpolator class provides sub-pixel access to blitz++
  *     Arrays using cubic interpolation.
  *
@@ -477,7 +477,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class MinimumInterpolator Interpolator.hh "atb/Interpolator.hh"
+ *  \class MinimumInterpolator Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *  \brief The MinimumInterpolator class provides sub-pixel access to blitz++
  *     Arrays returning the minimum of all adjacent pixel values.
  *
@@ -570,7 +570,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class MaximumInterpolator Interpolator.hh "atb/Interpolator.hh"
+ *  \class MaximumInterpolator Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *  \brief The MaximumInterpolator class provides sub-pixel access to blitz++
  *     Arrays returning the minimum of all adjacent pixel values.
  *
@@ -663,7 +663,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class MedianInterpolator Interpolator.hh "atb/Interpolator.hh"
+ *  \class MedianInterpolator Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *  \brief The MedianInterpolator class provides sub-pixel access to blitz++
  *     Arrays returning the median of all adjacent pixel values.
  *
@@ -755,7 +755,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class InterpolatorFactory Interpolator.hh "atb/Interpolator.hh"
+ *  \class InterpolatorFactory Interpolator.hh "libArrayToolbox/Interpolator.hh"
  *  \brief The InterpolatorFactory class contains a factory method for
  *    creating a new Interpolator object using the given InterpolationType
  *    and BoundaryTreatmentType with corresponding default boundary value.

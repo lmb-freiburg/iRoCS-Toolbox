@@ -75,7 +75,7 @@ public:
  *   Set the showHelperLines flag of this cache. If this flag is set
  *   additional helper lines for specific marker types are drawn.
  *
- *   \param active The new showHelperLines flag value
+ *   \param showHelperLines The new showHelperLines flag value
  */
 /*======================================================================*/
   void setShowHelperLines(bool showHelperLines);
@@ -273,7 +273,7 @@ protected:
 /*======================================================================*/
 /*! 
  *   Get the RGB color string from the Settings in the PresetWidget. It is
- *   of the form #RRGGBB.
+ *   of the form "\#RRGGBB".
  *
  *   \param draw This bool is false if the marker has an alpha value of zero
  *     and is therefore not visible

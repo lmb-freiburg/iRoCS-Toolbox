@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/DericheFilter.hh
+ *  \file DericheFilter.hh
  *  \brief Implementation of the Deriche filter approximating Gaussian
  *    filtering using recursion (IIR).
  */
@@ -27,7 +27,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class DericheFilter DericheFilter.hh "atb/DericheFilter.hh"
+ *  \class DericheFilter DericheFilter.hh "libArrayToolbox/DericheFilter.hh"
  *  \brief The DericheFilter class implements the Deriche filter, which
  *     approximates a Gaussian filter using a recursive formulation.
  *
@@ -211,7 +211,7 @@ namespace atb
         blitz::TinyVector<double,Dim> const &sigmaUm,
         BoundaryTreatmentType btType = ValueBT,
         DataT const &boundaryValue = traits<DataT>::zero,
-        iRoCS::ProgressReporter *pr = NULL)
+        iRoCS::ProgressReporter *pr = NULL);
 
 /*======================================================================*/
 /*! 
@@ -233,7 +233,7 @@ namespace atb
         blitz::TinyVector<double,Dim> const &sigmaUm,
         BoundaryTreatmentType btType = ValueBT,
         DataT const &boundaryValue = traits<DataT>::zero,
-        iRoCS::ProgressReporter *pr = NULL)
+        iRoCS::ProgressReporter *pr = NULL);
 
   private:
     

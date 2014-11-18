@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/FastConvolutionFilter.hh
+ *  \file FastConvolutionFilter.hh
  *  \brief Fast n-D convolution using the Fast Fourier Transform (FFT)
  */
 /*======================================================================*/
@@ -27,7 +27,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class FastConvolutionFilter "atb/FastConvolutionFilter.hh"
+ *  \class FastConvolutionFilter "libArrayToolbox/FastConvolutionFilter.hh"
  *  \brief The FastConvolutionFilter class provides n-D Array convolution
  *    using the Fast Fourier Transform.
  *

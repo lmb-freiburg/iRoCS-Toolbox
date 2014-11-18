@@ -13,7 +13,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/RuntimeError.hh
+ *  \file RuntimeError.hh
  *  \brief Exception specialization for error handling within libArrayToolbox.
  */
 /*======================================================================*/
@@ -29,7 +29,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class RuntimeError RuntimeError.hh "atb/RuntimeError.hh"
+ *  \class RuntimeError RuntimeError.hh "libArrayToolbox/RuntimeError.hh"
  *  \brief Objects of the RuntimeError class are thrown in
  *         case of errors while processing ArrayToolbox functions.
  */

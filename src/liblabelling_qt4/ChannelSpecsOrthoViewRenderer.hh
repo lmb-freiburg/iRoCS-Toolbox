@@ -114,7 +114,7 @@ signals:
  *   This signal must be emitted at the end of a cache update to inform the
  *   view, that the cache for the orthoview plane has new data.
  *
- *   \param renderer A pointer to this ChannelSpecsRenderer
+ *   \param source A pointer to this ChannelSpecsRenderer
  *   \param direction The OrthoViewPlane index (its normal direction)
  */
 /*======================================================================*/

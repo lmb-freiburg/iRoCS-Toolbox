@@ -15,7 +15,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/SurfaceGeometry.hh
+ *  \file SurfaceGeometry.hh
  *  \brief Storage and rendering of Triangulated surfaces.
  */
 /*======================================================================*/
@@ -32,7 +32,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class SurfaceGeometry SurfaceGeometry.hh "atb/SurfaceGeometry.hh"
+ *  \class SurfaceGeometry SurfaceGeometry.hh "libArrayToolbox/SurfaceGeometry.hh"
  *  \brief The SurfaceGeometry struct provides data structures required
  *    for the storage of triangulated surface data for direct OpenGL
  *    rendering or export to STL files.

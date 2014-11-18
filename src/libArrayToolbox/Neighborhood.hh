@@ -12,7 +12,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/Neighborhood.hh
+ *  \file Neighborhood.hh
  *  \brief Neighborhoods for local operators.
  */
 /*======================================================================*/
@@ -29,7 +29,7 @@ namespace atb
   
 /*======================================================================*/
 /*! 
- *   \struct TinyVectorLessThan Neighborhood.hh "atb/Neighborhood.hh"
+ *   \struct TinyVectorLessThan Neighborhood.hh "libArrayToolbox/Neighborhood.hh"
  *   \brief The TinyVectorLessThan struct provides an operator
  *     for comparing TinyVectors defining a strict weak ordering between them.
  *
@@ -60,7 +60,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class Neighborhood Neighborhood.hh "atb/Neighborhood.hh"
+ *  \class Neighborhood Neighborhood.hh "libArrayToolbox/Neighborhood.hh"
  *  \brief The Neighborhood class specifies local pixel/voxel neighborhoods.
  *
  *  These neighborhoods are needed in different local filter operations or
@@ -80,7 +80,7 @@ namespace atb
     
 /*======================================================================*/
 /*!
- *  \enum Type Neighborhood.hh "atb/Neighborhood.hh"
+ *  \enum Type Neighborhood.hh "libArrayToolbox/Neighborhood.hh"
  *  \brief The Type enum contains the different Neighborhood type names.
  *
  *  \li \c Simple Only pixels connected by faces of dimension Dim - 1 are

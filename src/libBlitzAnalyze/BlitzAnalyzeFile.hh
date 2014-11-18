@@ -61,7 +61,7 @@ public:
   /*!
    *   Creates an AnalyzeFile, opening the given file.
    *
-   *   \param fname  file to be opened, without file extention!
+   *   \param fName  file to be opened, without file extention!
    */
   /*======================================================================*/
   BlitzAnalyzeFile( const std::string& fName);

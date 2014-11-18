@@ -85,7 +85,7 @@ class SVGDataIO
  *     centimeters
  *   \param lowerBoundUm The lower bound of the selected box to render to
  *     SVG in micrometers
- *   \param lowerBoundUm The upper bound of the selected box to render to
+ *   \param upperBoundUm The upper bound of the selected box to render to
  *     SVG in micrometers
  *   \param scaleBarLengthUm The length of the displayed scale bar in
  *     micrometers
@@ -118,7 +118,7 @@ class SVGDataIO
  *     centimeters
  *   \param lowerBoundUm The lower bound of the selected box to render to
  *     SVG in micrometers
- *   \param lowerBoundUm The upper bound of the selected box to render to
+ *   \param upperBoundUm The upper bound of the selected box to render to
  *     SVG in micrometers
  *   \param scaleBarLengthUm The length of the displayed scale bar in
  *     micrometers

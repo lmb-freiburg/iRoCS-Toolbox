@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/SeparableCorrelationFilter.hh
+ *  \file SeparableCorrelationFilter.hh
  *  \brief Classes and functions for n-D separable correlation.
  */
 /*======================================================================*/
@@ -25,7 +25,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class SeparableCorrelationFilter SeparableCorrelationFilter.hh "atb/SeparableCorrelationFilter.hh"
+ *  \class SeparableCorrelationFilter SeparableCorrelationFilter.hh "libArrayToolbox/SeparableCorrelationFilter.hh"
  *  \brief The SeparableCorrelationFilter class implements direct
  *    separable correlation.
  *

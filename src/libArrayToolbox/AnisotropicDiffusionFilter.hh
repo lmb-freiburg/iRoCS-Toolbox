@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/AnisotropicDiffusionFilter.hh
+ *  \file AnisotropicDiffusionFilter.hh
  *  \brief Anisotropic diffusion filtering of n-D Arrays
  */
 /*======================================================================*/
@@ -27,7 +27,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class AnisotropicDiffusionFilter AnisotropicDiffusionFilter.hh "libArayToolbox/AnisotropicDiffusionFilter.hh"
+ *  \class AnisotropicDiffusionFilter AnisotropicDiffusionFilter.hh "libArrayToolbox/AnisotropicDiffusionFilter.hh"
  *  \brief The AnisotropicDiffusionFilter class implements the Filter
  *    interface and provides an anisotropic diffusion filter. This filter
  *    non-linearly removes noise and enhances consistent structures.

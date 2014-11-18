@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/CentralHessianUTFilter.hh
+ *  \file CentralHessianUTFilter.hh
  *  \brief The Implementation of the filter computing the hessian of
  *    the input data using central differences
  */

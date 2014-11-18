@@ -13,7 +13,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/Filter.hh
+ *  \file Filter.hh
  *  \brief Base class (Interface) for all Filter implementations.
  */
 /*======================================================================*/
@@ -31,7 +31,7 @@ namespace atb
 
 /*======================================================================*/
 /*!
- *  \class Filter Filter.hh "atb/Filter.hh"
+ *  \class Filter Filter.hh "libArrayToolbox/Filter.hh"
  *  \brief The Filter class is the base class for all filter implementations
  *
  *  It is responsible for handling the boundary treatment and provides

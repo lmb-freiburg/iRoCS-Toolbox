@@ -438,7 +438,7 @@ public:
   /*!
    *   Reads an attribute.
    *
-   *   \param out   variable to store the attribute data to
+   *   \param data   variable to store the attribute data to
    *   \param attName     name of the attribute
    *   \param objectName  path to parent dataset or group
    */
@@ -452,7 +452,7 @@ public:
   /*!
    *   Reads an attribute.
    *
-   *   \param out   variable to store the attribute data to
+   *   \param data   variable to store the attribute data to
    *   \param attName     name of the attribute
    *   \param objectName  path to parent dataset or group
    */
@@ -466,7 +466,7 @@ public:
   /*!
    *   Reads an attribute.
    *
-   *   \param out   variable to store the attribute data to
+   *   \param data   variable to store the attribute data to
    *   \param attName     name of the attribute
    *   \param objectName  path to parent dataset or group
    */
@@ -480,7 +480,7 @@ public:
   /*!
    *   Reads an attribute.
    *
-   *   \param out   variable to store the attribute data to
+   *   \param data   variable to store the attribute data to
    *   \param attName     name of the attribute
    *   \param objectName  path to parent dataset or group
    */
@@ -494,7 +494,7 @@ public:
   /*!
    *   Reads a string attribute.
    *
-   *   \param out         variable to store the attribute data to
+   *   \param data         variable to store the attribute data to
    *   \param attName     name of the attribute
    *   \param objectName  path to parent dataset or group
    */

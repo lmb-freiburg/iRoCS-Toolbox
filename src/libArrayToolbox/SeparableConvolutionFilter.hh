@@ -10,7 +10,7 @@
 
 /*======================================================================*/
 /*!
- *  \file atb/SeparableConvolutionFilter.hh
+ *  \file SeparableConvolutionFilter.hh
  *  \brief Classes and functions for n-D separable convolution.
  */
 /*======================================================================*/
@@ -25,7 +25,7 @@ namespace atb
   
 /*======================================================================*/
 /*!
- *  \class SeparableConvolutionFilter SeparableConvolutionFilter.hh "atb/SeparableConvolutionFilter.hh"
+ *  \class SeparableConvolutionFilter SeparableConvolutionFilter.hh "libArrayToolbox/SeparableConvolutionFilter.hh"
  *  \brief The SeparableConvolutionFilter class implements direct
  *    separable convolution.
  *
