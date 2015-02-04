@@ -1003,29 +1003,47 @@ HDF5DataIO::RetVal HDF5DataIO::run()
     for (std::vector<std::string>::const_iterator it = remainingItems.begin();
          it != remainingItems.end(); ++it)
     {
-      bool isDataSet = false;
+      bool isDataset = false;
       try
       {
         BlitzH5File inFile(_fileName);
-        isDataSet = inFile.existsDataset(*it);
+        isDataset = inFile.existsDataset(*it);
       }
       catch (BlitzH5Error &)
       {}
       
-      if (isDataSet)
+      if (isDataset)
       {
         try
         {
           BlitzH5File inFile(_fileName);
           std::vector<hsize_t> dsExtents(inFile.getDatasetShape(*it));
-          if (dsExtents.size() == 4 && dsExtents[3] == 3)
+          switch (dsExtents.size())
           {
-            RGBChannelMetaData md;
-            md.channelName = *it;
-            rgbChannels.push_back(md);
-          }
-          else if (dsExtents.size() == 3)
+          case 2:
+          case 3:
           {
+            if (dsExtents.size() == 3 && dsExtents[2] == 3)
+            {
+              // Check whether it is actually 2D RGB
+              try
+              {
+                std::string dimInterpretation;
+                inFile.readAttribute(
+                    dimInterpretation, "dim_interpretation", *it);
+                if (dimInterpretation[dimInterpretation.size() - 1] == 'c')
+                {
+                  RGBChannelMetaData md;
+                  md.channelName = *it;
+                  rgbChannels.push_back(md);                  
+                  break;
+                }
+              }
+              catch (BlitzH5Error &)
+              {}
+            }
+
+            // Ordinary gray value data
             hid_t datasetTypeId = inFile.getDatasetType(*it);
             if (H5Tget_class(datasetTypeId) == H5T_INTEGER)
             {
@@ -1040,8 +1058,23 @@ HDF5DataIO::RetVal HDF5DataIO::run()
               dataChannels.push_back(md);
             }
             H5Tclose(datasetTypeId);
+            break;
           }
-          else throw BlitzH5Error("Incompatible dataset");
+          case 4:
+          {
+            if (dsExtents[3] == 3)
+            {
+              RGBChannelMetaData md;
+              md.channelName = *it;
+              rgbChannels.push_back(md);
+            }
+            else throw BlitzH5Error("Incompatible dataset");
+            break;
+          }
+          default:
+            throw BlitzH5Error()
+                << dsExtents.size() << "-D datasets are not supported.";
+          }
         }
         catch (BlitzH5Error &e)
         {
@@ -1318,7 +1351,26 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(const DataChannelMetaData& metaData)
   atb::Array<float,3>* data = new atb::Array<float,3>();
   try
   {
-    data->load(_fileName, metaData.channelName, p_progress);
+    BlitzH5File inFile(_fileName);
+    std::vector<hsize_t> dsShape(inFile.getDatasetShape(metaData.channelName));
+    if (dsShape.size() == 2)
+    {
+      atb::Array<float,2> tmp;
+      tmp.load(inFile, metaData.channelName, p_progress);
+      data->resize(1, tmp.extent(0), tmp.extent(1));
+      std::memcpy(
+          data->dataFirst(), tmp.dataFirst(), tmp.size() * sizeof(float));
+      data->setElementSizeUm(
+          blitz::TinyVector<double,3>(
+              1.0, tmp.elementSizeUm()(0), tmp.elementSizeUm()(1)));
+      blitz::TinyMatrix<double,4,4> trafo(
+          atb::traits< blitz::TinyMatrix<double,4,4> >::one);
+      for (int r = 1; r < 4; ++r)
+          for (int c = 1; c < 4; ++c)
+              trafo(r, c) = tmp.transformation()(r - 1, c - 1);
+      data->setTransformation(trafo);
+    }
+    else data->load(inFile, metaData.channelName, p_progress);
 
     if (p_progress->isAborted())
     {
@@ -1356,7 +1408,26 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(const RGBChannelMetaData& metaData)
       new atb::Array<blitz::TinyVector<float,3>,3>();
   try
   {
-    data->load(_fileName, metaData.channelName, p_progress);
+    BlitzH5File inFile(_fileName);
+    std::vector<hsize_t> dsShape(inFile.getDatasetShape(metaData.channelName));
+    if (dsShape.size() == 3)
+    {
+      atb::Array<blitz::TinyVector<float,3>,2> tmp;
+      tmp.load(inFile, metaData.channelName, p_progress);
+      data->resize(1, tmp.extent(0), tmp.extent(1));
+      std::memcpy(
+          data->dataFirst(), tmp.dataFirst(), 3 * tmp.size() * sizeof(float));
+      data->setElementSizeUm(
+          blitz::TinyVector<double,3>(
+              1.0, tmp.elementSizeUm()(0), tmp.elementSizeUm()(1)));
+      blitz::TinyMatrix<double,4,4> trafo(
+          atb::traits< blitz::TinyMatrix<double,4,4> >::one);
+      for (int r = 1; r < 4; ++r)
+          for (int c = 1; c < 4; ++c)
+              trafo(r, c) = tmp.transformation()(r - 1, c - 1);
+      data->setTransformation(trafo);
+    }
+    else data->load(inFile, metaData.channelName, p_progress);
 
     if (p_progress->isAborted())
     {
@@ -1400,7 +1471,25 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
   int bitDepth = 32;
   try
   {
-    data->load(_fileName, metaData.channelName, p_progress);
+    BlitzH5File inFile(_fileName);
+    std::vector<hsize_t> dsShape(inFile.getDatasetShape(metaData.channelName));
+    if (dsShape.size() == 2)
+    {
+      atb::Array<int,2> tmp;
+      tmp.load(inFile, metaData.channelName, p_progress);
+      data->resize(1, tmp.extent(0), tmp.extent(1));
+      std::memcpy(data->dataFirst(), tmp.dataFirst(), tmp.size() * sizeof(int));
+      data->setElementSizeUm(
+          blitz::TinyVector<double,3>(
+              1.0, tmp.elementSizeUm()(0), tmp.elementSizeUm()(1)));
+      blitz::TinyMatrix<double,4,4> trafo(
+          atb::traits< blitz::TinyMatrix<double,4,4> >::one);
+      for (int r = 1; r < 4; ++r)
+          for (int c = 1; c < 4; ++c)
+              trafo(r, c) = tmp.transformation()(r - 1, c - 1);
+      data->setTransformation(trafo);
+    }
+    else data->load(inFile, metaData.channelName, p_progress);
 
     if (p_progress->isAborted())
     {
@@ -1415,7 +1504,6 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
      *---------------------------------------------------------------------*/
     try
     {
-      BlitzH5File inFile(_fileName);
       std::vector<std::string> dsNames(inFile.allDatasets());
       QStringList segmentToClassMappings;
       int maxLabel = -1;
@@ -1454,8 +1542,6 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
     catch (BlitzH5Error &)
     {}
     
-    BlitzH5File inFile(_fileName);
-
     hid_t datasetTypeId = inFile.getDatasetType(metaData.channelName);
     sign = (H5Tget_sign(datasetTypeId) == H5T_SGN_2);
     bitDepth = static_cast<int>(H5Tget_size(datasetTypeId)) * 8;

@@ -12,15 +12,62 @@
 #define HDF5SELECTIONDIALOG_HH
 
 #include <QtGui/QDialog>
+#include <QtGui/QTreeWidget>
 
 #include "ChannelSpecs.hh"
 
 #include <libBlitzHdf5/BlitzHdf5Light.hh>
 
-class QTreeWidget;
 class QTreeWidgetItem;
 
 class MultiChannelModel;
+
+class HDF5TreeWidget : public QTreeWidget
+{
+
+  Q_OBJECT
+
+public:
+  
+  enum ItemType { Dataset, Annotation, Colormap, Incompatible };
+
+  HDF5TreeWidget(QWidget *parent = NULL);
+  HDF5TreeWidget(std::string const &fileName, QWidget *parent = NULL);
+  ~HDF5TreeWidget();
+  
+  void setFileName(std::string const &fileName);
+  std::string const &fileName() const;
+
+  bool isValid() const;
+  QString const &errorString() const;
+
+  void setSelectable(ItemType type, bool enable = true);
+  void setSelectable(ChannelSpecs::ChannelTypes types, bool enable = true);
+
+  std::string absoluteItemPath(QTreeWidgetItem const *item) const;
+
+public slots:
+  
+  void adjustColumnWidths();
+
+private:
+
+  void _createGroupItem(
+      QTreeWidgetItem *item, BlitzH5File const &inFile,
+      std::string const &groupName);
+  void _createDatasetItem(
+      QTreeWidgetItem *item, BlitzH5File const &inFile,
+      std::string const &dsName);
+  void _addH5Objects(QTreeWidgetItem* group, const BlitzH5File& inFile);
+  void _generateTree();
+
+  std::string _fileName;
+  std::map<QTreeWidgetItem*, ItemType> _itemTypes;
+  std::map<QTreeWidgetItem*, ChannelSpecs::ChannelType> _itemChannelTypes;
+  bool _valid;
+  QString _errorString;
+
+};
 
 class HDF5ColorMapSelectionDialog : public QDialog
 {
@@ -37,19 +84,12 @@ private:
   HDF5ColorMapSelectionDialog(QString const &fileName, QWidget *parent);
   ~HDF5ColorMapSelectionDialog();
 
-  std::string absoluteGroupName(const QTreeWidgetItem* group) const;
-  void addH5Objects(QTreeWidgetItem* group, const BlitzH5File& inFile);
   std::string selectedItem() const;
-
-private slots:
-  
-  void adjustColumnWidths();
 
 private:
 
   QString _filename;
-  bool _valid;
-  QTreeWidget* p_h5TreeWidget;
+  HDF5TreeWidget* p_h5TreeWidget;
   
 };
 
@@ -77,20 +117,13 @@ private:
       QWidget *parent, ChannelSpecs::ChannelTypes types);
   ~HDF5SelectionDialog();
 
-  std::string absoluteGroupName(const QTreeWidgetItem* group) const;
-  void addH5Objects(QTreeWidgetItem* group, const BlitzH5File& inFile);
   std::vector<std::string> selectedItems() const;
-
-private slots:
-  
-  void adjustColumnWidths();
 
 private:
 
   MultiChannelModel *p_model;
   QString _filename;
-  bool _valid;
-  QTreeWidget* p_h5TreeWidget;
+  HDF5TreeWidget* p_h5TreeWidget;
   ChannelSpecs::ChannelTypes _channelTypes;
   
 };
