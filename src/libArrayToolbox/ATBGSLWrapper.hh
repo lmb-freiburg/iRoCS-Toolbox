@@ -21,6 +21,10 @@
 #ifndef ATBGSLWRAPPER_HH
 #define ATBGSLWRAPPER_HH
 
+#if defined HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <gsl/gsl_linalg.h>
 
 #include <blitz/array.h>
