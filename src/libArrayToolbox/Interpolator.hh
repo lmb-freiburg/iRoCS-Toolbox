@@ -45,25 +45,29 @@ namespace atb
  *   \brief The InterpolatorType enum contains entries for all
  *     implemented interpolation strategies when accessing sub-pixel positions
  *     within an Array.
- *
- *   \li \c NearestIP  Return the pixel value of the closest Array pixel
- *     to the query position
- *   \li \c LinearIP   Interpolate linearly between the values of adjacent
- *     pixels
- *   \li \c CubicIP    Fit a cubic function through the local neighborhood
- *     around the query position and return it's value at the query position.
- *   \li \c MinIP      At subpixel-positions return the minimum of all
- *     adjacent pixel values    
- *   \li \c MaxIP      At subpixel-positions return the maximum of all
- *     adjacent pixel values
  */
 /*======================================================================*/
-  enum InterpolationType { NearestIP = 0x0001,
-                           LinearIP = 0x0002,
-                           CubicIP = 0x0004,
-                           MinimumIP = 0x0008,
-                           MaximumIP = 0x0010,
-                           MedianIP = 0x0020};
+  enum InterpolationType {
+      /** Return the pixel value of the closest Array pixel
+       *  to the query position (nearest neighbor interpolation) */
+      NearestIP = 0x0001,
+      /** Interpolate linearly between the values of adjacent
+       *  pixels (d-linear interpolation) */
+      LinearIP = 0x0002,
+      /** Fit a cubic function through the local neighborhood
+       *  around the query position and return it's value at the query
+       *  position. (d-cubic interpolation) */
+      CubicIP = 0x0004,
+      /** Return the minimum of adjacent pixel values. If integer positions
+       *  are queried the value at the given position is returned */
+      MinimumIP = 0x0008,
+      /** Return the maximum of adjacent pixel values. If integer positions
+       *  are queried the value at the given position is returned */
+      MaximumIP = 0x0010,
+      /** Return the median of adjacent pixel values. If integer positions
+       *  are queried the value at the given position is returned */
+      MedianIP = 0x0020
+  };
 
 /*======================================================================*/
 /*!

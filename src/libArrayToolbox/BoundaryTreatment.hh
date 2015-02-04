@@ -34,30 +34,31 @@ namespace atb
  *   \enum BoundaryTreatmentType BoundaryTreatment.hh "libArrayToolbox/BoundaryTreatment.hh"
  *   \brief The BoundaryTreatmentType enum contains entries for all
  *     implemented boundary treatments.
- *
- *   \li \c ValueBT   Treat positions beyond the Array domain as having a
- *     constant value
- *   \li \c CyclicBT  Treat values beyond the Array as if the Array continues
- *     cyclically at the boundaries. This means every coordinate passed is
- *     regarded modulo the Array extents.
- *   \li \c RepeatBT  Always pick the closest in-Array position to the position
- *     passed. Therefore pixels at the boundaries are virtually repeated.
- *   \li \c MirrorBT  Mirror out-of-Array coordinates at the Array boundaries to
- *     get in-Array indices and values.
- *   \li \c CropBT    Don't use out-of-bounds pixels at all. This is strictly
- *     spoken no boundary treatment. It's a filtering mode in which
- *     out-of-bounds pixels are just not used. If the kernel domain
- *     is no subset of the Array domain, the response will be divided by
- *     the fraction of the kernel that did not contribute.
- *     This makes some sense for smoothing kernels, but should be used with
- *     care.
  */
 /*======================================================================*/
-  enum BoundaryTreatmentType { ValueBT = 0x0001,
-                               CyclicBT = 0x0002,
-                               RepeatBT = 0x0004,
-                               MirrorBT = 0x0008,
-                               CropBT = 0x0010 };
+  enum BoundaryTreatmentType {
+      /** Treat positions beyond the Array domain as having a
+       *  constant value */
+      ValueBT = 0x0001,
+      /** Treat values beyond the Array as if the Array continues
+       *  cyclically at the boundaries. This means every coordinate passed is
+       *  regarded modulo the Array extents. */
+      CyclicBT = 0x0002,
+      /** Always pick the closest in-Array position to the position
+       *  passed. Therefore pixels at the boundaries are virtually repeated. */
+      RepeatBT = 0x0004,
+      /** Mirror out-of-Array coordinates at the Array boundaries to
+       *  get in-Array indices and values. */
+      MirrorBT = 0x0008,
+      /** Don't use out-of-bounds pixels at all. This is strictly
+       *  spoken no boundary treatment. It's a filtering mode in which
+       *  out-of-bounds pixels are just not used. If the kernel domain
+       *  is no subset of the Array domain, the response will be divided by
+       *  the fraction of the kernel that did not contribute.
+       *  This makes some sense for smoothing kernels, but should be used with
+       *  care. */
+      CropBT = 0x0010
+  };
 
 /*======================================================================*/
 /*!
