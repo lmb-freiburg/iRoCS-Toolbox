@@ -39,9 +39,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &m)
   {
     TinyMatrix<DataT,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i) res.data()[i] = -m.data()[i];
     return res;
   }
@@ -62,9 +59,6 @@ namespace blitz
       TinyVector<DataT,Dim1> const &v)
   {
     TinyVector<DataT,Dim2> res(DataT(0));
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int r = 0; r < Dim2; ++r)
         for (int c = 0; c < Dim1; ++c) res(r) += m(r,c) * v(c);
     return res;
@@ -87,9 +81,6 @@ namespace blitz
       TinyMatrix<DataT,Dim2,Dim1> const &m)
   {
     TinyVector<DataT,Dim1> res(DataT(0));
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int r = 0; r < Dim2; ++r)
         for (int c = 0; c < Dim1; ++c) res(c) += m(r,c) * v(r);
     return res;
@@ -110,9 +101,6 @@ namespace blitz
       DataT const &alpha, TinyMatrix<DataT,NRows,NColumns> const &m)
   {
     TinyMatrix<DataT,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
     {
       res.data()[i] = m.data()[i] * alpha;
@@ -135,9 +123,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &m, DataT const &alpha)
   {
     TinyMatrix<DataT,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
     {
       res.data()[i] = m.data()[i] * alpha;
@@ -160,9 +145,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &m, DataT const &alpha)
   {
     TinyMatrix<DataT,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
     {
       res.data()[i] = m.data()[i] / alpha;
@@ -186,9 +168,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &rhs)
   {
     TinyMatrix<DataT,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
     {
       res.data()[i] = lhs.data()[i] - rhs.data()[i];
@@ -212,9 +191,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &rhs)
   {
     TinyMatrix<DataT,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
     {
       res.data()[i] = lhs.data()[i] + rhs.data()[i];
@@ -238,9 +214,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &rhs)
   {
     TinyMatrix<bool,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
         res.data()[i] = (lhs.data()[i] == rhs.data()[i]);
     return res;
@@ -262,9 +235,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &rhs)
   {
     TinyMatrix<bool,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
         res.data()[i] = (lhs.data()[i] != rhs.data()[i]);
     return res;
@@ -287,9 +257,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &rhs)
   {
     TinyMatrix<bool,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
         res.data()[i] = (lhs.data()[i] < rhs.data()[i]);
     return res;
@@ -312,9 +279,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &rhs)
   {
     TinyMatrix<bool,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
         res.data()[i] = (lhs.data()[i] <= rhs.data()[i]);
     return res;
@@ -337,9 +301,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &rhs)
   {
     TinyMatrix<bool,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
         res.data()[i] = (lhs.data()[i] > rhs.data()[i]);
     return res;
@@ -362,9 +323,6 @@ namespace blitz
       TinyMatrix<DataT,NRows,NColumns> const &rhs)
   {
     TinyMatrix<bool,NRows,NColumns> res;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < NRows * NColumns; ++i)
         res.data()[i] = (lhs.data()[i] >= rhs.data()[i]);
     return res;
