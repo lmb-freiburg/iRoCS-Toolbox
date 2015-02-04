@@ -96,7 +96,8 @@ namespace atb
         if (blitz::all(rdPos >= 0 && rdPos < data.shape()))
             values.push_back(data(rdPos));
       }
-      std::sort(values.begin(), values.end());
+      std::nth_element(
+          values.begin(), values.begin() + values.size() / 2, values.end());
       filtered->data()[i] = values[values.size() / 2];
     }
     if (pr != NULL)
