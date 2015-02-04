@@ -31,14 +31,14 @@ char const *BlitzH5Error::what() const throw()
  *-----------------------------------------------------------------------*/
 
 BlitzH5File::BlitzH5File()
-        : _fileId(-1), _mode(ReadOnly)
+        : _fileName(""), _fileId(-1), _mode(ReadOnly)
 {
   // Disable error stacks
   H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
 
 BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
-        : _fileId(-1), _mode(mode)
+        : _fileName(fileName), _fileId(-1), _mode(mode)
 {
   // Disable error stacks
   H5Eset_auto2(H5E_DEFAULT, NULL, NULL);

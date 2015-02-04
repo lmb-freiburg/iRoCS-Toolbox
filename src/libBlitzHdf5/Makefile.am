@@ -5,6 +5,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -version-info 2:0:1
 
+# Interface extension pending. New version for next release: 3.0.2
+# (backward compatible!)
+
 libBlitzHdf5_la_SOURCES = \
 	BlitzH5Traits.cc \
 	BlitzHdf5Light.cc
@@ -12,4 +15,4 @@ libBlitzHdf5_la_SOURCES = \
 blitzhdf5include_HEADERS = \
 	BlitzH5Traits.hh \
 	BlitzHdf5Light.hh BlitzHdf5Light.icc \
-	FileIOWrapper.hh
+	FileIOWrapper.hh FileIOWrapper.icc

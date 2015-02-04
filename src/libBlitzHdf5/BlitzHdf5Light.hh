@@ -172,6 +172,18 @@ public:
 
   /*======================================================================*/
   /*! 
+   *   Get the file name.
+   *
+   *   \return The name of this hdf5 file
+   */
+  /*======================================================================*/
+  std::string const &name() const
+        {
+          return _fileName;
+        }
+
+  /*======================================================================*/
+  /*! 
    *   Get a normalized version of the given h5 object path string.
    *   Extra '/' and './' will be removed. The resulting string is guaranteed
    *   to be the simplest possible equivalent version of the group string.
@@ -642,6 +654,7 @@ private:
   template<typename SourceT, typename DestT>
   void _loadContiguousDataset(hid_t datasetId, DestT *target) const;
 
+  std::string _fileName;
   hid_t _fileId;
   FileMode _mode;
 
