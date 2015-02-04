@@ -1247,13 +1247,42 @@ namespace atb
   }
   
   template<typename DataT, int Dim>
+  void Array<DataT,Dim>::load(
+      BlitzH5File const &inFile, std::string const &dataset,
+      iRoCS::ProgressReporter *progress)
+  {
+    HDF5IOWrapper::readDataset(
+        *this, _elementSizeUm, inFile, dataset, progress);
+    try
+    {
+      inFile.readAttribute(_transformation, "transformation", dataset);
+    }
+    catch (BlitzH5Error &)
+    {
+      std::cerr << "Warning: Could not read '" << inFile.name() << ":"
+                << dataset << "/transformation'. Assuming identity "
+                << "transformation" << std::endl;
+    }
+  }
+  
+  template<typename DataT, int Dim>
   void Array<DataT,Dim>::save(
-      std::string const &fileName, std::string const &dataset,
-      int compression, iRoCS::ProgressReporter *progress) const
+      std::string const &fileName, std::string const &dataset, int compression,
+      iRoCS::ProgressReporter *progress) const
   {
     HDF5IOWrapper::writeDataset(
         *this, _elementSizeUm, fileName, dataset, true, compression, progress);
     BlitzH5File outFile(fileName, BlitzH5File::Write);
+    outFile.writeAttribute(_transformation, "transformation", dataset);
+  }
+
+  template<typename DataT, int Dim>
+  void Array<DataT,Dim>::save(
+      BlitzH5File &outFile, std::string const &dataset, int compression,
+      iRoCS::ProgressReporter *progress) const
+  {
+    HDF5IOWrapper::writeDataset(
+        *this, _elementSizeUm, outFile, dataset, compression, progress);
     outFile.writeAttribute(_transformation, "transformation", dataset);
   }
 

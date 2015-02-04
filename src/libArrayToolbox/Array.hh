@@ -1420,6 +1420,28 @@ namespace atb
 
 /*======================================================================*/
 /*! 
+ *   Set the Array data and meta-data according to a specification stored
+ *   in an HDF5 file.
+ *
+ *   This function loads the specified HDF5 dataset and associated
+ *   meta-data. If meta-data are missing, they will be set to default
+ *   values, i. e. unit element size and identity transformation.
+ *   The meta-data are expected to be found in dataset attributes 
+ *   'element_size_um' (double vector of length Dim) and 'transformation'
+ *   (double vector of length (Dim + 1) * (Dim + 1)).
+ *
+ *   \param inFile  The hdf5 file to read the Array data from
+ *   \param dataset The hdf5 dataset to read the Array data from
+ *
+ *   \exception BlitzH5Error If the dataset cannot be read this exception
+ *      is thrown.
+ */
+/*======================================================================*/
+    void load(BlitzH5File const &inFile, std::string const &dataset,
+      iRoCS::ProgressReporter *progress = NULL);
+
+/*======================================================================*/
+/*! 
  *   Save the Array data and meta-data to an HDF5 file.
  *
  *   This function saves this Array to the specified HDF5 dataset.
@@ -1438,6 +1460,28 @@ namespace atb
 /*======================================================================*/
     void save(
         std::string const &fileName, std::string const &dataset,
+        int compression = 0, iRoCS::ProgressReporter *progress = NULL) const;
+
+/*======================================================================*/
+/*! 
+ *   Save the Array data and meta-data to an HDF5 file.
+ *
+ *   This function saves this Array to the specified HDF5 dataset.
+ *   The meta-data are stored in dataset attributes 
+ *   'element_size_um' (double vector of length Dim) and 'transformation'
+ *   (double vector of length (Dim + 1) * (Dim + 1)).
+ *
+ *   \param outFile The hdf5 file to write the Array data to
+ *   \param dataset The hdf5 dataset to write the Array data to
+ *   \param compression The compression level to apply (0-9). 0 is no
+ *      compression. Usually a good trade-off is a compression level of 3
+ *
+ *   \exception BlitzH5Error If the dataset cannot be written this exception
+ *      is thrown.
+ */
+/*======================================================================*/
+    void save(
+        BlitzH5File &outFile, std::string const &dataset,
         int compression = 0, iRoCS::ProgressReporter *progress = NULL) const;
 
 /*======================================================================*/
