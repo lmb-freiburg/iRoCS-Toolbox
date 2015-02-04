@@ -1,18 +1,19 @@
 #ifndef ATBLINALG_HH
 #define ATBLINALG_HH
 
+#if defined HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_permute_vector.h>
 #include <gsl/gsl_sort_vector.h>
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_permutation.h>
+
 #include "ATBGSLWrapper.hh"
 #include "Quaternion.hh"
-
-#if defined HAVE_CONFIG_H && !defined PACKAGE
-#include <config.hh>
-#endif
 
 #ifdef HAVE_BLITZ_V9
 #include <blitz/tinyvec-et.h>

@@ -1,15 +1,5 @@
 #include "ATBLinAlg.hh"
 
-#include "ATBGSLWrapper.hh"
-
-#if defined HAVE_CONFIG_H && !defined PACKAGE
-#include <config.hh>
-#endif
-
-#ifdef HAVE_BLITZ_V9
-#include <blitz/tinyvec-et.h>
-#endif
-
 namespace atb
 {
 
