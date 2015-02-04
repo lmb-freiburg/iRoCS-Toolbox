@@ -53,7 +53,8 @@ namespace atb
           if (p_progress != NULL)
           {
             if (p_progress->isAborted()) break;
-            if ((p % std::max(1, straightened.size() / 1000)) == 0)
+            if ((p % std::max(
+                     1, static_cast<int>(straightened.size() / 1000))) == 0)
             {
 #ifdef _OPENMP
 #pragma omp critical
