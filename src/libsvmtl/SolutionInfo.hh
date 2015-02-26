@@ -24,6 +24,10 @@
 #ifndef SOLUTIONINFO_HH
 #define SOLUTIONINFO_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iostream>
 
 namespace svt

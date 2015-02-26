@@ -1,6 +1,10 @@
 #ifndef LBLITZRANDOMFOREST_H_
 #define LBLITZRANDOMFOREST_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 #include "lRandomForest.hh"
 

@@ -18,6 +18,10 @@
 #ifndef ATBSEPARABLEFILTER_HH
 #define ATBSEPARABLEFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "Filter.hh"
 
 namespace atb

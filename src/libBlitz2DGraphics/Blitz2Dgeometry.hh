@@ -12,6 +12,10 @@
 #ifndef _BLITZ2DGEOMETRY
 #define _BLITZ2DGEOMETRY
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // Blitz arrays 
 #include <blitz/array.h>
 

@@ -16,6 +16,10 @@
 #ifndef SPLINECURVECHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 #define SPLINECURVECHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOpenGlRenderingViewRenderer.hh"
 #include <libArrayToolbox/SurfaceGeometry.hh>
 

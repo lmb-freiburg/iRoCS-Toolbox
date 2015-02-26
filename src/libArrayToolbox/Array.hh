@@ -25,6 +25,10 @@
 #ifndef ATBARRAY_HH
 #define ATBARRAY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <cstdlib>
 #include <cstring>
 

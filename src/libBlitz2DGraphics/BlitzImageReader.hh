@@ -15,6 +15,9 @@
 #ifndef _BLITZIMAGEREADER_HH
 #define _BLITZIMAGEREADER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
 
 #include <cstddef>
 #include <cstdio>

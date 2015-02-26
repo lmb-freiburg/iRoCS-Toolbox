@@ -1,6 +1,10 @@
 #ifndef SEGMENTATION_GEODESIC_HH
 #define SEGMENTATION_GEODESIC_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #define USE_S2KIT
 #include <cerrno>
 #include <cmath>
@@ -14,14 +18,6 @@
 #include <fstream>
 
 #include <blitz/array.h>
-
-// #ifdef HAVE_CONFIG_H
-// #include "../config.hh"
-// #endif
-
-// #ifdef HAVE_BLITZ_V9
-// #include <blitz/tinyvec-et.h>
-// #endif
 
 #include <fftw3.h>
 

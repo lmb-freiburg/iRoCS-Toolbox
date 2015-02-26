@@ -21,6 +21,10 @@
 #ifndef ATBPOLYLINE_HH
 #define ATBPOLYLINE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <list>
 
 #include "ATBSpline.hh"

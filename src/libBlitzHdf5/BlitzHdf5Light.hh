@@ -21,7 +21,7 @@
 #ifndef BLITZHDF5LIGHT_HH
 #define BLITZHDF5LIGHT_HH
 
-#if defined HAVE_CONFIG_H && !defined PACKAGE
+#ifdef HAVE_CONFIG_H
 #include <config.hh>
 #endif
 

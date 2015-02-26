@@ -1,6 +1,10 @@
 #ifndef ASSIGNLAYERSTOCELLSEGMENTATIONPARAMETERSDIALOG_HH
 #define ASSIGNLAYERSTOCELLSEGMENTATIONPARAMETERSDIALOG_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtGui/QDialog>
 
 #include <liblabelling_qt4/ChannelSelectionControlElement.hh>

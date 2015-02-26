@@ -21,6 +21,10 @@
 #ifndef MINIMALSTDATA_HH
 #define MINIMALSTDATA_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 
 #include "RequireHelpers.hh"

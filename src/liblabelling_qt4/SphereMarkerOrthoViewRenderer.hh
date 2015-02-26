@@ -16,6 +16,10 @@
 #ifndef SPHEREMARKERORTHOVIEWRENDERER_HH
 #define SPHEREMARKERORTHOVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "PointMarkerOrthoViewRenderer.hh"
 
 class SphereMarker;

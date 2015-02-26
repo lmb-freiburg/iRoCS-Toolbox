@@ -1,6 +1,10 @@
 #ifndef USERINTERACTIONEVENT_HH
 #define USERINTERACTIONEVENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QEvent>
 
 #include <iostream>

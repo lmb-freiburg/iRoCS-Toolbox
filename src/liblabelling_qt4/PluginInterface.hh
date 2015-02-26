@@ -1,6 +1,10 @@
 #ifndef PLUGININTERFACE_HH
 #define PLUGININTERFACE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <map>
 #include <string>
 

@@ -1,6 +1,10 @@
 #ifndef PLUGINMITOSISCLASSIFICATION_HH
 #define PLUGINMITOSISCLASSIFICATION_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <liblabelling_qt4/PluginInterface.hh>
 
 #include "MitosisClassificationParametersDialog.hh"

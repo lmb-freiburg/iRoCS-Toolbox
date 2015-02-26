@@ -1,6 +1,10 @@
 #ifndef ORTHOVIEWUSERINTERACTIONEVENT_HH
 #define ORTHOVIEWUSERINTERACTIONEVENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "UserInteractionEvent.hh"
 
 class OrthoViewPlane;

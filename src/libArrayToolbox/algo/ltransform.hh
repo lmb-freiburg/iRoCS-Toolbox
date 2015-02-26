@@ -8,6 +8,10 @@
 #ifndef LTRANSFORM_H_
 #define LTRANSFORM_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 template<typename LabelT, int Dim>
 void randomColorMapping(
     blitz::Array<LabelT,Dim> &L,

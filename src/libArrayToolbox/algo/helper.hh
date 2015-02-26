@@ -8,6 +8,10 @@
 #ifndef HELPER_H_
 #define HELPER_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <cstdlib>
 
 #include <vector>

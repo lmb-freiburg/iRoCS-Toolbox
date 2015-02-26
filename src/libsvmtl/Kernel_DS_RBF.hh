@@ -19,6 +19,10 @@
 #ifndef KERNEL_DS_RBF_HH
 #define KERNEL_DS_RBF_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <cmath>
 #include <map>

@@ -20,6 +20,10 @@
 #ifndef KERNEL_EDSQR_HH
 #define KERNEL_EDSQR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <cmath>
 #include <map>

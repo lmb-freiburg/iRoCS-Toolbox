@@ -255,36 +255,36 @@ void HDF5TreeWidget::_createDatasetItem(
   
   std::vector<hsize_t> extents(inFile.getDatasetShape(dsName));
   size_t nDims = extents.size();
-  if (extents.back() == 3)
-  {
-    // 4-D data with three components in the last dimension will always be
-    // treated as RGB data. For other dimensions check the dim_interpretation
-    // attribute if it exists
-    bool isRGB = false;
-    if (extents.size() == 4) isRGB = true;
-    else
-    {
-      try
-      {
-        std::string dimInterpretation;
-        inFile.readAttribute(dimInterpretation, "dim_interpretation", dsName);
-        if (dimInterpretation[dimInterpretation.size() - 1] == 'c')
-            isRGB = true;
-      }
-      catch (BlitzH5Error &)
-      {}
-    }
-    if (isRGB)
-    {
-      nDims = extents.size() - 1;
-      item->setText(1, tr("Dataset (RGB)"));
-      _itemChannelTypes[item] = ChannelSpecs::RGB;
-    }
-  }
 
-  if (extents.size() == 1) item->setText(3, tr("Scalar"));
+  if (nDims <= 1) item->setText(3, tr("Scalar"));
   else
   {
+    if (extents.back() == 3)
+    {
+      // 4-D data with three components in the last dimension will always be
+      // treated as RGB data. For other dimensions check the dim_interpretation
+      // attribute if it exists
+      bool isRGB = false;
+      if (extents.size() == 4) isRGB = true;
+      else
+      {
+        try
+        {
+          std::string dimInterpretation;
+          inFile.readAttribute(dimInterpretation, "dim_interpretation", dsName);
+          if (dimInterpretation[dimInterpretation.size() - 1] == 'c')
+              isRGB = true;
+        }
+        catch (BlitzH5Error &)
+        {}
+      }
+      if (isRGB)
+      {
+        nDims = extents.size() - 1;
+        item->setText(1, tr("Dataset (RGB)"));
+        _itemChannelTypes[item] = ChannelSpecs::RGB;
+      }
+    }
     std::stringstream shapeStream;
     for (size_t d = 0; d < nDims; ++d) shapeStream << extents[d] << " x ";
     shapeStream << extents[nDims - 1];

@@ -105,6 +105,10 @@
 #ifndef SH_FORWARD_HH
 #define SH_FORWARD_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <fftw3.h>
 
 extern "C" {

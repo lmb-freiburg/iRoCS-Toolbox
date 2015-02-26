@@ -1,6 +1,10 @@
 #ifndef ATBSPARSEVECTOR_LEGACY_HH
 #define ATBSPARSEVECTOR_LEGACY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <map>
 #include <blitz/array.h>
 

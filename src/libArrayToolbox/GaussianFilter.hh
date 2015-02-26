@@ -19,6 +19,10 @@
 #ifndef ATBGAUSSIANFILTER_HH
 #define ATBGAUSSIANFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SeparableConvolutionFilter.hh"
 
 #include "ATBDataSynthesis.hh"

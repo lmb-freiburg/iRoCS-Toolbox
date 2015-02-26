@@ -18,6 +18,10 @@
 #ifndef ATBANISOTROPICDIFFUSIONFILTER_HH
 #define ATBANISOTROPICDIFFUSIONFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "GaussianFilter.hh"
 #include "CentralHessianUTFilter.hh"
 #include "ATBLinAlg.hh"

@@ -23,6 +23,10 @@
 #ifndef REQUIRESVMFORCROSSVALIDATION_HH
 #define REQUIRESVMFORCROSSVALIDATION_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 #include "RequireHelpers.hh"
 

@@ -69,6 +69,10 @@
 #ifndef BASICSVMADAPTERTEMPL_HH
 #define BASICSVMADAPTERTEMPL_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "BasicSVMAdapter.hh"
 #include "CrossValidator.hh"
 #include "ModelOptimizer_linearNormal.hh"

@@ -1,6 +1,10 @@
 #ifndef COMPUTECELLFEATURESWORKER_HH
 #define COMPUTECELLFEATURESWORKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libArrayToolbox/Array.hh>
 #include <libArrayToolbox/algo/ShellCoordinateTransform.hh>
 

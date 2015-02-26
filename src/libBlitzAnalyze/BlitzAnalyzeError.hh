@@ -11,6 +11,10 @@
 #ifndef ANALYZEERROR_HH
 #define ANALYZEERROR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 #include <sstream>
 #include <iostream>

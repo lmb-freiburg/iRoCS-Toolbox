@@ -14,6 +14,10 @@
 #ifndef SPHERICALTENSOR_HH
 #define SPHERICALTENSOR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <map>
 #include <omp.h>
 

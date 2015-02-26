@@ -1,5 +1,10 @@
 #ifndef LIBMARGRET_SRC_EDGEFILTER_INL_HH
 #define LIBMARGRET_SRC_EDGEFILTER_INL_HH
+
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "EdgeFilter.hh"
 
 #include <libArrayToolbox/ArrayToolbox.hh>

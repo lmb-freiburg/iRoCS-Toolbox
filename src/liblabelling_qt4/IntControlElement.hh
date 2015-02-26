@@ -11,6 +11,10 @@
 #ifndef INTCONTROLELEMENT_HH
 #define INTCONTROLELEMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "AbstractControlElement.hh"
 
 class QSpinBox;

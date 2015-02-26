@@ -1,3 +1,10 @@
+#ifndef ATBNORMALIZATION_HH
+#define ATBNORMALIZATION_HH
+
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "RuntimeError.hh"
 
 #include <blitz/array.h>
@@ -29,3 +36,5 @@ namespace atb
 }
 
 #include "Normalization.icc"
+
+#endif

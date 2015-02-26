@@ -26,6 +26,10 @@
 #ifndef KERNEL_HH
 #define KERNEL_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 //
 // Kernel evaluation
 //

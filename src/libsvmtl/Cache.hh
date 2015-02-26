@@ -37,6 +37,10 @@
 #ifndef CACHE_HH
 #define CACHE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "svm_defines.hh"
 #include "SVMError.hh"
 

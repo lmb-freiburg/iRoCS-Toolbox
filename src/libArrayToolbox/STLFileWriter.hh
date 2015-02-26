@@ -1,7 +1,13 @@
+#ifndef STLFILEWRITER_HH
+#define STLFILEWRITER_HH
+
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <fstream>
 #include <vector>
 #include <blitz/array.h>
-// #include <blitz/tinyvec-et.h>
 
 namespace atb
 {
@@ -468,3 +474,5 @@ namespace atb
   };
 
 }
+
+#endif

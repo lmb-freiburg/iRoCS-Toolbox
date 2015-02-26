@@ -11,10 +11,13 @@
 #ifndef DOUBLE4X4CONTROLELEMENT_HH
 #define DOUBLE4X4CONTROLELEMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "AbstractControlElement.hh"
 
 #include <blitz/array.h>
-// #include <blitz/tinyvec-et.h>
 
 #include <libArrayToolbox/TypeTraits.hh>
 

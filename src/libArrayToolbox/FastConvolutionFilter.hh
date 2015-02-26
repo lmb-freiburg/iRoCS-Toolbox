@@ -18,6 +18,10 @@
 #ifndef ATBFASTCONVOLUTIONFILTER_HH
 #define ATBFASTCONVOLUTIONFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "Filter.hh"
 
 #include <libBlitzFFTW/BlitzFFTW.hh>

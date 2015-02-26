@@ -24,6 +24,10 @@
 #ifndef MODEL_MC_ONEVSREST_HH
 #define MODEL_MC_ONEVSREST_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 #include "Model_MC.hh"
 

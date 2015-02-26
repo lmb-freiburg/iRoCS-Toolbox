@@ -31,6 +31,10 @@
 #ifndef SVMFACTORY_HH
 #define SVMFACTORY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "TList.hh"
 #include "DefaultMultiClassList.hh"
 #include "DefaultTwoClassList.hh"

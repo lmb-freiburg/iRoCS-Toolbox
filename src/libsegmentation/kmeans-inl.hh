@@ -1,6 +1,10 @@
 #ifndef LIBMARGRET_SRC_KMEANS_INL_HH
 #define LIBMARGRET_SRC_KMEANS_INL_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "kmeans.hh"
 
 #include <time.h>

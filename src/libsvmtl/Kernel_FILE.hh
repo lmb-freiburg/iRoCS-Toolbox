@@ -18,6 +18,10 @@
 #ifndef KERNEL_FILE_HH
 #define KERNEL_FILE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <vector>
 #include <algorithm>

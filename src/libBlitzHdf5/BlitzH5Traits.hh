@@ -1,3 +1,10 @@
+#ifndef BLITZH5TRAITS_HH
+#define BLITZH5TRAITS_HH
+
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <hdf5.h>
 #include <blitz/array.h>
 
@@ -426,3 +433,5 @@ struct BlitzH5Traits<std::string>
   static void const *data(DataT const &array);
 
 };
+
+#endif

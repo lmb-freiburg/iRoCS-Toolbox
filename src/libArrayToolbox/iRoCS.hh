@@ -12,6 +12,10 @@
 #ifndef ATBIROCS_HH
 #define ATBIROCS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 #include <blitz/array.h>
 

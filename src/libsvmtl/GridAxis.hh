@@ -21,6 +21,10 @@
 #ifndef GRIDAXIS_HH
 #define GRIDAXIS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 #include <vector>
 #include <stdlib.h>

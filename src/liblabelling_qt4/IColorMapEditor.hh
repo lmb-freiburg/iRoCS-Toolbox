@@ -1,6 +1,10 @@
 #ifndef ICOLORMAPEDITOR_HH
 #define ICOLORMAPEDITOR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <cstddef>
 
 class ColorMap;

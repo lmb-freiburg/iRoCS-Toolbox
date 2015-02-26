@@ -24,6 +24,10 @@
 #ifndef CLASSIFICATIONSTATISTICS_HH
 #define CLASSIFICATIONSTATISTICS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 #include <iostream>
 

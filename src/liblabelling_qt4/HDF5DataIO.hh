@@ -11,6 +11,10 @@
 #ifndef HDF5DATAIO_HH
 #define HDF5DATAIO_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QObject>
 
 #include "ColorMap.hh"

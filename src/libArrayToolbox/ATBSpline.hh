@@ -1,6 +1,10 @@
 #ifndef ATBSPLINE_HH
 #define ATBSPLINE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <cstdlib>
 #include <vector>
 #include <map>

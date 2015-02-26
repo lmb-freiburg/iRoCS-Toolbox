@@ -1,6 +1,10 @@
 #ifndef ATBSPARSEMATRIX_LEGACY_HH
 #define ATBSPARSEMATRIX_LEGACY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <map>
 #include <iostream>
 #include <limits>

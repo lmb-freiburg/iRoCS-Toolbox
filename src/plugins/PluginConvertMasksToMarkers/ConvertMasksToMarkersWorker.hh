@@ -1,6 +1,10 @@
 #ifndef CONVERTMASKSTOMARKERSWORKER_HH
 #define CONVERTMASKSTOMARKERSWORKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libProgressReporter/ProgressReporterQt4.hh>
 
 #include <QtCore/QThread>

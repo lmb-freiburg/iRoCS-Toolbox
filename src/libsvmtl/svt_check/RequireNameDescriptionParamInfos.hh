@@ -24,6 +24,10 @@
 #ifndef REQUIRENAMEDESCRIPTIONPARAMHELP_HH
 #define REQUIRENAMEDESCRIPTIONPARAMHELP_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "RequireHelpers.hh"
 #include <string>
 #include <vector>

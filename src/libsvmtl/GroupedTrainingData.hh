@@ -35,6 +35,10 @@
 #ifndef GROUPEDTRAININGDATA
 #define GROUPEDTRAININGDATA
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <algorithm>
 
 #include "SVMError.hh"

@@ -27,6 +27,10 @@
 #ifndef PRETTYOPTIONPRINTER_HH
 #define PRETTYOPTIONPRINTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iostream>
 #include <map>
 #include "HelpExtractor.hh"

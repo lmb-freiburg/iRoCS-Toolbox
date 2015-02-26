@@ -61,6 +61,10 @@
 #ifndef CMDARGS_HH
 #define CMDARGS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <sstream>
 #include <string>
 #include <vector>

@@ -1,6 +1,10 @@
 #ifndef PLUGINROOTSEGMENTATION_HH
 #define PLUGINROOTSEGMENTATION_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QtPlugin>
 
 #include <liblabelling_qt4/PluginInterface.hh>

@@ -1,6 +1,10 @@
 #ifndef LIBSEGMENTATION_SRC_PROFILEFILTER_HH
 #define LIBSEGMENTATION_SRC_PROFILEFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libProgressReporter/ProgressReporter.hh>
 
 #include <vector>

@@ -16,6 +16,10 @@
 #ifndef POINTMARKEROPENGLRENDERINGVIEWRENDERER_HH
 #define POINTMARKEROPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "MarkerOpenGlRenderingViewRenderer.hh"
 
 #include <libArrayToolbox/SurfaceGeometry.hh>

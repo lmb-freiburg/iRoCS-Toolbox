@@ -11,6 +11,10 @@
 #ifndef _IMAGETOOLS
 #define _IMAGETOOLS
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // Blitz arrays 
 #include <blitz/array.h>
 

@@ -1,6 +1,10 @@
 #ifndef TRAINFILEPARAMETERS_HH
 #define TRAINFILEPARAMETERS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 
 class TrainfileParameters

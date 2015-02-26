@@ -8,6 +8,10 @@
 #ifndef LRANDOMFOREST_H_
 #define LRANDOMFOREST_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include<vector>
 #include<sstream>
 

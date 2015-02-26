@@ -1,10 +1,13 @@
 #ifndef SVGDATAIO_HH
 #define SVGDATAIO_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtGui/QDialog>
 
 #include <blitz/array.h>
-// #include <blitz/tinyvec-et.h>
 
 #include <libProgressReporter/ProgressReporter.hh>
 

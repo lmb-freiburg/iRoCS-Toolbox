@@ -15,6 +15,10 @@
 #ifndef _BLITZIMAGEWRITER
 #define _BLITZIMAGEWRITER
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #ifdef HAVE_JPEG
 namespace JPEGLIB {
 // jpeg library  

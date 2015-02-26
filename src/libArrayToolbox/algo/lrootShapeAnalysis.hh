@@ -8,6 +8,10 @@
 #ifndef LROOTANALYSIS_H_
 #define LROOTANALYSIS_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 
 /*======================================================================*/

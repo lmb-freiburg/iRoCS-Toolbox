@@ -45,6 +45,10 @@
 #ifndef SVMERROR_HH
 #define SVMERROR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <iostream>
 #include <sstream>

@@ -29,6 +29,10 @@
 #ifndef DEFAULTKERNELLIST_HH
 #define DEFAULTKERNELLIST_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "TList.hh"
 #include "Kernel_LINEAR.hh"
 #include "Kernel_RBF.hh"

@@ -21,6 +21,10 @@
 #ifndef SVR_Q_HH
 #define SVR_Q_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 namespace svt
 {
   template< typename FV, typename KF>

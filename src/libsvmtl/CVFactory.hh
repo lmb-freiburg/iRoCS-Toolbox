@@ -20,6 +20,10 @@
 #ifndef CVFACTORY_HH
 #define CVFACTORY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "TList.hh"
 #include "DefaultMultiClassList.hh"
 #include "DefaultTwoClassList.hh"

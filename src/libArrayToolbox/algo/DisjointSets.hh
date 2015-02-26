@@ -1,6 +1,10 @@
 #ifndef DISJOINTSETS_H_
 #define DISJOINTSETS_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // Disjoint Set Data Structure
 // Author: Emil Stefanov
 // Date: 03/28/06

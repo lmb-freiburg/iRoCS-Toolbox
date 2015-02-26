@@ -49,6 +49,10 @@
 #ifndef KERNEL_SCALE_HH
 #define KERNEL_SCALE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <map>
 #include <set>

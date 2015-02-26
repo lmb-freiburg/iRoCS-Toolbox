@@ -16,6 +16,10 @@
 #ifndef IROCSCHANNELSPECSORTHOVIEWRENDERER_HH
 #define IROCSCHANNELSPECSORTHOVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOrthoViewRenderer.hh"
 
 class IRoCSChannelSpecs;

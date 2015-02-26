@@ -32,6 +32,10 @@
 #ifndef BASICCVADAPTER_HH
 #define BASICCVADAPTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 
 #include "GroupedTrainingData.hh"

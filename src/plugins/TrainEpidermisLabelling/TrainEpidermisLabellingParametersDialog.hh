@@ -1,6 +1,10 @@
 #ifndef TRAINEPIDERMISLABELLINGPARAMETERSDIALOG_HH
 #define TRAINEPIDERMISLABELLINGPARAMETERSDIALOG_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtGui/QDialog>
 #include <QtGui/QGroupBox>
 #include <QtGui/QTreeWidget>

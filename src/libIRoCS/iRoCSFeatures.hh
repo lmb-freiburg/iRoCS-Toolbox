@@ -1,6 +1,10 @@
 #ifndef IROCSFEATURES_HH
 #define IROCSFEATURES_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libArrayToolbox/ATBDataSynthesis.hh>
 #include <libArrayToolbox/SeparableConvolutionFilter.hh>
 #include <libArrayToolbox/LaplacianFilter.hh>

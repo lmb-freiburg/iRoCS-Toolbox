@@ -1,6 +1,10 @@
 #ifndef LIBSEGMENTATION_SRC_PROFILESAMPLER_HH
 #define LIBSEGMENTATION_SRC_PROFILESAMPLER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 #include <vector>
 #include <libProgressReporter/ProgressReporter.hh>

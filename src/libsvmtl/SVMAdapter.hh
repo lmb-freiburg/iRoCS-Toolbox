@@ -31,6 +31,10 @@
 #ifndef SVMADAPTER_HH
 #define SVMADAPTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "BasicSVMAdapter.hh"
 #include "BasicFV.hh"
 #include "StDataASCIIFile.hh"

@@ -16,6 +16,10 @@
 #ifndef IROCSCHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 #define IROCSCHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOpenGlRenderingViewRenderer.hh"
 #include <libArrayToolbox/SurfaceGeometry.hh>
 

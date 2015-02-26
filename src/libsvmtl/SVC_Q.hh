@@ -48,6 +48,10 @@
 #ifndef SVC_Q_HH
 #define SVC_Q_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <algorithm>  
 
 #include "SVM_Problem.hh"

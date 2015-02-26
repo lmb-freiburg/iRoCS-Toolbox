@@ -1,6 +1,10 @@
 #ifndef SHTOOLS_HH
 #define SHTOOLS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 #include <blitz/array.h>
 #include <gsl/gsl_sf_legendre.h>

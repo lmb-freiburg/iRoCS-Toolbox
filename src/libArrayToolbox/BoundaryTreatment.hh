@@ -21,6 +21,10 @@
 #ifndef ATBBOUNDARYTREATMENT_HH
 #define ATBBOUNDARYTREATMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 
 #include "TypeTraits.hh"

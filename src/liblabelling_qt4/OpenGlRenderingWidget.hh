@@ -13,6 +13,10 @@
 #ifndef OPENGLRENDERINGWIDGET_HH
 #define OPENGLRENDERINGWIDGET_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QMouseEvent>
 

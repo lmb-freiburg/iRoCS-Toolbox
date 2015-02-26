@@ -11,6 +11,10 @@
 #ifndef HDF5SELECTIONDIALOG_HH
 #define HDF5SELECTIONDIALOG_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtGui/QDialog>
 #include <QtGui/QTreeWidget>
 

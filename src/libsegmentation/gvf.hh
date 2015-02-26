@@ -1,6 +1,10 @@
 #ifndef LIBSEGMENTATION_GVF_HH
 #define LIBSEGMENTATION_GVF_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 
 #include <libProgressReporter/ProgressReporter.hh>

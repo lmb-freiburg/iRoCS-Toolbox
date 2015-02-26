@@ -1,6 +1,10 @@
 #ifndef TRAINLAYERASSIGNMENTWORKER_HH
 #define TRAINLAYERASSIGNMENTWORKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QThread>
 
 #include <libProgressReporter/ProgressReporter.hh>

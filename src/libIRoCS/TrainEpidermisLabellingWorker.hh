@@ -1,6 +1,10 @@
 #ifndef TRAINEPIDERMISLABELLINGWORKER_HH
 #define TRAINEPIDERMISLABELLINGWORKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QThread>
 
 #include <libProgressReporter/ProgressReporter.hh>

@@ -21,6 +21,10 @@
 #ifndef REQUIREHELPERS_HH
 #define REQUIREHELPERS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #define CHECK_CLASS_TEMPLATE1( c) c ___requirement1;
 #define CHECK_CLASS_TEMPLATE2( c) c ___requirement2;
 #define CHECK_CLASS_TEMPLATE3( c) c ___requirement3;

@@ -8,6 +8,10 @@
 #ifndef LMATH_HH_
 #define LMATH_HH_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 
 #define SORT_eigenValueBy_ascendingAlgebra 0

@@ -19,6 +19,10 @@
 #ifndef ATBCENTRALHESSIANUTFILTER_HH
 #define ATBCENTRALHESSIANUTFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "CentralGradientFilter.hh"
 
 namespace atb

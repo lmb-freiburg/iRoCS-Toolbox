@@ -15,10 +15,13 @@
 #ifndef MARKERRENDERER_HH
 #define MARKERRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QObject>
 
 #include <blitz/array.h>
-// #include <blitz/tinyvec-et.h>
 
 #include <cstddef>
 

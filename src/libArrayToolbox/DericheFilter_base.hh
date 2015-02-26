@@ -22,6 +22,10 @@
 #ifndef ATBDERICHEFILTER_BASE_HH
 #define ATBDERICHEFILTER_BASE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libProgressReporter/ProgressReporter.hh>
 
 #include "TypeTrais.hh"

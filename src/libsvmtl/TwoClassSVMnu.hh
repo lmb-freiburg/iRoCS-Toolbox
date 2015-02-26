@@ -69,6 +69,10 @@
 #ifndef TWOCLASSSVMNU_HH
 #define TWOCLASSSVMNU_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <map>
 #include <string>

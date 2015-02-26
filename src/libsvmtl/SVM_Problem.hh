@@ -24,6 +24,10 @@
 #ifndef SVM_PROBLEM_HH
 #define SVM_PROBLEM_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 namespace svt
 {
   template< typename FV>

@@ -8,6 +8,10 @@
 #ifndef LNUMERICAL_HH_
 #define LNUMERICAL_HH_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "helper.hh"
 
 /*

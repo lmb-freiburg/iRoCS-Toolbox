@@ -8,6 +8,10 @@
 #ifndef LPARALLEL_HH_
 #define LPARALLEL_HH_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libArrayToolbox/TypeTraits.hh>
 
 template<typename Type, int Dim>

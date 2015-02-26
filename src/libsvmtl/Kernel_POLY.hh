@@ -63,6 +63,10 @@
 #ifndef KERNEL_POLY_HH
 #define KERNEL_POLY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <cmath>
 #include <map>

@@ -11,6 +11,10 @@
 #ifndef CYLINDERMARKER_HH
 #define CYLINDERMARKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SphereMarker.hh"
 
 class OrthoViewWidget;

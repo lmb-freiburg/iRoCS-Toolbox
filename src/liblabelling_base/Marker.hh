@@ -11,6 +11,10 @@
 #ifndef MARKER_HH
 #define MARKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 
 #include <libBlitzHdf5/BlitzHdf5Light.hh>

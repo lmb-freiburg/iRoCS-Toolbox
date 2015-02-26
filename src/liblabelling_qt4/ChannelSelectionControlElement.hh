@@ -11,6 +11,10 @@
 #ifndef CHANNELSELECTIONCONTROLELEMENT_HH
 #define CHANNELSELECTIONCONTROLELEMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "AbstractControlElement.hh"
 
 #include "ChannelSpecs.hh"

@@ -23,6 +23,10 @@
 #ifndef DIRECTACCESSOR_HH
 #define DIRECTACCESSOR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iterator>
 
 namespace svt

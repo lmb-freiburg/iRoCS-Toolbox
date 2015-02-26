@@ -1,6 +1,10 @@
 #ifndef ATBCOUPLEDBSPLINEMODEL_LEGACY_HH
 #define ATBCOUPLEDBSPLINEMODEL_LEGACY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libProgressReporter/ProgressReporter.hh>
 
 #include "ATBPolyline.hh"

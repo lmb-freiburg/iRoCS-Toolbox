@@ -35,6 +35,10 @@
 #ifndef PROGRESSREPORTER_HH
 #define PROGRESSREPORTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iostream>
 #include <map>
 #include <set>

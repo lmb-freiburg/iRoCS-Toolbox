@@ -22,13 +22,13 @@
 #ifndef ATBINTERPOLATOR_HH
 #define ATBINTERPOLATOR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <algorithm>
 #include <vector>
 #include <complex>
-
-#if defined HAVE_CONFIG_H && !defined PACKAGE
-#include <config.hh>
-#endif
 
 #ifdef HAVE_BLITZ_V9
 #include <blitz/tinyvec-et.h>

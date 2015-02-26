@@ -1,14 +1,14 @@
 #ifndef LIBSEGMENTATION_SRC_PROFILEFILTER_INL_HH
 #define LIBSEGMENTATION_SRC_PROFILEFILTER_INL_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "NormalPDF.hh"
 
 #include "ProfileFilter.hh"
 #include "ProfileSampler.hh"
-
-#if defined HAVE_CONFIG_H && !defined PACKAGE
-#include <config.hh>
-#endif
 
 #ifdef HAVE_BLITZ_V9
 #include <blitz/tinyvec-et.h>

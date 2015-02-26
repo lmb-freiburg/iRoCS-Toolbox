@@ -34,6 +34,10 @@
 #ifndef BASICSVMFACTORY_HH
 #define BASICSVMFACTORY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "TList.hh"
 #include "BasicSVMAdapter.hh"
 #include "BasicSVMAdapterTempl.hh"

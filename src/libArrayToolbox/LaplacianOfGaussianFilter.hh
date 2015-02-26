@@ -18,6 +18,10 @@
 #ifndef ATBLAPLACIANFILTER_HH
 #define ATBLAPLACIANFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SeparableConvolutionFilter.hh"
 
 #include "ATBDataSynthesis.hh"

@@ -15,6 +15,10 @@
 #ifndef IROCSSCTCHANNELSPECS_HH
 #define IROCSSCTCHANNELSPECS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecs.hh"
 
 #include <libArrayToolbox/algo/ShellCoordinateTransform.hh>

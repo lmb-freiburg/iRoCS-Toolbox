@@ -1,3 +1,10 @@
+#ifndef HELPERS_INL_HH
+#define HELPERS_INL_HH
+
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 #include <map>
 #include <list>
@@ -64,3 +71,5 @@ std::vector<blitz::Array<T, 2> > collectSelectedClusterProfiles(
 }
 
 }
+
+#endif

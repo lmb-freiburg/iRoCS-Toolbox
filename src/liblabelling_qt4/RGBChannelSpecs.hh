@@ -13,6 +13,10 @@
 #ifndef RGBCHANNELSPECS_HH
 #define RGBCHANNELSPECS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecs.hh"
 
 #include <libArrayToolbox/Array.hh>

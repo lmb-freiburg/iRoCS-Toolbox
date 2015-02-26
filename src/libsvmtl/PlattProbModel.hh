@@ -21,6 +21,10 @@
 #ifndef PLATTPROBMODEL_HH
 #define PLATTPROBMODEL_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 
 

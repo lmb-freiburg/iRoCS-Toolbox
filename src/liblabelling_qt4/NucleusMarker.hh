@@ -11,6 +11,10 @@
 #ifndef NUCLEUSMARKER_HH
 #define NUCLEUSMARKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SHSurfaceMarker.hh"
 
 class BoolControlElement;

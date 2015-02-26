@@ -1,6 +1,10 @@
 #ifndef FILEIOWRAPPER_HH
 #define FILEIOWRAPPER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iostream>
 #include <fstream>
 #include "BlitzHdf5Light.hh"

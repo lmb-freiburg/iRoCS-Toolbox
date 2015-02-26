@@ -1,6 +1,10 @@
 #ifndef IROCSPROGRESSREPORTERSTREAM_HH
 #define IROCSPROGRESSREPORTERSTREAM_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ProgressReporter.hh"
 #include <iostream>
 

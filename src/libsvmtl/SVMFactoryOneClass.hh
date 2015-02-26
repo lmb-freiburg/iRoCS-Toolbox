@@ -21,6 +21,10 @@
 #ifndef SVMFACTORYONECLASS_HH
 #define SVMFACTORYONECLASS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // not implemented yet 
 
 #endif

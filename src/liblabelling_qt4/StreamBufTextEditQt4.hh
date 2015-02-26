@@ -1,6 +1,10 @@
 #ifndef STREAMBUFTEXTEDITQT4_HH
 #define STREAMBUFTEXTEDITQT4_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <streambuf>
 
 #include <QtCore/QObject>

@@ -11,6 +11,10 @@
 #ifndef _BLITZIMAGEACCESSWRAPPER_HH
 #define _BLITZIMAGEACCESSWRAPPER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // Blitz arrays 
 #include <blitz/array.h>
 #include "BlitzRGBColor.hh"

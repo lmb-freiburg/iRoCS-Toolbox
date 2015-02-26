@@ -20,6 +20,10 @@
 #ifndef DATACHANNELSPECS_HH
 #define DATACHANNELSPECS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecs.hh"
 
 #include <libArrayToolbox/Array.hh>

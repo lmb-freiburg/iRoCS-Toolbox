@@ -24,6 +24,10 @@
 #ifndef QUATERNION_HH
 #define QUATERNION_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include<stdexcept>
 
 namespace atb

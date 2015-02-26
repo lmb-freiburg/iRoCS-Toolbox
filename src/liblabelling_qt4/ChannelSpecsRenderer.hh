@@ -15,10 +15,13 @@
 #ifndef CHANNELSPECSRENDERER_HH
 #define CHANNELSPECSRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QObject>
 
 #include <blitz/array.h>
-// #include <blitz/tinyvec-et.h>
 
 class QPainter;
 class QXmlStreamWriter;

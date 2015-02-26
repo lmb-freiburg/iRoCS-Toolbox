@@ -21,6 +21,10 @@
 #ifndef REQUIREKERNEL_K_FUNCTION_HH
 #define REQUIREKERNEL_K_FUNCTION_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 namespace svt_check
 {
   template< typename KERNEL, typename FV>

@@ -22,6 +22,10 @@
 #ifndef ATBTINYMATRIXOPERATORS_HH
 #define ATBTINYMATRIXOPERATORS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 namespace blitz
 {
 

@@ -20,6 +20,10 @@
 #ifndef SVMAPPLICATIONWITHDEFAULTS_HH
 #define SVMAPPLICATIONWITHDEFAULTS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "BasicFV.hh"
 #include "DefaultMultiClassList.hh"
 #include "DefaultTwoClassList.hh"

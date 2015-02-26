@@ -1,6 +1,10 @@
 #ifndef TRAININGPARAMETERS_HH
 #define TRAININGPARAMETERS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 #include <vector>
 

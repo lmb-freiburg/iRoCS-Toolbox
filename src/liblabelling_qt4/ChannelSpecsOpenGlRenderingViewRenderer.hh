@@ -15,6 +15,10 @@
 #ifndef CHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 #define CHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsRenderer.hh"
 
 class OpenGlRenderingViewWidget;

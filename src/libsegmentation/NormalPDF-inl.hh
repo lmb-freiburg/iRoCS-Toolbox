@@ -1,6 +1,10 @@
 #ifndef NORMALPDF_INL_HH
 #define NORMALPDF_INL_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "NormalPDF.hh"
 
 #include <libArrayToolbox/TypeTraits.hh>

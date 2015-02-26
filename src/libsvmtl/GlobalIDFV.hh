@@ -28,6 +28,10 @@
 #ifndef GLOBALIDFV_HH
 #define GLOBALIDFV_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <list>
 #include <string>
 #include <vector>

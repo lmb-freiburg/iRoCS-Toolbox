@@ -50,10 +50,9 @@ if test "$enable_debug" == "1"; then
    CXXFLAGS+=" -O0 -g"
    AC_DEFINE([DEBUG], [1], [Enable general debugging])
    AC_DEFINE([BZ_DEBUG], [1], [Enable blitz++ debugging])
-#   CPPFLAGS="-DDEBUG -DBZ_DEBUG"
 else
-   CFLAGS+=" -O3"
-   CXXFLAGS+=" -O3"
+   CFLAGS+=" -O3 -g"
+   CXXFLAGS+=" -O3 -g"
 fi
 
 # Setup OpenMP environment
@@ -62,13 +61,11 @@ if test "$enable_debug" == "0"; then
      AC_CHECK_LIB(
        gomp, omp_get_num_threads, [
          AC_DEFINE([BZ_THREADSAFE], [1], [Enable blitz++ threadsafe mode])
-#         CPPFLAGS+=" -DBZ_THREADSAFE"
          CXXFLAGS+=" $OPENMP_CXXFLAGS"
          LIBS+="-lgomp"],
        AC_CHECK_LIB(
          omp, omp_get_num_threads, [
            AC_DEFINE([BZ_THREADSAFE], [1], [Enable blitz++ threadsafe mode])
-#           CPPFLAGS+=" -DBZ_THREADSAFE"
            CXXFLAGS+=" $OPENMP_CXXFLAGS"
            LIBS+="-lomp"],
          AC_MSG_WARN([OpenMP library not found. Parallel processing will not be available])))

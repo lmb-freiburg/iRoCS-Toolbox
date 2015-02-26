@@ -11,10 +11,13 @@
 #ifndef COLORCONTROLELEMENT_HH
 #define COLORCONTROLELEMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "AbstractControlElement.hh"
 
 #include <blitz/array.h>
-// #include <blitz/tinyvec-et.h>
 
 class QSpinBox;
 class QToolButton;

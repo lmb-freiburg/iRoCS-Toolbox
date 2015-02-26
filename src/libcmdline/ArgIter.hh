@@ -31,6 +31,10 @@
 #ifndef ARGITER_HH
 #define ARGITER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 /*======================================================================*/
 /*!
  *  \class ArgIter ArgIter.hh

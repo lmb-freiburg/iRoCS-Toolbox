@@ -1,6 +1,10 @@
 #ifndef LIBSEGMENTATION_SRC_SEGMENTATION_MODEL_HH
 #define LIBSEGMENTATION_SRC_SEGMENTATION_MODEL_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SegmentationModel.hh"
 #include "NormalPDF.hh"
 #include <libBlitzHdf5/BlitzHdf5Light.hh>

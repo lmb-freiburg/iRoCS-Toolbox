@@ -8,6 +8,10 @@
 #ifndef LRANDOMTREE_H_
 #define LRANDOMTREE_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <sstream>
 #include <vector>
 #include <map>

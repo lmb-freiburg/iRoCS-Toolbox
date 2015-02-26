@@ -1,3 +1,10 @@
+#ifndef MODELOPTIMIZER_LINEARNORMAL_HH
+#define MODELOPTIMIZER_LINEARNORMAL_HH
+
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "BasicSVMAdapter.hh"
 
 namespace svt
@@ -28,4 +35,4 @@ class ModelOptimizer_linearNormal
 #endif
 }
 
-    
+#endif

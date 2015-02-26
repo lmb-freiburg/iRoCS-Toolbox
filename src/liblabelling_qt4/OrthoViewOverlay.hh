@@ -1,6 +1,10 @@
 #ifndef ORTHOVIEWOVERLAY_HH
 #define ORTHOVIEWOVERLAY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 
 class QPainter;

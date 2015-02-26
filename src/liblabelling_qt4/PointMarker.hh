@@ -23,6 +23,10 @@
 #ifndef POINTMARKER_HH
 #define POINTMARKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "Marker.hh"
 #include "MarkerPresetWidget.hh"
 #include "MarkerControlWidget.hh"

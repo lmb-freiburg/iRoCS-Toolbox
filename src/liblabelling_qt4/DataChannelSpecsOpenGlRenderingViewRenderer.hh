@@ -16,6 +16,10 @@
 #ifndef DATACHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 #define DATACHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOpenGlRenderingViewRenderer.hh"
 
 class DataChannelSpecs;

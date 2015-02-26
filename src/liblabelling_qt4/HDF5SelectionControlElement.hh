@@ -11,6 +11,10 @@
 #ifndef HDF5SELECTIONCONTROLELEMENT_HH
 #define HDF5SELECTIONCONTROLELEMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "AbstractControlElement.hh"
 
 #include "ChannelSpecs.hh"

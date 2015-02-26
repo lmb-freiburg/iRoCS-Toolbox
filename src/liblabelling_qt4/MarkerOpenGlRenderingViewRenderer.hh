@@ -15,6 +15,10 @@
 #ifndef MARKEROPENGLRENDERINGVIEWRENDERER_HH
 #define MARKEROPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "MarkerRenderer.hh"
 
 #include <blitz/array.h>

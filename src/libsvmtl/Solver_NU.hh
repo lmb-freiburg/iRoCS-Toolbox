@@ -21,6 +21,10 @@
 #ifndef SOLVER_NU_HH
 #define SOLVER_NU_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SolutionInfo.hh"
 #include "Solver.hh"
 

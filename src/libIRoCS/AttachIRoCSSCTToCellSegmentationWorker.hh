@@ -1,6 +1,10 @@
 #ifndef ATTACHIROCSSCTTOCELLSEGMENTATIONWORKER_HH
 #define ATTACHIROCSSCTTOCELLSEGMENTATIONWORKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libProgressReporter/ProgressReporter.hh>
 
 #include <libArrayToolbox/Array.hh>

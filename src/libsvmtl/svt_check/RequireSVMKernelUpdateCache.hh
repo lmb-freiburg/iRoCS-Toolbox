@@ -29,6 +29,10 @@
 #ifndef REQUIRESVMKERNELUPDATECACHE_HH
 #define REQUIRESVMKERNELUPDATECACHE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "RequireHelpers.hh"
 #include "../ProgressReporter.hh"
 #include "../DirectAccessor.hh"

@@ -77,6 +77,10 @@
 #ifndef CMDLINE_HH
 #define CMDLINE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ArgIter.hh"
 #include "CmdArg.hh"
 #include "CmdArgs.hh"

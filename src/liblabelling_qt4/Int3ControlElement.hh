@@ -11,10 +11,13 @@
 #ifndef INT3CONTROLELEMENT_HH
 #define INT3CONTROLELEMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "AbstractControlElement.hh"
 
 #include <blitz/array.h>
-// #include <blitz/tinyvec-et.h>
 
 class QSpinBox;
 

@@ -11,6 +11,10 @@
 #ifndef SHSURFACEMARKER_HH
 #define SHSURFACEMARKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SphereMarker.hh"
 
 #include <SH_tools.hh>

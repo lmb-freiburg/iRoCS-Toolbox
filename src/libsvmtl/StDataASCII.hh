@@ -30,6 +30,10 @@
 #ifndef STDATA_ASCII
 #define STDATA_ASCII
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 #include <map>
 #include <algorithm>

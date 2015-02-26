@@ -11,6 +11,10 @@
 #ifndef COLORMAPEDITORWIDGET_HH
 #define COLORMAPEDITORWIDGET_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtGui/QWidget>
 
 #include "IColorMapEditor.hh"

@@ -16,6 +16,10 @@
 #ifndef VISUALIZATIONCHANNELSPECSORTHOVIEWRENDERER_HH
 #define VISUALIZATIONCHANNELSPECSORTHOVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOrthoViewRenderer.hh"
 
 #include <libArrayToolbox/Array.hh>

@@ -11,6 +11,10 @@
 #ifndef SURFACEMARKER_HH
 #define SURFACEMARKER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "PointMarker.hh"
 
 #include <libArrayToolbox/SurfaceGeometry.hh>

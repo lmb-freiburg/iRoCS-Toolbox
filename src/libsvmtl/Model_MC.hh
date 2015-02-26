@@ -27,6 +27,10 @@
 #ifndef MODEL_MC_HH
 #define MODEL_MC_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SVMError.hh"
 
 #include "svt_check/RequireMinimalTCModel.hh"

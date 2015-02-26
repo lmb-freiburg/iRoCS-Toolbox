@@ -5,6 +5,10 @@
  *
  ************************************************************/	
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ImageAccessWrapper.hh"
 #include "ImageTools.hh"
 #include "BlitzRGBColor.hh"

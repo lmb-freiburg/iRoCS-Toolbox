@@ -1,6 +1,10 @@
 #ifndef MITOSISCLASSIFICATIONPARAMETERS_HH
 #define MITOSISCLASSIFICATIONPARAMETERS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 
 #include <liblabelling_qt4/DataChannelSpecs.hh>

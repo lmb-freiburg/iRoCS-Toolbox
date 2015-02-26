@@ -21,6 +21,10 @@
 #ifndef ATBFILTER_HH
 #define ATBFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "Array.hh"
 #include "BoundaryTreatment.hh"
 

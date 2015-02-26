@@ -32,6 +32,10 @@
 #ifndef KFILE_MULTBINARY_HH
 #define KFILE_MULTBINARY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <string>
 #include <vector>

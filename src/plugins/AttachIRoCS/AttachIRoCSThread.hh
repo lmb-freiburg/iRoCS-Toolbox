@@ -1,6 +1,10 @@
 #ifndef ATTACHIROCSTHREAD_HH
 #define ATTACHIROCSTHREAD_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QThread>
 
 #include <liblabelling_qt4/LabellingMainWidget.hh>

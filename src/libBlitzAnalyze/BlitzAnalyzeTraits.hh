@@ -11,6 +11,10 @@
 #ifndef BLITZANALYZETRAITS_HH
 #define BLITZANALYZETRAITS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 #include <fstream>
 #include <blitz/array.h>

@@ -16,6 +16,10 @@
 #ifndef ANNOTATIONCHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 #define ANNOTATIONCHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOpenGlRenderingViewRenderer.hh"
 
 class AnnotationChannelSpecs;

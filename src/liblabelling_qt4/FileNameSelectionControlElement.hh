@@ -11,6 +11,10 @@
 #ifndef FILENAMESELECTIONCONTROLELEMENT_HH
 #define FILENAMESELECTIONCONTROLELEMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "AbstractControlElement.hh"
 
 class QLineEdit;

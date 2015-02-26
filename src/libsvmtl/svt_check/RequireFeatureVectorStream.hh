@@ -24,6 +24,10 @@
 #ifndef REQUIREFEATUREVECTORSTREAM_HH
 #define REQUIREFEATUREVECTORSTREAM_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "MinimalFeatureVector.hh"
 
 namespace svt_check

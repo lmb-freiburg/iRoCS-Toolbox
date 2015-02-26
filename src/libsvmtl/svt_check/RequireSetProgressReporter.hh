@@ -27,6 +27,10 @@
 #ifndef REQUIRESETPROGRESSREPORTER_HH
 #define REQUIRESETPROGRESSREPORTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "../ProgressReporter.hh"
 
 namespace svt_check

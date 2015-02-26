@@ -23,6 +23,10 @@
 #ifndef BASICSVMFACTORYONECLASS_HH
 #define BASICSVMFACTORYONECLASS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "BasicFV.hh"
 #include "TList.hh"
 #include "BasicSVMAdapter.hh"

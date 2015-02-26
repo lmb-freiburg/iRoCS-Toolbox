@@ -26,6 +26,10 @@
 #ifndef SVM_DEFINES_HH
 #define SVM_DEFINES_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <cstdio>
 #include <cstdarg>
 #include <cstring> // memcpy

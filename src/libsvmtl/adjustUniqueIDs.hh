@@ -27,6 +27,10 @@
 #ifndef ADJUSTUNIQUEIDS_HH
 #define ADJUSTUNIQUEIDS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "DirectAccessor.hh"
 #include "DereferencingAccessor.hh"
 #include <cstddef>

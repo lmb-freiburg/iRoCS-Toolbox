@@ -19,6 +19,10 @@
 #ifndef ATBDERICHEFILTER_HH
 #define ATBDERICHEFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SeparableFilter.hh"
 #include "DericheFilter_base.hh"
 

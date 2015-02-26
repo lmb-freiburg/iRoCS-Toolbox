@@ -21,6 +21,10 @@
 #ifndef CVADAPTER_HH
 #define CVADAPTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "BasicFV.hh"
 #include "GroupedTrainingData.hh"
 #include "BasicCVAdapter.hh"

@@ -18,6 +18,10 @@
 #ifndef SVMHDF5TYPE_HH
 #define SVMHDF5TYPE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 #include <limits>
 

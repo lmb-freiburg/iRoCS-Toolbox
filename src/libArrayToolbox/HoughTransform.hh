@@ -1,17 +1,13 @@
 #ifndef ATBHOUGHTRANSFORM_HH
 #define ATBHOUGHTRANSFORM_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 
 #include <blitz/array.h>
-
-// #ifdef HAVE_CONFIG_H
-// #include "../config.hh"
-// #endif
-
-// #ifdef HAVE_BLITZ_V9
-// #include <blitz/tinyvec-et.h>
-// #endif
 
 #include "Array.hh"
 #include "CentralGradientFilter.hh"

@@ -16,6 +16,10 @@
 #ifndef RGBCHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 #define RGBCHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOpenGlRenderingViewRenderer.hh"
 
 class RGBChannelSpecs;

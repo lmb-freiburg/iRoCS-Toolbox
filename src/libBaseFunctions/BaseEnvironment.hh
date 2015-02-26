@@ -18,6 +18,10 @@
 #ifndef BASEENVIRONMENT_HH
 #define BASEENVIRONMENT_HH BASEENVIRONMENT_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 
 

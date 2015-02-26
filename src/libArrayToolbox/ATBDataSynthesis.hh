@@ -3,13 +3,9 @@
 
 #include "Array.hh"
 
-// #ifdef HAVE_CONFIG_H
-// #include "../config.hh"
-// #endif
-
-// #ifdef HAVE_BLITZ_V9
-// #include <blitz/tinyvec-et.h>
-// #endif
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
 
 #include <cmath>
 

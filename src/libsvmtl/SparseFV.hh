@@ -48,6 +48,10 @@
 #ifndef SPARSEFV_HH
 #define SPARSEFV_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iostream>
 #include <list>
 #include <cctype>

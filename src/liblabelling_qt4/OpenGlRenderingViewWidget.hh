@@ -13,6 +13,10 @@
 #ifndef OPENGLRENDERINGVIEWWIDGET_HH
 #define OPENGLRENDERINGVIEWWIDGET_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ViewWidget.hh"
 
 #include <libArrayToolbox/MarchingCubes.hh>

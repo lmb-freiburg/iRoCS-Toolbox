@@ -23,6 +23,10 @@
 #ifndef ATBSURFACEGEOMETRY_HH
 #define ATBSURFACEGEOMETRY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 
 #include <blitz/array.h>

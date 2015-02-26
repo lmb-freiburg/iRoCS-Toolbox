@@ -1,11 +1,12 @@
-#ifndef ShellCoordinateTRANSFORM_HH
-#define ShellCoordinateTRANSFORM_HH
+#ifndef SHELLCOORDINATETRANSFORM_HH
+#define SHELLCOORDINATETRANSFORM_HH
+
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
 
 #include <vector>
 #include <blitz/array.h>
-/*
- * modified on Thorsten's code
- */
 #include <opencv/cv.h>
 
 #include <libBlitzHdf5/BlitzHdf5Light.hh>

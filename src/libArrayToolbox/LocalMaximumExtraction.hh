@@ -1,3 +1,10 @@
+#ifndef ATBLOCALMAXIMUMEXTRACTION_HH
+#define ATBLOCALMAXIMUMEXTRACTION_HH
+
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <libProgressReporter/ProgressReporter.hh>
 
 namespace atb
@@ -116,3 +123,5 @@ namespace atb
 }
 
 #include "LocalMaximumExtraction.icc"
+
+#endif

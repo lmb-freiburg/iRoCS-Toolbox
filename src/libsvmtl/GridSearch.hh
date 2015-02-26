@@ -21,6 +21,10 @@
 #ifndef GRIDSEARCH_HH
 #define GRIDSEARCH_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iomanip>
 #include "ClassificationStatistics.hh"
 

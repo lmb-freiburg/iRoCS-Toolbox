@@ -14,14 +14,14 @@
 #ifndef BLITZFFTW_HH
 #define BLITZFFTW_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "BlitzFFTWError.hh"
 #include <fftw3.h>
 
 #include <blitz/array.h>
-
-#if defined HAVE_CONFIG_H && !defined PACKAGE
-#include <config.hh>
-#endif
 
 #ifdef HAVE_BLITZ_V9
 #include <blitz/tinyvec-et.h>

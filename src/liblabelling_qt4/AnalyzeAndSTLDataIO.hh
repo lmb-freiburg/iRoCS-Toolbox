@@ -1,6 +1,10 @@
 #ifndef ANALYZEANDSTLDATAIO_HH
 #define ANALYZEANDSTLDATAIO_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtGui/QDialog>
 
 class LabellingMainWidget;

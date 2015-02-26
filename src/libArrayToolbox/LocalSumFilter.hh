@@ -21,6 +21,10 @@
 #ifndef ATBLOCALSUMFILTER_HH
 #define ATBLOCALSUMFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SeparableFilter.hh"
 
 namespace atb

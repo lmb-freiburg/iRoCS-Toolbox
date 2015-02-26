@@ -16,6 +16,10 @@
 #ifndef DATACHANNELSPECSORTHOVIEWRENDERER_HH
 #define DATACHANNELSPECSORTHOVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOrthoViewRenderer.hh"
 
 #include <libArrayToolbox/Array.hh>

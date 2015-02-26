@@ -66,6 +66,10 @@
 #ifndef KERNEL_SIGMOID_HH
 #define KERNEL_SIGMOID_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <cmath>
 #include <map>

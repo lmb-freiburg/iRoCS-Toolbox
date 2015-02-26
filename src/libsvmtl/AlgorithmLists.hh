@@ -22,6 +22,10 @@
 #ifndef ALGORITHMLISTS_HH
 #define ALGORITHMLISTS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 namespace svt
 {
   template< typename MCLIST_, 

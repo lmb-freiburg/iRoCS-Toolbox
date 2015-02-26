@@ -20,6 +20,10 @@
 #ifndef CHANNELSPECS_HH
 #define CHANNELSPECS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtCore/QObject>
 #include <QtGui/QIcon>
 #include <QtGui/QToolButton>

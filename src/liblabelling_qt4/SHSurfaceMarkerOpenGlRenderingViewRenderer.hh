@@ -16,6 +16,10 @@
 #ifndef SHSURFACEMARKEROPENGLRENDERINGVIEWRENDERER_HH
 #define SHSURFACEMARKEROPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SphereMarkerOpenGlRenderingViewRenderer.hh"
 
 class SHSurfaceMarker;

@@ -8,6 +8,10 @@
 #ifndef _LMORPH_HH
 #define _LMORPH_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <queue>
 
 #include <blitz/array.h>

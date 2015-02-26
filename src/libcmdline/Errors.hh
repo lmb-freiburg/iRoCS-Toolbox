@@ -23,6 +23,10 @@
 #ifndef ERRORS_HH
 #define ERRORS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "CmdLineError.hh"
 
 /// Usage Error. Is thrown when the --help/-? CmdArg is parsed.

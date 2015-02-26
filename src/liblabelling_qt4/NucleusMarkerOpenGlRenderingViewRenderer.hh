@@ -16,6 +16,10 @@
 #ifndef NUCLEUSMARKEROPENGLRENDERINGVIEWRENDERER_HH
 #define NUCLEUSMARKEROPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SHSurfaceMarkerOpenGlRenderingViewRenderer.hh"
 
 class NucleusMarker;

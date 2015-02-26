@@ -14,6 +14,10 @@
 #ifndef _COLORCONVERT
 #define _COLORCONVERT
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // Blitz arrays 
 #include <blitz/array.h>
 #include "ImageAccessWrapper.hh"

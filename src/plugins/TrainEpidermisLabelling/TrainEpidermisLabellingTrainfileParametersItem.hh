@@ -1,6 +1,10 @@
 #ifndef TRAINEPIDERMISLABELLINGTRAINFILEPARAMETERSITEM_HH
 #define TRAINEPIDERMISLABELLINGTRAINFILEPARAMETERSITEM_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <QtGui/QTreeWidgetItem>
 
 #include <libIRoCS/TrainfileParameters.hh>

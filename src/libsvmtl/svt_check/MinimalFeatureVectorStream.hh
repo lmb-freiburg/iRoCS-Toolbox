@@ -20,6 +20,10 @@
 #ifndef MINIMALFEATUREVECTORSTREAM_HH
 #define MINIMALFEATUREVECTORSTREAM_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iostream>
 #include "RequireHelpers.hh"
 #include "MinimalFeatureVector.hh"

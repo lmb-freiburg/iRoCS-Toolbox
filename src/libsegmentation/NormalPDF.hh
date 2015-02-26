@@ -1,6 +1,10 @@
 #ifndef NORMALPDF_HH
 #define NORMALPDF_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 
 namespace segmentation {

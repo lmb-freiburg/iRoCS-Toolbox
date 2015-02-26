@@ -50,6 +50,10 @@
 #ifndef SOLVER_HH
 #define SOLVER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <algorithm>
 #include <vector>
 #include <iostream>

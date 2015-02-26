@@ -1,6 +1,10 @@
 #ifndef LIBMARGRET_EDGE_FILTER_H
 #define LIBMARGRET_EDGE_FILTER_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 #include <vector>
 #include <libProgressReporter/ProgressReporter.hh>

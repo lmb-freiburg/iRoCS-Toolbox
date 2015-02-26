@@ -1,6 +1,10 @@
 #ifndef PLUGINATTACHIROCSSCTTOCELLSEGMENTATION_HH
 #define PLUGINATTACHIROCSSCTTOCELLSEGMENTATION_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <liblabelling_qt4/PluginInterface.hh>
 
 #include "AttachIRoCSSCTToCellSegmentationParametersDialog.hh"

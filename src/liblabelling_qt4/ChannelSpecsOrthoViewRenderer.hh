@@ -15,6 +15,10 @@
 #ifndef CHANNELSPECSORTHOVIEWRENDERER_HH
 #define CHANNELSPECSORTHOVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsRenderer.hh"
 
 #include <blitz/array.h>

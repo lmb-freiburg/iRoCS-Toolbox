@@ -16,6 +16,10 @@
 #ifndef CYLINDERMARKERORTHOVIEWRENDERER_HH
 #define CYLINDERMARKERORTHOVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "MarkerOrthoViewRenderer.hh"
 
 class CylinderMarker;

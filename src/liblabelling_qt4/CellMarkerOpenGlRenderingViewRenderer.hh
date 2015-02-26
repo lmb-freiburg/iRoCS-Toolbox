@@ -16,6 +16,10 @@
 #ifndef CELLMARKEROPENGLRENDERINGVIEWRENDERER_HH
 #define CELLMARKEROPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SurfaceMarkerOpenGlRenderingViewRenderer.hh"
 
 class CellMarker;

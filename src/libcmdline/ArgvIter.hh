@@ -31,6 +31,10 @@
 #ifndef ARGVITER_HH
 #define ARGVITER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ArgIter.hh"
 
 /*======================================================================*/

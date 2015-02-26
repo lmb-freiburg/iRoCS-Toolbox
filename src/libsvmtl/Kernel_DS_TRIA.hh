@@ -20,6 +20,10 @@
 #ifndef KERNEL_DS_TRIA_HH
 #define KERNEL_DS_TRIA_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // std includes
 #include <cmath>
 #include <map>

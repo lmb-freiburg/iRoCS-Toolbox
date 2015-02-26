@@ -21,6 +21,10 @@
 #ifndef REQUIREFEATUREVECTORUNIQUEID_HH
 #define REQUIREFEATUREVECTORUNIQUEID_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "RequireHelpers.hh"
 
 namespace svt_check

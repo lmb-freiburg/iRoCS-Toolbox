@@ -16,6 +16,10 @@
 #ifndef CYLINDERMARKEROPENGLRENDERINGVIEWRENDERER_HH
 #define CYLINDERMARKEROPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "MarkerOpenGlRenderingViewRenderer.hh"
 
 class CylinderMarker;

@@ -8,6 +8,10 @@
 #ifndef LDIFFUSION_H_
 #define LDIFFUSION_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "lParallel.hh"
 
 #include <blitz/array.h>

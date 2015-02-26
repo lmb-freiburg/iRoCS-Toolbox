@@ -16,6 +16,10 @@
 #ifndef POINTMARKERORTHOVIEWRENDERER_HH
 #define POINTMARKERORTHOVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "MarkerOrthoViewRenderer.hh"
 
 #include <QtCore/QLineF>

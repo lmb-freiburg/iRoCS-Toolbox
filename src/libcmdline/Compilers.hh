@@ -24,6 +24,10 @@
 #ifndef COMPILERS_HH
 #define COMPILERS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <cctype>
 #include <cstdlib>
 #include <iostream>

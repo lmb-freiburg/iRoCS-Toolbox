@@ -21,6 +21,10 @@
 #ifndef BLITZFFTWERROR_HH
 #define BLITZFFTWERROR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 #include <sstream>
 #include <iostream>

@@ -1,6 +1,10 @@
 #ifndef IROCSPROGRESSREPORTER_HH
 #define IROCSPROGRESSREPORTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <string>
 
 namespace iRoCS

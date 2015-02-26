@@ -24,6 +24,10 @@
 #ifndef STDATAASCIIFILE_HH
 #define STDATAASCIIFILE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "StDataASCII.hh"
 
 namespace svt

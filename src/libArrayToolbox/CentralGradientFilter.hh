@@ -19,6 +19,10 @@
 #ifndef ATBCENTRALGRADIENTFILTER_HH
 #define ATBCENTRALGRADIENTFILTER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SeparableFilter.hh"
 
 namespace atb

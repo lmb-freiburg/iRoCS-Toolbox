@@ -24,6 +24,10 @@
 #ifndef REQUIRELOADSAVEPARAMETERS_HH
 #define REQUIRELOADSAVEPARAMETERS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "RequireHelpers.hh"
 #include "MinimalStData.hh"
 #include <string>

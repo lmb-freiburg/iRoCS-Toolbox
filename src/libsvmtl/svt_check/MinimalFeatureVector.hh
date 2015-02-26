@@ -21,6 +21,10 @@
 #ifndef MINIMALFEATUREVECTOR_HH
 #define MINIMALFEATUREVECTOR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 namespace svt_check
 {
   class MinimalFeatureVector

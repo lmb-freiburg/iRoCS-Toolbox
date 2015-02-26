@@ -20,6 +20,10 @@
 #ifndef ATBNEIGHBORHOOD_HH
 #define ATBNEIGHBORHOOD_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <blitz/array.h>
 #include <set>
 #include <vector>

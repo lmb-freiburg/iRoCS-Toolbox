@@ -8,6 +8,10 @@
 #ifndef BLITZFFTW_IMPL_HH
 #define BLITZFFTW_IMPL_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // make sure we don't include the inline template definitions
 // before the explicit extern template instantiations
 #define BLITZFFTW_HH_NO_INCLUDE_ICC

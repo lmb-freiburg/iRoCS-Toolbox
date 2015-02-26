@@ -15,6 +15,10 @@
 #ifndef MARKERORTHOVIEWRENDERER_HH
 #define MARKERORTHOVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "MarkerRenderer.hh"
 
 #include <blitz/array.h>

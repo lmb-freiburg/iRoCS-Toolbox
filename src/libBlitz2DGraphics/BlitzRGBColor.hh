@@ -13,6 +13,10 @@
 #ifndef _BLITZ_RGB_COLOR_HH
 #define _BLITZ_RGB_COLOR_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 // Blitz arrays 
 #include <blitz/array.h>
 

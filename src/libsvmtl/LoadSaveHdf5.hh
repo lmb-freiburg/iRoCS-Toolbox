@@ -18,6 +18,10 @@
 #ifndef LOADSAVEHDF5_HH
 #define LOADSAVEHDF5_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <iostream>
 #include <fstream>
 #include <cerrno>

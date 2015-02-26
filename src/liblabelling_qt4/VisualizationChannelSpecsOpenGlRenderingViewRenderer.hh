@@ -16,6 +16,10 @@
 #ifndef VISUALIZATIONCHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 #define VISUALIZATIONCHANNELSPECSOPENGLRENDERINGVIEWRENDERER_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "ChannelSpecsOpenGlRenderingViewRenderer.hh"
 
 #include <map>

@@ -21,6 +21,10 @@
 #ifndef DEFAULTONECLASSLIST_HH
 #define DEFAULTONECLASSLIST_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "TList.hh"
 
 namespace svt

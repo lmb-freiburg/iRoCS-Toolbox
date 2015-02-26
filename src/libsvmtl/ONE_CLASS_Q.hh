@@ -21,6 +21,10 @@
 #ifndef ONE_CLASS_Q_HH
 #define ONE_CLASS_Q_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "SVM_Problem.hh"
 #include "Kernel.hh"
 #include "Cache.hh"

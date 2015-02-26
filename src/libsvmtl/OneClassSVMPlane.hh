@@ -20,6 +20,10 @@
 #ifndef ONECLASSSVMPLANE_HH
 #define ONECLASSSVMPLANE_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 namespace svt
 {
   template< typename KF>

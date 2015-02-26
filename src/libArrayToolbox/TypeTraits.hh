@@ -20,6 +20,10 @@
 #ifndef ATBTYPETRAITS_HH
 #define ATBTYPETRAITS_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <complex>
 #include <blitz/array.h>
 

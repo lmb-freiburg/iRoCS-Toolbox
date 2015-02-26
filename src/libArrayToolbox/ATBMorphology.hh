@@ -11,6 +11,10 @@
 #ifndef ATBMORPHOLOGY_HH
 #define ATBMORPHOLOGY_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include "TypeTraits.hh"
 #include "Neighborhood.hh"
 #include "ATBBasicTree.hh"

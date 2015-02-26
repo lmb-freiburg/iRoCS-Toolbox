@@ -105,6 +105,10 @@ e.g. l = 2  m = 1  2.3 + 6 I
 #ifndef SH_BACKWARD_HH
 #define SH_BACKWARD_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <fftw3.h>
 
 extern "C" {

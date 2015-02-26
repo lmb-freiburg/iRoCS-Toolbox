@@ -44,6 +44,10 @@
 #ifndef TRIANGULARMATRIX_HH
 #define TRIANGULARMATRIX_HH
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 #include <vector>
 
 namespace svt
