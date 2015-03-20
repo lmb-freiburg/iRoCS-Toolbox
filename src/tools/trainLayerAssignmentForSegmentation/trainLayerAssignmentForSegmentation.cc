@@ -105,10 +105,12 @@ int main(int argc, char **argv)
   CmdArgType<int> labelRangeLow(
       'l', "lowLabel", "<unsigned integer>",
       "The smallest label used for training", CmdArg::isPOSVALREQ);
+  labelRangeLow.setDefaultValue(0);
 
   CmdArgType<int> labelRangeHigh(
       'h', "highLabel", "<unsigned integer>",
       "The largest label used for training", CmdArg::isPOSVALREQ);
+  labelRangeHigh.setDefaultValue(7);
 
   CmdLine cmd(argv[0], "Random Forest cell shape -> class training");
 
