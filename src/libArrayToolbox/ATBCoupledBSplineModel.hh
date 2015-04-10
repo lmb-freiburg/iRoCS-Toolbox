@@ -1,3 +1,25 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
 #ifndef ATBCOUPLEDBSPLINEMODEL_LEGACY_HH
 #define ATBCOUPLEDBSPLINEMODEL_LEGACY_HH
 
@@ -102,12 +124,14 @@ namespace atb
     
   };
 
+  /*! \relates atb::CoupledBSplineModel<int Dim>::Energy */
   std::ostream &operator<<(std::ostream &os, Energy const &E);
 
   /*-----------------------------------------------------------------------
    *  One tube only
    *-----------------------------------------------------------------------*/
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy computeCoupledSplineEnergy(
       std::vector< blitz::TinyVector<double,Dim> > const &points,
@@ -117,12 +141,14 @@ namespace atb
       tikhonovRegularizer,
       std::vector<double> const &regularizerParameters = std::vector<double>());
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   void updateCoupledSplineModel(
       CoupledBSplineModel<Dim> &model,
       std::vector< blitz::TinyVector<double,Dim> > const &dAxisControlPoints,
       std::vector<double> const &dThicknessControlPoints, double tau);
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy computeUpdatedCoupledSplineEnergy(
       std::vector< blitz::TinyVector<double,Dim> > const &points,
@@ -133,6 +159,7 @@ namespace atb
       double (&regularizer)(double, std::vector<double> const &),
       std::vector<double> const &regularizerParameters);
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy refineModel(
       std::vector< blitz::TinyVector<double,Dim> > const &points,
@@ -147,9 +174,11 @@ namespace atb
       std::string const &evolutionFileName = "",
       std::string const &evolutionGroup = "");
   
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   bool regridModel(CoupledBSplineModel<Dim> &model, double minSegmentLength);
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy fitCoupledSplines(
       std::vector< blitz::TinyVector<double,Dim> > const &points,
@@ -164,6 +193,7 @@ namespace atb
       iRoCS::ProgressReporter *pr = NULL,
       std::string const &evolutionFileName = "");
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy extendCoupledBSplineModel(
       std::vector<blitz::TinyVector<double,Dim> > const &points,
@@ -181,6 +211,7 @@ namespace atb
    *  Same for multiple tubes
    *-----------------------------------------------------------------------*/
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy computeCoupledSplineEnergy(
       std::vector< blitz::TinyVector<double,Dim> > const &points,
@@ -190,6 +221,7 @@ namespace atb
       tikhonovRegularizer,
       std::vector<double> const &regularizerParameters = std::vector<double>());
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy computeUpdatedCoupledSplineEnergy(
       std::vector< blitz::TinyVector<double,Dim> > const &points,
@@ -201,6 +233,7 @@ namespace atb
       double (&regularizer)(double, std::vector<double> const &),
       std::vector<double> const &regularizerParameters);
 
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy refineModel(
       std::vector< blitz::TinyVector<double,Dim> > const &points,
@@ -212,6 +245,7 @@ namespace atb
       dTikhonovRegularizer,
       std::vector<double> const &regularizerParameters = std::vector<double>());
   
+  /*! \relates atb::CoupledBSplineModel<int Dim> */
   template<int Dim>
   Energy fitCoupledSplines(
       std::vector< blitz::TinyVector<double,Dim> > const &points,

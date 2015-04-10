@@ -1,25 +1,24 @@
 /**************************************************************************
- **       Title: Quaternions
- **    $RCSfile: Quaternion.hh,v $
- **   $Revision: 3841 $ $Name:  $
- **       $Date: 2010-07-02 16:25:10 +0200 (Fri, 02 Jul 2010) $
- **   Copyright: GPL $Author: tschmidt $
- ** Description:
- **
- **
- **-------------------------------------------------------------------------
- **
- **  $Log: Quaternion.hh,v $
- **  Revision 1.1.1.1  2007/11/06 13:35:27  tschmidt
- **  Initial revision
- **
- **  Revision 1.1  2006/10/18 12:52:51  tschmidt
- **  - Library split up into different parts
- **  - Moved to own location
- **
- **
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
  **************************************************************************/
-
 
 #ifndef QUATERNION_HH
 #define QUATERNION_HH
@@ -39,38 +38,37 @@ namespace atb
  *  \brief The Quaternion class implements templated quaternions with
  *         few important operations
  *
- *  Quaternions are sort of an extension to complex numbers. They consist
- *  of 3 imaginary units i, j and k and a real part, and thus span a 4-D
- *  space. A typical quaternion looks like:
- *  q = a + ib + jc + kd
+ *  Quaternions are an extension to complex numbers. They consist
+ *  of 3 imaginary units \f$i\f$, \f$j\f$ and \f$k\f$ and a real part,
+ *  and thus span a 4-D space. A typical quaternion is given by
+ *  \f$q = q_0 + i q_1 + j q_2 + k q_3\f$
  *
  *  Operations:
  *
  *  Addition:
- *    q_1 + q_2 =      a_1 + a_2  +
- *                i * (b_1 + b_2) +
- *                j * (c_1 + c_2) +
- *                k * (d_1 + d_2)
+ *
+ *    \f$p + q = p_0 + q_0  + i \cdot (p_1 + q_1) + j \cdot (p_2 + q_2) +
+                 k \cdot (p_3 + q_3)\f$
  *
  *  Multiplication:
- *    q_1 * q_2 =      a_1 * a_2 - b_1 * b_2 - c_1 * c_2 - d_1 * d_2  +
- *                i * (a_1 * b_2 + b_1 * a_2 + c_1 * d_2 - d_1 * c_2) +
- *                j * (a_1 * c_2 - b_1 * d_2 + c_1 * a_2 + d_1 * b_2) +
- *                k * (a_1 * d_2 + b_1 * c_2 - c_1 * b_2 + d_1 * a_2)
+ *
+ *    \f$p \cdot q = p_0 q_0 - p_1 q_1 - p_2 q_2 - p_3 q_3  +
+                     i \cdot (p_0 q_1 + p_1 q_0 + p_2 q_3 - p_3 q_2) +
+                     j \cdot (p_0 q_2 - p_1 q_3 + p_2 q_0 + p_3 q_1) +
+                     k \cdot (p_0 q_3 + p_1 q_2 - p_2 q_1 + p_3 q_0)\f$
  *
  *  Conjugate:
- *    conj(q) = a - ib - jc - kd
+ *
+ *    \f$\bar{q} = q_0 - i q_1 - j q_2 - k q_3\f$
  *
  *
  *  The multiplication rule can be obtained from:
  *
- *    i^2 = j^2 = k^2 = -1
+ *    \f$i^2 = j^2 = k^2 = -1\f$, \f$i j = -j i = k\f$, \f$j k = -k j = i\f$
+ *    and \f$k i = -i k = j\f$
  *
- *    i * j = -j * i = k
- *
- *    j * k = -k * j = i
- *
- *    k * i = -i * k = j
+ *  \tparam Type The basic numeric type (typically \c float or \c double)
+ *    of the quaternion coefficients
  */
 /*======================================================================*/
   template<typename Type>
@@ -79,33 +77,184 @@ namespace atb
   
   public:
   
-    Quaternion(const Type& = Type(),
-               const Type& = Type(),
-               const Type& = Type(),
-               const Type& = Type());
+/*======================================================================*/
+/*! 
+ *   Create a new quaternion \f$q := q_0 + i q_1 + j q_2 + k q_3\f$.
+ *
+ *   \param q0,q1,q2,q3 Quaternion coefficients
+ */
+/*======================================================================*/
+    Quaternion(const Type& q0 = Type(),
+               const Type& q1 = Type(),
+               const Type& q2 = Type(),
+               const Type& q3 = Type());
 
+/*======================================================================*/
+/*! 
+ *   Create a new quaternion form the given quaternion.
+ *
+ *   \param q The quaternion to copy. This function allows to promote the
+ *     basic type to a different data type
+ *
+ *   \tparam Type2 The basic data type of the source quaternion
+ */
+/*======================================================================*/
     template<typename Type2>
-    Quaternion(const Quaternion<Type2>&);
+    Quaternion(Quaternion<Type2> const &q);
     
+/*======================================================================*/
+/*! 
+ *   Get a reference to the coefficient for the given quaternion dimension.
+ *
+ *   \param index The dimension to get the quaternion coefficient for
+ *
+ *   \return A random-access reference to the requested coefficient
+ *
+ *   \exception out_of_range If the given index is not within the [0, 3]
+ *     range
+ */
+/*======================================================================*/
     Type& operator()(const int index);
-    Type operator()(const int index) const;
+
+/*======================================================================*/
+/*! 
+ *   Get a read-only reference to the coefficient for the given
+ *   quaternion dimension.
+ *
+ *   \param index The dimension to get the quaternion coefficient for
+ *
+ *   \return A read-only reference to the requested coefficient
+ *
+ *   \exception out_of_range If the given index is not within the [0, 3]
+ *     range
+ */
+/*======================================================================*/
+    Type const &operator()(const int index) const;
   
-    Quaternion<Type>& operator=(const Type&);
-    Quaternion<Type>& operator+=(const Type&);
-    Quaternion<Type>& operator-=(const Type&);
-    Quaternion<Type>& operator*=(const Type&);
-    Quaternion<Type>& operator/=(const Type&);
+/*======================================================================*/
+/*! 
+ *   Set this quaternion to the given real number.
+ *
+ *   \param scalar The scalar value to set this quaternion to.
+ *
+ *   \return A reference to this quaternion for operator chaining
+ */
+/*======================================================================*/
+    Quaternion<Type>& operator=(Type const &scalar);
+
+/*======================================================================*/
+/*! 
+ *   Add the given real number to this quaternion.
+ *
+ *   \param scalar The scalar value to add to this quaternion.
+ *
+ *   \return A reference to this quaternion for operator chaining
+ */
+/*======================================================================*/
+    Quaternion<Type>& operator+=(Type const &scalar);
+
+/*======================================================================*/
+/*! 
+ *   Subtract the given real number from this quaternion.
+ *
+ *   \param scalar The scalar value to subtract from this quaternion.
+ *
+ *   \return A reference to this quaternion for operator chaining
+ */
+/*======================================================================*/
+    Quaternion<Type>& operator-=(Type const &scalar);
+
+/*======================================================================*/
+/*! 
+ *   Scale this quaternion with the given scalar value.
+ *
+ *   \param scalar The scaling factor to apply
+ *
+ *   \return A reference to this quaternion for operator chaining
+ */
+/*======================================================================*/
+    Quaternion<Type>& operator*=(Type const &scalar);
+
+/*======================================================================*/
+/*! 
+ *   Divide this quaternion by the given scalar value.
+ *
+ *   \param scalar The value to divide this quaternion with
+ *
+ *   \return A reference to this quaternion for operator chaining
+ */
+/*======================================================================*/
+    Quaternion<Type>& operator/=(Type const &scalar);
   
+/*======================================================================*/
+/*! 
+ *   Set this quaternion to the given quaternion.
+ *
+ *   \param q The quaternion to copy into this quaternion.
+ *
+ *   \return A reference to this quaternion for operator chaining
+ *
+ *   \tparam Type2 The source quaternion basic scalar type
+ */
+/*======================================================================*/
     template<typename Type2>
-    Quaternion<Type>& operator=(const Quaternion<Type2>&);
+    Quaternion<Type>& operator=(Quaternion<Type2> const &q);
+  
+/*======================================================================*/
+/*! 
+ *   Add the given quaternion to this quaternion.
+ *
+ *   \param q The quaternion to add to this quaternion.
+ *
+ *   \return A reference to this quaternion for operator chaining
+ *
+ *   \tparam Type2 The source quaternion basic scalar type
+ */
+/*======================================================================*/
     template<typename Type2>
-    Quaternion<Type>& operator+=(const Quaternion<Type2>&);
+    Quaternion<Type>& operator+=(Quaternion<Type2> const &q);
+  
+/*======================================================================*/
+/*! 
+ *   Subtract the given quaternion from this quaternion.
+ *
+ *   \param q The quaternion to subtract from this quaternion.
+ *
+ *   \return A reference to this quaternion for operator chaining
+ *
+ *   \tparam Type2 The source quaternion basic scalar type
+ */
+/*======================================================================*/
     template<typename Type2>
-    Quaternion<Type>& operator-=(const Quaternion<Type2>&);
+    Quaternion<Type>& operator-=(Quaternion<Type2> const &q);
+  
+/*======================================================================*/
+/*! 
+ *   Multiply this quaternion with the given quaternion.
+ *
+ *   \param q The quaternion to multiply to this quaternion.
+ *
+ *   \return A reference to this quaternion for operator chaining
+ *
+ *   \tparam Type2 The source quaternion basic scalar type
+ */
+/*======================================================================*/
     template<typename Type2>
-    Quaternion<Type>& operator*=(const Quaternion<Type2>&);
+    Quaternion<Type>& operator*=(Quaternion<Type2> const &q);
+  
+/*======================================================================*/
+/*! 
+ *   Divide this quaternion by the given quaternion.
+ *
+ *   \param q The quaternion to divide this quaternion by.
+ *
+ *   \return A reference to this quaternion for operator chaining
+ *
+ *   \tparam Type2 The source quaternion basic scalar type
+ */
+/*======================================================================*/
     template<typename Type2>
-    Quaternion<Type>& operator/=(const Quaternion<Type2>&);
+    Quaternion<Type>& operator/=(Quaternion<Type2> const &q);
  
   
   private:
@@ -286,6 +435,18 @@ namespace atb
 
 // Class independent operators
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Add two quaternions
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs quaternion
+ *
+ *   \return t1 + t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator+(const Quaternion<Type>& t1,
@@ -294,6 +455,18 @@ namespace atb
     return Quaternion<Type>(t1) += t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Add quaternion and scalar
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs scalar
+ *
+ *   \return t1 + t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator+(const Quaternion<Type>& t1,
@@ -302,6 +475,18 @@ namespace atb
     return Quaternion<Type>(t1) += t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Add scalar and quaternion
+ *
+ *   \param t1 The lhs scalar
+ *   \param t2 The rhs quaternion
+ *
+ *   \return t1 + t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator+(const Type& t1,
@@ -310,6 +495,18 @@ namespace atb
     return Quaternion<Type>(t1) += t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute difference between two quaternions
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs quaternion
+ *
+ *   \return t1 - t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator-(const Quaternion<Type>& t1,
@@ -318,6 +515,18 @@ namespace atb
     return Quaternion<Type>(t1) -= t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Subtract scalar from quaternion.
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs scalar
+ *
+ *   \return t1 - t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator-(const Quaternion<Type>& t1,
@@ -326,6 +535,18 @@ namespace atb
     return Quaternion<Type>(t1) -= t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Subtract quaternion from scalar.
+ *
+ *   \param t1 The lhs scalar
+ *   \param t2 The rhs quaternion
+ *
+ *   \return t1 - t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator-(const Type& t1,
@@ -334,6 +555,18 @@ namespace atb
     return Quaternion<Type>(t1) -= t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute product of two quaternions
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs quaternion
+ *
+ *   \return t1 * t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator*(const Quaternion<Type>& t1,
@@ -342,6 +575,18 @@ namespace atb
     return Quaternion<Type>(t1) *= t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute product of quaternion and scalar
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs scalar
+ *
+ *   \return t1 * t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator*(const Quaternion<Type>& t1,
@@ -350,6 +595,18 @@ namespace atb
     return Quaternion<Type>(t1) *= t2;
   }
   
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute product of scalar and quaternion
+ *
+ *   \param t1 The lhs scalar
+ *   \param t2 The rhs quaternion
+ *
+ *   \return t1 * t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator*(const Type& t1,
@@ -358,6 +615,18 @@ namespace atb
     return Quaternion<Type>(t1) *= t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute quotient of two quaternions
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs quaternion
+ *
+ *   \return t1 / t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator/(const Quaternion<Type>& t1,
@@ -366,6 +635,18 @@ namespace atb
     return Quaternion<Type>(t1) /= t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute quotient of quaternion and scalar
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs scalar
+ *
+ *   \return t1 / t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator/(const Quaternion<Type>& t1,
@@ -374,6 +655,18 @@ namespace atb
     return Quaternion<Type>(t1) /= t2;
   }
   
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute quotient of scalar and quaternion
+ *
+ *   \param t1 The lhs scalar
+ *   \param t2 The rhs quaternion
+ *
+ *   \return t1 / t2
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator/(const Type& t1,
@@ -382,6 +675,17 @@ namespace atb
     return Quaternion<Type>(t1) /= t2;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Unary PLUS operator
+ *
+ *   \param t The quaternion to apply the operator to
+ *
+ *   \return t
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator+(const Quaternion<Type>& t) 
@@ -389,6 +693,17 @@ namespace atb
     return t;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Unary MINUS operator
+ *
+ *   \param t The quaternion to apply the operator to
+ *
+ *   \return -t
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   operator-(const Quaternion<Type>& t) 
@@ -396,6 +711,18 @@ namespace atb
     return Quaternion<Type>(-t(0), -t(1), -t(2), -t(3));
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Equals comparison operator.
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs quaternion
+ *
+ *   \return \c true if both quaternions are equal, \c false otherwise
+ */
+/*======================================================================*/
   template<typename Type>
   inline bool
   operator==(const Quaternion<Type>& t1,
@@ -405,6 +732,18 @@ namespace atb
         t1(2) == t2(2) && t1(3) == t2(3);
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Equals comparison operator.
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs scalar
+ *
+ *   \return \c true if quaternion and scalar are equal, \c false otherwise
+ */
+/*======================================================================*/
   template<typename Type>
   inline bool
   operator==(const Quaternion<Type>& t1,
@@ -414,6 +753,18 @@ namespace atb
         t1(2) == Type() && t1(3) == Type();
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Equals comparison operator.
+ *
+ *   \param t1 The lhs scalar
+ *   \param t2 The rhs quaternion
+ *
+ *   \return \c true if quaternion and scalar are equal, \c false otherwise
+ */
+/*======================================================================*/
   template<typename Type>
   inline bool
   operator==(const Type& t1,
@@ -423,6 +774,18 @@ namespace atb
         t2(2) == Type() && t2(3) == Type();
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Unequal comparison operator.
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs quaternion
+ *
+ *   \return \c false if both quaternions are equal, \c true otherwise
+ */
+/*======================================================================*/
   template<typename Type>
   inline bool
   operator!=(const Quaternion<Type>& t1,
@@ -432,15 +795,39 @@ namespace atb
         t1(2) != t2(2) || t1(3) != t2(3);
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Unequal comparison operator.
+ *
+ *   \param t1 The lhs quaternion
+ *   \param t2 The rhs scalar
+ *
+ *   \return \c false if scalar and quaternion are equal, \c true otherwise
+ */
+/*======================================================================*/
   template<typename Type>
   inline bool
   operator!=(const Quaternion<Type>& t1,
              const Type& t2) 
   {
-    return t1(0) != t2     || t1(1) != Type() ||
+    return t1(0) != t2 || t1(1) != Type() ||
         t1(2) != Type() || t1(3) != Type();
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Unequal comparison operator.
+ *
+ *   \param t1 The lhs scalar
+ *   \param t2 The rhs quaternion
+ *
+ *   \return \c false if scalar and quaternion are equal, \c true otherwise
+ */
+/*======================================================================*/
   template<typename Type>
   inline bool
   operator!=(const Type& t1,
@@ -450,6 +837,18 @@ namespace atb
         t2(2) != Type() || t2(3) != Type();
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Read a quaternion from its string (stream) representation.
+ *
+ *   \param is The input stream to read a quaternion from
+ *   \param t  The quaternion to store the parsed string to
+ *
+ *   \return A reference to the input stream for operator chaining
+ */
+/*======================================================================*/
   template<typename Type, typename CharT, class Traits>
   std::basic_istream<CharT, Traits>&
   operator>>(std::basic_istream<CharT, Traits>& is, Quaternion<Type>& t)
@@ -487,6 +886,18 @@ namespace atb
     return is;
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Write a quaternion to a character stream.
+ *
+ *   \param os The output stream to write the quaternion to
+ *   \param t  The quaternion to write
+ *
+ *   \return A reference to the output stream for operator chaining
+ */
+/*======================================================================*/
   template<typename Type, typename CharT, class Traits>
   std::basic_ostream<CharT, Traits>&
   operator<<(std::basic_ostream<CharT, Traits>& os, const Quaternion<Type>& t)
@@ -499,6 +910,17 @@ namespace atb
     return os << s.str();
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute the absolute value of the given quaternion.
+ *
+ *   \param t The quaternion to compute the absolute value of
+ *
+ *   \return The absolute scalar value of the quaternion (its "length")
+ */
+/*======================================================================*/
   template<typename Type>
   inline Type
   abs(const Quaternion<Type>& t)
@@ -507,6 +929,19 @@ namespace atb
                      t(2) * t(2) + t(3) * t(3));
   }
 
+/*======================================================================*/
+/*!
+ *   \relates atb::Quaternion
+ *
+ *   Compute the conjugate of the given quaternion.
+ *
+ *   \f$\bar{q} = q_0 - i q_1 - j q_2 - k q_3\f$
+ *
+ *   \param t The quaternion to compute the conjugate for
+ *
+ *   \return The conjugate of the given quaternion
+ */
+/*======================================================================*/
   template<typename Type>
   inline Quaternion<Type>
   conj(const Quaternion<Type>& t) 

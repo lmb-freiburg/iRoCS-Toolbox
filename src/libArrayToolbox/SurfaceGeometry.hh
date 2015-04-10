@@ -1,17 +1,24 @@
 /**************************************************************************
-**       Title: Surface geometry data for storing of triangulated surface
-**              data
-**    $RCSfile$
-**   $Revision: 3881 $ $Name$
-**       $Date: 2008-01-18 20:53:53 +0100 (Fri, 18 Jan 2008) $
-**   Copyright: GPL $Author: tschmidt $
-** Description:
-**
-**   Surface geometry data for storing of triangulated surface
-**   data, corresponding normals and indices for direct OpenGl rendering as
-**   GL_TRIANGLEs
-**
-**************************************************************************/
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
 
 /*======================================================================*/
 /*!
@@ -49,21 +56,21 @@ namespace atb
     
 /*======================================================================*/
 /*! 
- *  VertexT is the type used to store a 3D vertex position
+ *  \brief VertexT is the type used to store a 3D vertex position
  */
 /*======================================================================*/
     typedef blitz::TinyVector<float,3> VertexT;
 
 /*======================================================================*/
 /*! 
- *  NormalT is the type used to store a 3D vertex normal
+ *  \brief NormalT is the type used to store a 3D vertex normal
  */
 /*======================================================================*/
     typedef blitz::TinyVector<float,3> NormalT;
 
 /*======================================================================*/
 /*! 
- *  IndexT is the type used to store the triangle corner indices in the
+ *  \brief IndexT is the type used to store the triangle corner indices in the
  *  vertex Array
  */
 /*======================================================================*/
@@ -71,14 +78,18 @@ namespace atb
     
 /*======================================================================*/
 /*! 
- *   Default Constructor. Creates a new empty SurfaceGeometry object.
+ *   \brief Default Constructor.
+ *
+ *   Creates a new empty SurfaceGeometry object.
  */
 /*======================================================================*/
     SurfaceGeometry();
 
 /*======================================================================*/
 /*! 
- *   Copy Constructor. Creates a new copy of the given SurfaceGeometry object.
+ *   \brief Copy Constructor.
+ *
+ *   Creates a new copy of the given SurfaceGeometry object.
  *
  *   \param geometry The Surface geometry to copy
  */
@@ -87,15 +98,17 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Destructor
+ *   \brief Destructor.
  */
 /*======================================================================*/
     ~SurfaceGeometry();
     
 /*======================================================================*/
 /*! 
- *   Copy assignment operator. Sets the data of this SurfaceGeometry
- *   object to the right-hand-side SurfaceGeometry.
+ *   \brief Copy assignment operator.
+ *
+ *   Sets the data of this SurfaceGeometry object to the right-hand-side
+ *   SurfaceGeometry.
  *
  *   \param geometry The Surface geometry to copy
  *
@@ -107,8 +120,8 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Get a read only reference onto the Vertex vector of this SurfaceGeometry
- *   object.
+ *   \brief Get a read only reference onto the Vertex vector of this
+ *   SurfaceGeometry object.
  *
  *   \return A reference to the Vertex vector of this SurfaceGeometry object
  */
@@ -117,7 +130,7 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Get a random-access reference onto the Vertex vector of this
+ *   \brief Get a random-access reference onto the Vertex vector of this
  *   SurfaceGeometry object.
  *
  *   \return A reference to the Vertex vector of this SurfaceGeometry object
@@ -127,8 +140,8 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Get a read only reference onto the Normal vector of this SurfaceGeometry
- *   object.
+ *   \brief Get a read only reference onto the Normal vector of this
+ *   SurfaceGeometry object.
  *
  *   \return A reference to the Normal vector of this SurfaceGeometry object
  */
@@ -137,7 +150,7 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Get a random-access reference onto the Normal vector of this
+ *   \brief Get a random-access reference onto the Normal vector of this
  *   SurfaceGeometry object.
  *
  *   \return A reference to the Normal vector of this SurfaceGeometry object
@@ -147,8 +160,8 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Get a read only reference onto the Index vector of this SurfaceGeometry
- *   object.
+ *   \brief Get a read only reference onto the Index vector of this
+ *   SurfaceGeometry object.
  *
  *   \return A reference to the Index vector of this SurfaceGeometry object
  */
@@ -157,7 +170,7 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Get a random-access reference onto the Index vector of this
+ *   \brief Get a random-access reference onto the Index vector of this
  *   SurfaceGeometry object.
  *
  *   \return A reference to the Index vector of this SurfaceGeometry object
@@ -167,7 +180,9 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Computes the surface normals from the provided vertices and indices.
+ *   \brief Computes the surface normals from the provided vertices and
+ *     indices.
+ *
  *   For each vertex the normals of all adjacent triangles are computed
  *   using the cross product of its edges and averaged giving the normal
  *   for that vertex.
@@ -177,13 +192,14 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Appends the set of triangle primitives described by this
- *   SurfaceGeometry as STL facets to the given output stream. The header
- *   and footer of the STL file must be pre- and appended by the user. For
- *   the ASCII case this means the stream must start with 'solid <name>'
- *   and end with 'endsolid <name>'. It is not possible to put multiple
- *   solids into the same file, therefore write the header, then all
- *   objects and finally the footer. For the binary file format it is
+ *   \brief Appends the set of triangle primitives described by this
+ *   SurfaceGeometry as STL facets to the given output stream.
+ *
+ *   The header and footer of the STL file must be pre- and appended by
+ *   the user. For the ASCII case this means the stream must start with
+ *   'solid <name>' and end with 'endsolid <name>'. It is not possible to
+ *   put multiple solids into the same file, therefore write the header,
+ *   then all objects and finally the footer. For the binary file format it is
  *   slightly different, the files start with an arbitrary 80 Byte header
  *   which is by default ignored, Bytes 80 - 84 are the number of all
  *   triangles in the file as unsigned int. The binary file needs no footer.
@@ -200,7 +216,7 @@ namespace atb
     
 /*======================================================================*/
 /*! 
- *   Intersect the SurfaceGeometryObject with the plane defined by the
+ *   \brief Intersect the SurfaceGeometryObject with the plane defined by the
  *   given parameters and return the resulting set of 2D line end points
  *   forming the intersection polygon.
  *
@@ -217,10 +233,12 @@ namespace atb
 
 /*======================================================================*/
 /*! 
- *   Intersect the SurfaceGeometryObject with the plane defined by the
+ *   \brief Intersect the SurfaceGeometryObject with the plane defined by the
  *   given parameters and return the resulting set of 2D line end points
- *   forming the intersection polygon. This implementation is a special case
- *   of the method above for axis aligned planes.
+ *   forming the intersection polygon.
+ *
+ *   This implementation is a special case of the method above for axis
+ *   aligned planes.
  *
  *   \param direction    The orthogonal dimension to the plane
  *   \param planeOffset  The plane offset from the coordinate origin

@@ -1,16 +1,30 @@
 /**************************************************************************
- **       Title: General blitz++ Array extension for microscopic data
- **    $RCSfile$
- **   $Revision: 3896 $ $Name$
- **       $Date: 2008-07-16 15:17:47 +0200 (Wed, 16 Jul 2008) $
- **   Copyright: GPL $Author: tschmidt $
- ** Description:
- **
- **    This file provides a class to store microscopic datasets with
- **    element size and a transformation to apply. It provides a function
- **    valueAt() to first apply the transformation and then access
- **    the transformed position using the specified ArrayInterpolator.
- **
+ *
+ * General blitz++ Array extension for microscopic data
+ *
+ *    This file provides a class to store microscopic datasets with
+ *    element size and a transformation to apply. It provides a function
+ *    valueAt() to first apply the transformation and then access
+ *    the transformed position using the specified ArrayInterpolator.
+ *
+ * This file belongs to the iRoCS Toolbox.
+ *
+ * Copyright (C) 2008-2015 Thorsten Falk
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
  **************************************************************************/
 
 /*======================================================================*/
@@ -58,6 +72,13 @@ namespace atb
  *  can specify the interpolation behaviour by specifying an
  *  Interpolator and passing it via the setInterpolator() function.
  *  By default a linear interpolator with zero boundary treatment is used.
+ *
+ *  \tparam DataT The datatype of the Array elements to store. These can
+ *    be basic or complex numeric types but also TinyVectors or TinyMatrices.
+ *    Bool or user-defined types are not allowed and compilation will fail
+ *    when trying to build Arrays using a type with undefined arithmetic
+ *    operations.
+ *  \tparam Dim The rank of the Array
  */
 /*======================================================================*/
   template<typename DataT, int Dim>

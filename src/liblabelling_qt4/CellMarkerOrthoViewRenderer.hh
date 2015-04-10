@@ -1,17 +1,26 @@
 /**************************************************************************
-**       Title: CellMarker-OrthoView Renderer
-**    $RCSfile$
-**   $Revision: 3880 $ $Name$
-**       $Date: 2008-01-17 18:05:50 +0100 (Thu, 17 Jan 2008) $
-**   Copyright: GPL $Author: tschmidt $
-** Description:
-**
-**    This class is the interface between the different View- and Marker
-**    types. For each Marker type and each View type one such interface
-**    class needs to be implemented. This is the specific implementation
-**    for CellMarker <=> OrthoView
-**
-**************************************************************************/
+ *
+ * This file belongs to the iRoCS Toolbox.
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
 
 #ifndef CELLMARKERORTHOVIEWRENDERER_HH
 #define CELLMARKERORTHOVIEWRENDERER_HH

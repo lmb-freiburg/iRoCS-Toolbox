@@ -1,16 +1,11 @@
 /**************************************************************************
- *        Title: Abstract horizontal Qt4 control element with label and
- *               checkbox
- *     $RCSfile$
- *    $Revision: 3896 $ $Name$
- *        $Date: 2008-07-16 15:17:47 +0200 (Wed, 16 Jul 2008) $
- *    Copyright: GPL $Author: falk$
- *  Description:
- * 
+ *
  * This file belongs to the iRoCS Toolbox.
  *
- * Copyright (C) 2008 Thorsten Schmidt
+ * Copyright (C) 2015 Thorsten Falk
  *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
