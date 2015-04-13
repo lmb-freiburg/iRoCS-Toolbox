@@ -1,40 +1,25 @@
 /**************************************************************************
-**       Title: CmdLine inline methods
-**    $RCSfile$
-**   $Revision: 3270 $$Name$
-**       $Date: 2010-01-12 22:01:51 +0100 (Tue, 12 Jan 2010) $
-**   Copyright: GPL $Author: emmenlau $
-** Description:
-**
-**
-**
-**-------------------------------------------------------------------------
-**
-**  $Log$
-**  Revision 1.6  2005/06/09 07:58:07  tschmidt
-**  - Changed enum names from bla to CmdLinebla
-**
-**  Revision 1.5  2004/07/02 13:13:03  mechnich
-**  allow negative numbers as cmdline arguments
-**
-**  Revision 1.4  2002/06/03 15:22:35  pigorsch
-**  - removed UsageLevel
-**
-**  Revision 1.3  2002/04/18 14:02:30  pigorsch
-**  - changed method of clearing flags
-**
-**  Revision 1.2  2002/03/27 10:25:10  pigorsch
-**  - added longname support
-**
-**  Revision 1.1  2002/03/26 07:36:28  ronneber
-**  restructuring for autoconf
-**
-**  Revision 1.1.1.1  2002/03/22 13:45:07  pigorsch
-**  moved from polsoft repository
-**
-**
-**
-**************************************************************************/
+ *
+ * Copyright (C) 2005-2015 Olaf Ronneberger, Jörg Mechnich, Florian Pigorsch,
+ *                         Mario Emmenlauer, Thorsten Schmidt
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
 
 inline
 std::string
