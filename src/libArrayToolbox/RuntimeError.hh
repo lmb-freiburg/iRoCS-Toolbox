@@ -79,7 +79,7 @@ namespace atb
  */
 /*======================================================================*/
     template<typename DataT>
-    virtual RuntimeError &operator<<(DataT const &data);
+    RuntimeError &operator<<(DataT const &data);
 
 /*======================================================================*/
 /*! 
@@ -97,8 +97,7 @@ namespace atb
   };
  
   template<typename DataT>
-  RuntimeError &RuntimeError::operator<<(DataT const &data);
-  
+  RuntimeError &RuntimeError::operator<<(DataT const &data)
   {
     std::ostringstream os;
     os << data;

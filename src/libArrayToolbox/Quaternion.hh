@@ -289,8 +289,7 @@ namespace atb
   }
 
   template<typename Type>
-  inline Type&
-  Quaternion<Type>::operator()(const int index)
+  inline Type &Quaternion<Type>::operator()(const int index)
   {
     if (index < 0 || index > 3) 
     {
@@ -304,8 +303,7 @@ namespace atb
   }
 
   template<typename Type>
-  inline Type
-  Quaternion<Type>::operator()(const int index) const 
+  inline Type const &Quaternion<Type>::operator()(const int index) const 
   {
     if (index < 0 || index > 3) 
     {
