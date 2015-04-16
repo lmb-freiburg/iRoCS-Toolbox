@@ -29,6 +29,12 @@ namespace atb
           : _message(message)
   {}
   
+  RuntimeError::RuntimeError(const char* message)
+          : _message()
+  {
+    if (message != NULL) _message = message;
+  }
+  
   RuntimeError::~RuntimeError() throw()
   {}
   

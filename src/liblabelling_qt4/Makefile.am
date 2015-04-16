@@ -7,7 +7,7 @@ RCC = @QT4_RCC@
 
 AM_CXXFLAGS = -Wno-long-long
 AM_CPPFLAGS = -DVERSIONSTRING="\"1.1.0"\" -I$(top_srcdir)/src
-AM_LDFLAGS = -version-info 1:1:0
+AM_LDFLAGS = -version-info 1:2:0
 
 lbldata_DATA = liblabelling_qt4.rcc
 

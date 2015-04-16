@@ -3,10 +3,7 @@ blitzhdf5includedir = $(pkgincludedir)/libBlitzHdf5
 
 AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info 2:0:1
-
-# Interface extension pending. New version for next release: 3.0.2
-# (backward compatible!)
+AM_LDFLAGS = -version-info 3:0:2
 
 libBlitzHdf5_la_SOURCES = \
 	BlitzH5Traits.cc \
