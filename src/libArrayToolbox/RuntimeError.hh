@@ -62,7 +62,19 @@ namespace atb
  *   \param message The error message explaining what went wrong
  */
 /*======================================================================*/
-    RuntimeError(std::string const &message = "");
+    RuntimeError(char const *message = NULL);
+
+/*======================================================================*/
+/*! 
+ *   Constructor.
+ *
+ *   Creates a new RuntimeError object with specified error
+ *   message string
+ *
+ *   \param message The error message explaining what went wrong
+ */
+/*======================================================================*/
+    RuntimeError(std::string const &message);
 
 /*======================================================================*/
 /*! 

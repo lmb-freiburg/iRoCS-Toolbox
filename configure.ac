@@ -1,5 +1,5 @@
 AC_INIT(
-  [iRoCS-Toolbox], [1.0.0],
+  [iRoCS-Toolbox], [1.1.1],
   [tschmidt@cs.uni-freiburg.de],
   [irocs-toolbox],
   [http://lmb.informatik.uni-freiburg.de/lmbsoft/iRoCS])
