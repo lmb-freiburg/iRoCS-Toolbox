@@ -20,7 +20,7 @@
  *
  **************************************************************************/
 
-#include <QtGui/QApplication>
+#include <liblabelling_qt4/ExceptionAwareApplication.hh>
 #include <iostream>
 
 #include <liblabelling_qt4/LabellingMainWidget.hh>
@@ -61,7 +61,7 @@ int main(int argc, char **argv )
   signal(SIGSEGV, segfault_handler);
 #endif
 
-  QApplication a(argc, argv);
+  ExceptionAwareApplication a(argc, argv);
   
   /*---------------------------------------------------------------------
    *  Specify command line arguments and descriptions

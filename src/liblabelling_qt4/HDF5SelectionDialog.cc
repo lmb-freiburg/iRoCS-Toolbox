@@ -300,7 +300,7 @@ void HDF5TreeWidget::_createDatasetItem(
       }
     }
     std::stringstream shapeStream;
-    for (size_t d = 0; d < nDims; ++d) shapeStream << extents[d] << " x ";
+    for (size_t d = 0; d < nDims - 1; ++d) shapeStream << extents[d] << " x ";
     shapeStream << extents[nDims - 1];
     item->setText(3, shapeStream.str().c_str());
   }

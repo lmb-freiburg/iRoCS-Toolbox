@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- * Copyright (C) 2015 Thorsten Falk
+ * Copyright (C) 2015 Kun Liu, Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
  * 
@@ -19,14 +19,6 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  **************************************************************************/
-
-//============================================================================
-// Name        : cellSegmentation.cpp
-// Author      : Kun Liu
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
 
 #include <iostream>
 

@@ -101,6 +101,7 @@ labelling_qt4include_HEADERS = \
     CSVDataIO.hh \
     LabellingMainWidget.hh \
     OrthoViewOverlay.hh \
+    ExceptionAwareApplication.hh \
     PluginInterface.hh
 
 MOC_GEN_SOURCES = \
@@ -185,6 +186,7 @@ MOC_GEN_SOURCES = \
 	moc_SVGDataIO.cc \
 	moc_HDF5DataIO.cc \
 	moc_ColorMapEditorWidget.cc \
+	moc_ExceptionAwareApplication.cc \
 	moc_LabellingMainWidget.cc
 
 libLabelling_qt4_la_SOURCES = \
@@ -273,6 +275,7 @@ libLabelling_qt4_la_SOURCES = \
 	HDF5DataIO.cc \
 	CSVDataIO.cc \
 	LabellingMainWidget.cc \
+	ExceptionAwareApplication.cc \
 	OrthoViewOverlay.cc \
 	ColorMap.cc \
 	IColorMapEditor.cc \
