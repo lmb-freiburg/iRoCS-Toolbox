@@ -1,0 +1,1233 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**************************************************************************
+**       Title: 
+**    $RCSfile: $
+**   $Revision: $$Name:  $
+**       $Date: $
+**   Copyright: GPL $Author: $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log: $
+**
+**
+**************************************************************************/
+
+// Disable Warnings about usage of unsafe functions
+#ifdef _WIN32
+#pragma warning(disable : 4996)
+#endif
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  Constructor
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename Hdf5FilePolicy>
+svt::StDataHdf5Templ<Hdf5FilePolicy>::StDataHdf5Templ( const char * path, 
+                                 unsigned int fm)
+        :H5::H5File( path, fm),
+         _exceptionFlag( false)
+{
+  /*--------------------------------------------------------------
+   *  turn off library warnings
+   *--------------------------------------------------------------*/
+  H5::Exception::dontPrint();
+  /*--------------------------------------------------------------
+   *  store path for debugging outputs
+   *--------------------------------------------------------------*/
+  _fileName = path;
+  
+  // /*--------------------------------------------------------------
+  //  *  Check, if file is valid, otherwise throw exception
+  //  *--------------------------------------------------------------*/
+  // if( !this->isHdf5(_fileName))
+  // {
+    
+  //   LoadError err;
+  //   std::string errmsg = "Not a Hdf5 file";
+  //   if( fm == H5F_ACC_RDONLY || fm == H5F_ACC_RDWR)
+  //   {
+  //     err << "Can't open file `" << path << "': " << errmsg;
+  //   }
+  //   else
+  //   {
+  //     err << "Can't create file `" << path << "': " << errmsg;
+  //   }
+    
+  //   throw( err);
+  // }
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION: setValue
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename Hdf5FilePolicy>
+template<typename T>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::
+setValue( const std::string& key, const T& value)
+{
+  _writeAttribute(value, key, _varName );
+}
+
+template<typename Hdf5FilePolicy>
+inline void svt::StDataHdf5Templ<Hdf5FilePolicy>::setValue( const std::string& key, const std::string& value)
+{
+//   std::cerr << "writing string" << std::endl;
+  SVM_ASSERT(BlitzH5Type<std::string>::dataType == TYPE_STRING);
+  //setValue( key, value);
+  _writeAttribute(value, key, _varName );
+  
+}
+
+
+template<typename Hdf5FilePolicy>
+inline void svt::StDataHdf5Templ<Hdf5FilePolicy>::setValue( const std::string& key, const unsigned int& value)
+{
+  
+  setValue( key, (long)value);
+  
+}
+
+template<typename Hdf5FilePolicy>
+inline void svt::StDataHdf5Templ<Hdf5FilePolicy>::setValue( const std::string& key, const unsigned long& value)
+{
+
+  setValue( key, (long)value);
+
+}
+
+template<typename Hdf5FilePolicy>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::setArray(
+    const std::string& key, 
+    const std::vector<std::string>::iterator& arrBegin, size_t size)
+{
+  SVM_ASSERT( size > 0);
+  _writeAttribute(size, key + "/size", "");
+  std::vector<std::string>::iterator it = arrBegin;
+  for (size_t i = 0; i < size; ++i, ++it)
+  {
+    std::stringstream attName;
+    attName << key << "/" << i;
+    _writeAttribute(*it, attName.str(), "");
+  }
+}
+
+template<typename Hdf5FilePolicy>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::setArray(
+    const std::string& key, 
+    const std::vector<std::string>::const_iterator& arrBegin, size_t size)
+{
+  SVM_ASSERT( size > 0);
+  unsigned int arrSize = size;
+  _writeAttribute(size, key + "/size", "");
+  std::vector<std::string>::const_iterator it = arrBegin;
+  for (size_t i = 0; i < size; ++i, ++it)
+  {
+    std::stringstream attName;
+    attName << key << "/" << i;
+    _writeAttribute(*it, attName.str(), "");
+  }
+}
+
+template<typename Hdf5FilePolicy>
+template<typename ForwardIter>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::setArray( const std::string& key, 
+                                    const ForwardIter& arrBegin,
+                                    size_t size)
+{
+  if (size == 0)
+      std::cerr << "Cannot save '" << key << "' with " << size << " entries"
+                << std::endl;
+  
+  SVM_ASSERT( size > 0);
+  size_t arrSize = size;
+  /*-----------------------------------------------------------------------
+   *  Check, if variable already exists and has correct dimensions
+   *-----------------------------------------------------------------------*/
+  hid_t dataset = -1;
+  hid_t dataspace = -1;
+  int rank = -1;
+  hid_t ds_type;
+  hsize_t* dims_out;
+  herr_t status;
+  try
+  {
+    dataset = _getDataSet(key);
+    dataspace = H5Dget_space(dataset);
+    rank = H5Sget_simple_extent_ndims(dataspace);
+    ds_type = H5Dget_type(dataset);
+    dims_out = new hsize_t[rank];
+    H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+  }
+  catch(...)
+  {
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    dataset = -1;
+  }
+  
+  if( dataset > 0)
+  {
+    if( rank != 1
+        || H5Tequal(BlitzH5Type<double>::h5DataTypeId(),ds_type) <= 0
+        || dims_out[0] != size)
+    {
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+      SaveError err;
+      err << _fileName << ": Can't save data: variable `" << key
+          << "' already exists with different dimensions or type";
+      throw( err);
+    }
+  }
+  else
+  {
+
+//     std::cerr << "create dataset" << std::endl;
+    /*---------------------------------------------------------------------
+     *  create variable
+     *---------------------------------------------------------------------*/
+    int destRank = 1;
+    hsize_t* destDims = new hsize_t[destRank];
+    destDims[0] = arrSize;
+    hsize_t* maxDims = new hsize_t[destRank];
+    maxDims[0] = H5S_UNLIMITED;
+    dataspace = H5Screate_simple(destRank, destDims, NULL);
+    if(dataspace<0)
+    {
+      SaveError err;
+      err << _fileName << ": Can't create dataspace for variable `" << key
+          << "'";
+      throw( err);
+    }
+    ds_type = BlitzH5Type<double>::h5DataTypeId();
+    dataset  = H5Dcreate2(this->getLocId(),
+                         key.c_str(),
+                         ds_type,
+                         dataspace,
+                         H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    
+    if(dataset<0)
+    {
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+      SaveError err;
+      err << _fileName << ": Can't create dataset for variable `" << key
+          << "'";
+      throw( err);
+    }
+  }
+
+  
+  /*------------------------------------------------------------
+   *  copy data into c-style array 
+   *------------------------------------------------------------*/
+  std::valarray<double> cArr(size);
+  std::copy( arrBegin, arrBegin+size, &cArr[0]);
+  
+  /*-----------------------------------------------------------------------
+   *  write array to Hdf5 file
+   *-----------------------------------------------------------------------*/
+  status = H5Dwrite(dataset,
+                    ds_type,
+                    H5S_ALL,
+                    dataspace,
+                    H5P_DEFAULT,
+                    &cArr[0]);
+  
+  H5Sclose(dataspace);
+  H5Dclose(dataset);
+  if(status<0)
+  {
+    SaveError err;
+    err << _fileName << ": Can't save data: variable `" << key
+        << "'";
+    throw( err);
+  }
+}
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  setFVArray
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename Hdf5FilePolicy>
+template<typename ForwardIter>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::setFVArray( const std::string& key, 
+                                    const ForwardIter& arrBegin,
+                                    size_t size)
+{
+  SVM_ASSERT( size > 0);
+  size_t nrows = size;
+  size_t ncols = (*arrBegin)->size() + 1; // 1 more for label
+
+  /*-----------------------------------------------------------------------
+   *  Check, if variable already exists and has correct dimensions
+   *-----------------------------------------------------------------------*/
+  hid_t dataset = -1;
+  hid_t dataspace = -1;
+  int rank = -1;
+  hid_t ds_type;
+  hsize_t* dims_out;
+  herr_t status;
+  try
+  {
+    dataset = _getDataSet(key);
+    dataspace = H5Dget_space(dataset);
+    rank = H5Sget_simple_extent_ndims(dataspace);
+    ds_type = H5Dget_type(dataset);
+    dims_out = new hsize_t[rank];
+    H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+  }
+  catch(...)
+  {
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    dataset = -1;
+  }
+  
+  if( dataset > 0)
+  {
+    if( rank != 2
+        || H5Tequal(BlitzH5Type<double>::h5DataTypeId(),ds_type) <= 0
+        || dims_out[0] != nrows
+        || dims_out[1] != ncols)
+    {
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+      SaveError err;
+      err << _fileName << ": Can't save data: variable `" << key
+          << "' already exists with different dimensions or type";
+      throw( err);
+    }
+  }
+  else
+  {
+
+//     std::cerr << "create dataset" << std::endl;
+    /*---------------------------------------------------------------------
+     *  create variable
+     *---------------------------------------------------------------------*/
+    int destRank = 2;
+    hsize_t* destDims = new hsize_t[destRank];
+    destDims[0] = nrows;
+    destDims[1] = ncols;
+    hsize_t* maxDims = new hsize_t[destRank];
+    maxDims[0] = H5S_UNLIMITED;
+    maxDims[1] = H5S_UNLIMITED;
+    dataspace = H5Screate_simple(destRank, destDims, NULL);
+    if(dataspace<0)
+    {
+      SaveError err;
+      err << _fileName << ": Can't create dataspace for variable `" << key
+          << "'";
+      throw( err);
+    }
+    ds_type = BlitzH5Type<double>::h5DataTypeId();
+    dataset  = H5Dcreate2(this->getLocId(),
+                         key.c_str(),
+                         ds_type,
+                         dataspace,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    
+    if(dataset<0)
+    {
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+      SaveError err;
+      err << _fileName << ": Can't create dataset for variable `" << key
+          << "'";
+      throw( err);
+    }
+  }
+
+  /*-----------------------------------------------------------------------
+   *  create big c-style array fill in all data
+   *-----------------------------------------------------------------------*/
+  std::valarray<double> array(nrows*ncols);
+  ForwardIter srcP = arrBegin;
+  double* trgP = &array[0];
+  for( unsigned int row = 0; row < nrows; ++row)
+  {
+    *trgP = (**srcP).getLabel();
+    ++trgP;
+    for( unsigned int col = 0; col < ncols-1; ++col)
+    {
+      *trgP = (**srcP)[col];
+      ++trgP;
+    }
+    ++srcP;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  write array to Hdf5 file
+   *-----------------------------------------------------------------------*/
+  status = H5Dwrite(dataset,
+                    ds_type,
+                    H5S_ALL,
+                    dataspace,
+                    H5P_DEFAULT,
+                    &array[0]);
+  
+  H5Sclose(dataspace);
+  H5Dclose(dataset);
+  if(status<0)
+  {
+    SaveError err;
+    err << _fileName << ": Can't save data: variable `" << key
+        << "'";
+    throw( err);
+  }
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION: getValue
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename Hdf5FilePolicy>
+template<typename T> 
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::
+getValue( const std::string& key, T& value) const
+{
+  if( !_existsAttribute(key,_varName) && _exceptionFlag) 
+  {
+    KeyNotFoundError e;
+    e << " No Attribute :"<<key.c_str()<<":"<<_varName;
+    throw(e);
+  }
+  try
+  {
+    if( getAttrArraySize(key) != 1)
+    {
+      InvalidDataTypeError err;
+      err << _fileName << ": tried to read array '" 
+          << key << "' as single value";
+      //if( _exceptionFlag) 
+          throw err;
+    }
+    _readAttribute(value,key,_varName);
+  }
+  catch(LoadError& err)
+  {
+    if( _exceptionFlag) 
+    {
+      KeyNotFoundError e;
+      e << err.what();
+      throw(e);
+    }
+  }
+  
+}
+
+template<typename Hdf5FilePolicy>
+inline void svt::StDataHdf5Templ<Hdf5FilePolicy>::getValue(
+    const std::string& key, std::string& value) const
+{
+  try
+  {
+    _readAttribute(value,key,_varName);
+  }
+  catch( LoadError& err)
+  {
+    if( _exceptionFlag) 
+    {
+      KeyNotFoundError e;
+      e << err.what();
+      throw(e);
+    }
+  }
+  
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getArraySize
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename Hdf5FilePolicy>
+size_t
+svt::StDataHdf5Templ<Hdf5FilePolicy>::getAttrArraySize(  std::string key) const
+{
+  try
+  {
+    hid_t attribute = _getAttribute(key, _varName);
+    hid_t dataspace = H5Aget_space(attribute);
+    if (dataspace < 0)
+    {
+      H5Aclose(attribute);
+      LoadError e;
+      e << "Could not retrieve dataspace for attribute " << key << "\n";
+      
+      throw(e);
+    }
+    hssize_t arraySize = H5Sget_simple_extent_npoints(dataspace);
+    H5Sclose(dataspace);
+    H5Aclose(attribute);
+    return arraySize;
+  }
+  catch( LoadError& err)
+  {
+    if( _exceptionFlag) 
+    {
+      KeyNotFoundError e;
+      e << err.what();
+      throw(e);
+    }
+  }
+  return 0;
+}
+template<typename Hdf5FilePolicy>
+size_t 
+svt::StDataHdf5Templ<Hdf5FilePolicy>::getArraySize(  std::string key) const
+{
+  try
+  {
+    unsigned int i;
+    _readAttribute(i, key + "/size", "");
+    return i;
+  }
+  catch (...)
+  {}
+  
+  try
+  {
+//     std::cerr << "key " << key << std::endl;
+    hid_t dataset = _getDataSet(key);
+    SVM_ASSERT(dataset>0);
+    hid_t dataspace = H5Dget_space(dataset);
+    SVM_ASSERT(dataspace>0);
+    hid_t ds_type = H5Dget_type(dataset);
+    int rank = H5Sget_simple_extent_ndims(dataspace);
+    hsize_t* dims_out = new hsize_t[rank];
+    H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+    size_t arraySize = static_cast<size_t>(dims_out[0]);
+//     std::cerr << "arraySize = dims_out[0]" << arraySize << std::endl;
+    if( H5Tequal(BlitzH5Type<double>::h5DataTypeId(),ds_type) <= 0 || rank != 1)
+    {
+      H5Tclose(ds_type);
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+      InvalidDataTypeError err;
+      err << _fileName << ": requested Hdf5 variable '" << key 
+          << "' for feature vectors must be 1-dim and of type double";
+      throw err;
+    }
+    H5Tclose(ds_type);
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    return arraySize;
+  }
+  catch( LoadError& err)
+  {
+    if( _exceptionFlag) 
+    {
+      KeyNotFoundError e;
+      e << err.what() << "\n";
+      e << "wrong array size: "<<key.c_str()<<":"<<_varName;
+      throw e;
+    }
+  }
+  return 0;
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getFVArraySize
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename Hdf5FilePolicy>
+size_t svt::StDataHdf5Templ<Hdf5FilePolicy>::getFVArraySize( std::string key) const
+
+{
+  try
+  {
+    hid_t dataset = _getDataSet(key);
+    SVM_ASSERT(dataset>0);
+    hid_t dataspace = H5Dget_space(dataset);
+    SVM_ASSERT(dataspace>0);
+    int rank = H5Sget_simple_extent_ndims(dataspace);
+    hsize_t* dims_out = new hsize_t[rank];
+    H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+    size_t arraySize = static_cast<size_t>(dims_out[0]);
+    hid_t ds_type = H5Dget_type(dataset);
+
+    if( H5Tequal(BlitzH5Type<double>::h5DataTypeId(),ds_type) <= 0 || rank != 2)
+    {
+      H5Tclose(ds_type);
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+      InvalidDataTypeError err;
+      err << _fileName << ": requested Hdf5 variable '" << key 
+          << "' for feature vectors must be 2-dim and of type double";
+      throw err;
+    }
+    H5Tclose(ds_type);
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    return arraySize;
+  }
+  catch(LoadError &)
+  {
+    if( _exceptionFlag) 
+    {
+      KeyNotFoundError e;
+      e << "wrong array size: "<<key.c_str()<<":"<<_varName;
+      throw e;
+    }
+  }
+  return 0;
+}
+
+template<typename Hdf5FilePolicy>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::getArray(
+    const std::string& key, 
+    const std::vector<std::string>::iterator& arrBegin,
+    int containerSize) const
+{
+  int storedSize;
+  try
+  {
+    _readAttribute(storedSize, key + "/size", "");
+  }
+  catch (...)
+  {
+    if( _exceptionFlag) 
+    {
+      KeyNotFoundError err;
+      err << "Key not found: " << key.c_str() << ":" << _varName;
+      throw err;
+    }    
+  }
+  int copySize = (storedSize < containerSize) ? storedSize : containerSize;
+  if (storedSize > containerSize)
+  {
+    ContainerTooSmallError err;
+    err << _fileName << ": tried to load " << storedSize << " values (key = '" 
+        << key <<"') into a container of size " << containerSize;
+    throw err;
+  }
+  std::vector<std::string>::iterator it = arrBegin;
+  for (int i = 0; i < copySize; ++i, ++it)
+  {
+    std::stringstream attName;
+    attName << key << "/" << i;
+    _readAttribute(*it, attName.str(), "");
+  }
+}
+
+template<typename Hdf5FilePolicy>
+template<typename ForwardIter> 
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::getArray(
+    const std::string& key, const ForwardIter& arrBegin, 
+    int containerSize) const
+{
+  try
+  {
+    hid_t dataset = _getDataSet(key);
+    SVM_ASSERT(dataset>0);
+    hid_t dataspace = H5Dget_space(dataset);
+    SVM_ASSERT(dataspace>0);
+    size_t numValues = getArraySize(key);
+//     std::cerr << "getArraySize(key): " << getArraySize(key) << std::endl;
+//     std::cerr << "containerSize: " << containerSize << std::endl;
+    hid_t ds_type = H5Dget_type(dataset);
+    if( containerSize != -1 && numValues > static_cast<size_t>(containerSize))
+    {
+      H5Tclose(ds_type);
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+      ContainerTooSmallError err;
+      err << _fileName << ": tried to load " << numValues << " values (key = '" 
+        << key <<"') into a container of size " << containerSize;
+      throw err;
+    }
+
+    ForwardIter p = arrBegin;
+    std::valarray<double> tmp(numValues);
+    /*---------------------------------------------------------------------
+     *  read the data
+     *---------------------------------------------------------------------*/
+    
+    herr_t status = H5Dread(dataset,
+                            ds_type,
+                            H5S_ALL,
+                            dataspace,
+                            H5P_DEFAULT,
+                            &tmp[0]);
+    H5Tclose(ds_type);
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    if(status<0)
+    {
+      KeyNotFoundError err;
+      throw err;
+    }
+    for(size_t i = 0; i < numValues; ++i)
+    {
+      // The iterator doesn't tell the data type to iterate over, that's silly
+      // because it leads to an implicit cast... and the corresponding warning
+      // if the output iterator doesn't iterate over doubles
+      getValue(tmp, *p, static_cast<long>(i));
+      ++p;
+    }
+    
+  }
+  catch( KeyNotFoundError& err)
+  {
+    if( _exceptionFlag) 
+    {
+	err << "Key not found: "<<key.c_str()<<":"<<_varName;
+	throw err;
+    }
+  }
+}
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION: getFVArray
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename Hdf5FilePolicy>
+template<typename ForwardIter> 
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::getFVArray(
+    const std::string& key, 
+    const ForwardIter& arrBegin, 
+    int) const
+{
+  try
+  {
+    hid_t dataset = _getDataSet(key);
+    SVM_ASSERT(dataset>0);
+    hid_t dataspace = H5Dget_space(dataset);
+    SVM_ASSERT(dataspace>0);
+    int rank = H5Sget_simple_extent_ndims(dataspace);
+    hid_t ds_type = H5Dget_type(dataset);
+    hsize_t* dims_out = new hsize_t[rank];
+    H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+    if( H5Tequal(BlitzH5Type<double>::h5DataTypeId(),ds_type) <= 0 || rank != 2)
+    {
+      H5Tclose(ds_type);
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+      InvalidDataTypeError err;
+      err << _fileName << ": requested Hdf5 variable '" << key 
+          << "' for feature vectors must be 2-dim and of type ncDouble";
+      throw err;
+    }
+    
+    size_t nrows = static_cast<size_t>(dims_out[0]);
+    size_t ncols = static_cast<size_t>(dims_out[1]);
+    delete[] dims_out;
+    /*---------------------------------------------------------------------
+     *  create temporary array, to load the values into
+     *---------------------------------------------------------------------*/
+    std::valarray<double> array(nrows*ncols);
+    /*---------------------------------------------------------------------
+     *  read the data
+     *---------------------------------------------------------------------*/
+    
+    herr_t status = H5Dread(dataset,
+                            ds_type,
+                            H5S_ALL,
+                            dataspace,
+                            H5P_DEFAULT,
+                            &array[0]);
+    /*---------------------------------------------------------------------
+     *  TODO: Error handling using status  
+     *---------------------------------------------------------------------*/
+    svt_check::avoidUnunsedVariableWarning(status);
+    
+
+
+      H5Sclose(dataspace);
+      H5Dclose(dataset);
+    /*---------------------------------------------------------------------
+     *  fill data into feature vectors
+     *---------------------------------------------------------------------*/
+    double* srcP = &array[0];
+    ForwardIter trgP = arrBegin;
+    for( unsigned int row = 0; row < nrows; ++row)
+    {
+      SVM_ASSERT( *trgP != 0);  /* ensure that feature vectors are already
+                                   allocated */
+      (**trgP).resize( ncols-1);
+      (**trgP).setLabel( *srcP);
+      ++srcP;
+
+      for( unsigned int col = 0; col < ncols-1; ++col)
+      {
+        (**trgP)[col] = *srcP;
+        ++srcP;
+      }
+      ++trgP;
+    }
+    
+  }
+  catch( KeyNotFoundError& err)
+  {
+    if( _exceptionFlag) 
+    {
+	err << "wrong array size: "<<key.c_str()<<":"<<_varName;
+	throw;
+    }
+  }
+
+}
+
+template<typename Hdf5FilePolicy>
+template<typename DataT>
+void
+svt::StDataHdf5Templ<Hdf5FilePolicy>::
+_writeAttribute( const DataT& val,
+                 const std::string& attName,
+                 const std::string& dsName)
+{
+  if (_existsAttribute(attName, dsName)) _deleteAttribute(attName, dsName);
+
+  hid_t datatype = BlitzH5Type<DataT>::h5DataTypeId();
+  hsize_t dims = _getVecSize(val);
+
+  hid_t dataspace;
+  // Note: strings are arrays of single characters of type H5T_C_S1
+  // So we do not set the type to scalar:
+  // if(dims > 1 && BlitzH5Type<DataT>::dataType != TYPE_STRING)
+  if( dims > 0 && BlitzH5Type<DataT>::dataType == TYPE_STRING) {
+    dataspace = H5Screate_simple(1, &dims, NULL);
+  } else if( dims > 1) {
+    dataspace = H5Screate_simple(1, &dims, NULL);
+  } else {
+    dataspace = H5Screate(H5S_SCALAR);
+  }
+
+  hid_t attribute;
+  if (dsName != "") // local dataset attribute
+  {
+    if (_existsDataSet(dsName))
+    {
+      hid_t dataset = _getDataSet(dsName);
+      attribute = H5Acreate2( dataset, attName.c_str(), datatype,
+                              dataspace, H5P_DEFAULT, H5P_DEFAULT);
+      H5Dclose(dataset);
+      H5Sclose(dataspace);
+      if (attribute < 0)
+      {
+        H5Tclose(datatype);
+        SaveError e;
+        e << "Could not create attribute '" << attName << "' for dataset '"
+          << dsName << "'\n";
+        throw(e);
+      }
+    }
+    else
+    {
+      H5Sclose(dataspace);
+      H5Tclose(datatype);
+      SaveError e;
+      e << "Could not create attribute '" << attName << "' for dataset '"
+        << dsName << "'. '" << dsName << "' does not exist!\n";
+      throw(e);
+    }
+  }
+  else // global attribute
+  {
+    _createGroup(dataSetGroup(attName));
+    hid_t group = _getGroup(dataSetGroup(attName));
+    attribute = H5Acreate2(group, dataSetName(attName).c_str(), datatype,
+                           dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Gclose(group);
+    H5Sclose(dataspace);
+    if (attribute < 0)
+    {
+      H5Tclose(datatype);
+      SaveError e;
+      e << "Could not create global attribute '" << attName << "'\n";
+      throw(e);
+    }
+  }
+
+  // write attribute
+  herr_t status;
+  status = H5Awrite(attribute, datatype,
+                    _getVecData(val));
+  H5Aclose(attribute);
+  H5Tclose(datatype);
+  if(status < 0)
+  {
+    SaveError e;
+    std::string errorMsg = _getErrorMsg();
+    e << "Error while writing attribute: " << errorMsg << "\n";
+    throw(e);
+  }
+
+}
+
+template<typename Hdf5FilePolicy>
+template<typename DataT>
+void
+svt::StDataHdf5Templ<Hdf5FilePolicy>::
+_readAttribute( DataT& outVal,
+                const std::string& attName,
+                const std::string& dsName) const
+{
+  hid_t attribute = _getAttribute(attName, dsName);
+  hid_t datatype = H5Aget_type(attribute);
+  hid_t dataspace = H5Aget_space(attribute);
+  if (dataspace < 0)
+  {
+    H5Tclose(datatype);
+    H5Aclose(attribute);
+    LoadError e;
+    e << "Could not retrieve dataspace for attribute " << attName << "\n";
+
+    throw(e);
+  }
+
+  if (H5Tget_class(datatype) == H5T_STRING)
+  {
+    if (H5Sget_simple_extent_ndims(dataspace) != 1
+       && H5Sget_simple_extent_ndims(dataspace) != 0)
+    {
+      H5Sclose(dataspace);
+      H5Tclose(datatype);
+      H5Aclose(attribute);
+      LoadError e;
+      e << "'" << attName << "' seems to be a multi-dimensional string. That "
+        << "is not supported!\n";
+
+      throw(e);
+    }
+
+    char* tmp = 0;
+
+    // empty string case
+    if(H5Sget_simple_extent_ndims(dataspace) == 0)
+    {
+      tmp = new char[1];
+      tmp[0] = 0;
+    }
+    // a regular string
+    else
+    {
+      hsize_t size, maxSize;
+      H5Sget_simple_extent_dims(dataspace, &size, &maxSize);
+
+      // If the found string is an old style string, size will be 1
+      // in that case the length of the string is stored as a datatype
+      // attribute and the correct size can be read. If it really was
+      // a single character it doesn't harm, because then the size
+      // will not be altered
+      if (size == 1) size = H5Tget_size(datatype);
+      tmp = new char[size + 1];
+      memset(reinterpret_cast<void*>(tmp), 0, size + 1);
+      herr_t status = H5Aread(attribute, datatype, tmp);
+      if (status < 0) 
+      {
+        std::cerr << "Warning: H5Aread() returned status < 0" << std::endl;
+      }
+    }
+    H5Sclose(dataspace);
+    H5Tclose(datatype);
+    H5Aclose(attribute);
+
+    if(!_setVecData(outVal, tmp))
+    {
+      LoadError e;
+      e << "Reading of string attribute '" << attName
+        << "' failed. Could not convert character array '"
+        << tmp << "' to requested type\n";
+
+      delete[] tmp;
+      throw(e);
+    }
+
+    delete[] tmp;
+
+    return;
+  }
+  H5Tclose(datatype);
+
+  // Starting from here the attribute can only contain non-string data
+
+  int rank = H5Sget_simple_extent_ndims(dataspace);
+  hsize_t current_dim_null = 1;
+  if (rank != 0) // Vectorial attribute
+  {
+    hsize_t* current_dims = new hsize_t[rank];
+    hsize_t* max_dims = new hsize_t[rank];
+    H5Sget_simple_extent_dims(dataspace, current_dims, max_dims);
+    current_dim_null = current_dims[0];
+    delete[] current_dims;
+    delete[] max_dims;
+  }
+  H5Sclose(dataspace);
+  // check on the type of the attribute
+  hid_t dataFileType = H5Aget_type(attribute);
+
+  if (BlitzH5Type<DataT>::isVectorial())
+  {
+    if (rank == 0 || rank == 1) {
+      _setVecSize(outVal, current_dim_null);
+    } else {
+      H5Aclose(attribute);
+      LoadError e;
+      e << "Reading of attribute '" << attName << "', dataset '" << dsName
+        << "' failed! Multi-Dimensional attributes are not supported.\n";
+
+      throw(e);
+    }
+  }
+  else if (rank != 0)
+  {
+    H5Aclose(attribute);
+    LoadError e;
+    e << "Reading of attribute '" << attName << "', dataset '" << dsName
+      << " failed! Reading of vectorial attribute into scalar variable not "
+      << "supported.\n";
+
+    throw(e);
+  }
+
+//   // old string types (backward compatibility)
+//   hid_t oldStringDataType = H5Tcopy(H5T_C_S1);
+//   H5Tset_size(oldStringDataType, H5T_VARIABLE);
+//   H5Tset_strpad(oldStringDataType, H5T_STR_NULLTERM);
+
+//   // new string datatype
+//   hid_t newStringDataType = BlitzH5Type<std::string>::h5DataTypeId();
+
+//   if( H5Tequal( dataFileType, oldStringDataType) > 0
+//       || H5Tequal( dataFileType, newStringDataType) > 0)
+//   {
+//     char* rs = new char[current_dim_null+1];
+//     memset( (void*)rs, 0, current_dim_null+1);
+
+//     if( H5Tequal( dataFileType, oldStringDataType) > 0)
+//     {
+// #ifdef BLITZHDF5_DEBUG
+//       std::cerr << "Reading an old-style H5T_STRING of rank " << rank
+//               << "." << std::endl;
+// #endif
+//       //char* rs;
+//       //H5Aread(attribute, oldStringDataType, &rs);
+//       H5Aread(attribute, oldStringDataType, rs);
+//     }
+//     else if( H5Tequal( dataFileType, newStringDataType) > 0)
+//     {
+// #ifdef BLITZHDF5_DEBUG
+//       std::cerr << "Reading an new-style H5T_C_S1 of rank " << rank
+//               << ", size " << current_dim_null << std::endl;
+// #endif
+//       H5Aread(attribute, newStringDataType, rs);
+//     }
+//     H5Tclose(oldStringDataType);
+//     H5Tclose(newStringDataType);
+
+//     if( !_setVecData(outVal,rs))
+//     {
+//       delete[] rs;
+//       H5Tclose(dataFileType);
+//       H5Aclose(attribute);
+//       LoadError e;
+//       e << "Reading of attribute '" << attName << "', dataset '" << dsName
+//         << " failed! Conversion of attribute into requested output type "
+//         << "not supported.\n";
+// #ifdef BLITZHDF5_DEBUG
+//       std::cerr << "void BlitzH5File::_readAttribute(outVal, \"" << attName
+//               << "\", \"" << dsName
+//               << "\") aborted, throwing LoadError(\"" << e.str()
+//               << "\") (#objects = " << getObjCount() << ")" << std::endl;
+// #endif
+//       throw(e);
+//     }
+//     delete[] rs;
+//   }
+//   else
+//   {
+
+    Buffer* buf = NULL;
+    buf = new Buffer(dataFileType, current_dim_null);
+    H5Aread(attribute, dataFileType, (void*)(buf->ptr()));
+    buf->castToType(_getVecData2(outVal));
+    if(buf != NULL) delete buf;
+//     H5Tclose(dataFileType);
+//   }
+  H5Tclose(dataFileType);
+  H5Aclose(attribute);
+
+}
+
+
+template<typename Hdf5FilePolicy>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::Buffer::castToType(std::string* dest)
+{
+    if( _dataSetClass == H5T_INTEGER && _precision == 8)
+    {
+      dest->resize(_size);
+      char* src = reinterpret_cast<char*>(_buffer_ptr);
+      for( size_t pos = 0; pos < _size; pos++) (*dest)[pos] = src[pos];
+    }
+    else
+    {
+      SVMError e;
+      e << "StDataHdf5::Buffer::castToType(): DataType not supported!\n";
+      throw(e);
+    }
+}
+
+template<typename Hdf5FilePolicy>
+template<typename T>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::Buffer::castToType(T* dest)
+{
+    if( _dataSetClass == H5T_INTEGER)
+    {
+      if(_precision == 8)
+      {
+        if(_isSigned)
+        {
+          this->_doRealCast<T,char>(dest);
+        }
+        else
+        {
+          this->_doRealCast<T,unsigned char>(dest);
+        }
+      }
+      else if(_precision == 16)
+      {
+        if(_isSigned)
+        {
+          this->_doRealCast<T,short>(dest);
+        }
+        else
+        {
+          this->_doRealCast<T,unsigned short>(dest);
+        }
+      }
+      else if(_precision == 32)
+      {
+        if(_isSigned)
+        {
+          this->_doRealCast<T,int>(dest);
+        }
+        else
+        {
+          this->_doRealCast<T,unsigned int>(dest);
+        }
+      }
+      else if(_precision == 64)
+      {
+        if(_isSigned)
+        {
+          //this->_doRealCast<T,long>(dest);
+#if defined(_WIN32)
+          this->_doRealCast<T,__int64>(dest);
+#else
+          this->_doRealCast<T,int64_t>(dest);
+#endif
+        }
+        else
+        {
+          //this->_doRealCast<T,unsigned long>(dest);
+#if defined(_WIN32)
+          this->_doRealCast<T,unsigned __int64>(dest);
+#else
+          this->_doRealCast<T,uint64_t>(dest);
+#endif
+        }
+      }
+    }
+    else if( _dataSetClass == H5T_FLOAT)
+    {
+      if(_precision == 32)
+      {
+        this->_doRealCast<T,float>(dest);
+      }
+      else if(_precision == 64)
+      {
+        this->_doRealCast<T,double>(dest);
+      }
+    }
+    else
+    {
+      SVMError e;
+      e << "StDataHdf5::Buffer::castToType(): DataType not supported!\n";
+      throw(e);
+    }
+}
+
+template<typename Hdf5FilePolicy>
+template<typename T1, typename T2>
+void svt::StDataHdf5Templ<Hdf5FilePolicy>::Buffer::_doRealCast( T1* dest)
+{
+  T2* src = reinterpret_cast<T2*>(_buffer_ptr);
+  for( size_t pos = 0; pos < _size; pos++)
+  {
+    dest[pos] = static_cast<T1>(src[pos]);
+    // TODO this is not really correct
+    // dest[pos] = src[pos];
+  }
+}
+
+template<typename Hdf5FilePolicy>
+svt::StDataHdf5Templ<Hdf5FilePolicy>::Buffer::Buffer(const hid_t& dataSetType, const hsize_t size)
+        :_buffer_ptr(0)
+{
+  _dataSetClass = H5Tget_class(dataSetType);
+  _precision = H5Tget_precision(dataSetType);
+  _isSigned = H5Tget_sign(dataSetType);
+  _size = size;
+}
+
+template<typename Hdf5FilePolicy>
+svt::StDataHdf5Templ<Hdf5FilePolicy>::Buffer::~Buffer()
+{
+  if(_buffer_ptr != 0)
+    free(_buffer_ptr);
+}
+
+template<typename Hdf5FilePolicy>
+void*
+svt::StDataHdf5Templ<Hdf5FilePolicy>::Buffer::ptr()
+{
+  if( _dataSetClass == H5T_INTEGER || _dataSetClass == H5T_FLOAT)
+  {
+    _sizeOfbufferType = _precision/8;
+    _buffer_ptr = malloc(_size*_sizeOfbufferType);
+    return _buffer_ptr;
+
+  }
+  else
+  {
+    SVMError e;
+    e << "StDataHdf5::Buffer::ptr(): DataType not supported!\n";
+    throw(e);
+  }
+  return 0;
+}
+

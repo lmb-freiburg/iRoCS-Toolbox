@@ -1,0 +1,77 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2008 Alexandra Teynor
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**********************************************************
+ *                                                          
+ *  ColorConvert.cc
+ *  Implements the ColorConvert class
+ *  => for a precise description of the classes see 
+ *  respective header files
+ *                                                       
+ **********************************************************
+ *
+ *
+ *********************************************************/	
+
+#include "ImageTools.hh"
+
+
+template<typename DataType>
+void ImageTools::layeredToVectorial(
+    const blitz::Array<DataType,3>& layered,
+    blitz::Array<blitz::TinyVector<DataType,3>,2>& vectorial) {
+    
+    int h = layered.extent(1);
+    int w = layered.extent(2);
+    
+    vectorial.resize(h,w);
+    
+    for (int i=0; i<h; ++i) {
+        for (int j=0; j<w; ++j) {
+            vectorial(i,j)[0] = layered(0,i,j);
+            vectorial(i,j)[1] = layered(1,i,j);
+            vectorial(i,j)[2] = layered(2,i,j);            
+        }
+    }
+}
+
+template<typename DataType>
+void ImageTools::vectorialToLayered(
+    const blitz::Array<blitz::TinyVector<DataType,3>,2>& vectorial,
+    blitz::Array<DataType,3>& layered) {
+
+    int h = vectorial.extent(0);
+    int w = vectorial.extent(1);
+    
+    layered.resize(3,h,w);
+    
+    for (int i=0; i<h; ++i) {
+        for (int j=0; j<w; ++j) {
+            layered(0,i,j) = vectorial(i,j)[0];
+            layered(1,i,j) = vectorial(i,j)[1];
+            layered(2,i,j) = vectorial(i,j)[2];            
+        }
+    }
+}
+
+
+

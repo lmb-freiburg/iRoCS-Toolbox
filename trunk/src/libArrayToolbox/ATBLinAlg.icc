@@ -1,0 +1,641 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<int Dim>
+  blitz::TinyVector<ptrdiff_t,Dim> modulo(
+      blitz::TinyVector<ptrdiff_t,Dim> const &a,
+      blitz::TinyVector<ptrdiff_t,Dim> const &b)
+  {
+    blitz::TinyVector<ptrdiff_t,Dim> res;
+    for (int d = 0; d < Dim; ++d) res(d) = modulo(a(d), b(d));
+    return res;    
+  }
+
+  template<typename DataT,int Dim>
+  blitz::TinyVector<DataT,Dim+1>
+  euclideanToHomogeneous(blitz::TinyVector<DataT,Dim> const &pos)
+  {
+    blitz::TinyVector<DataT,Dim+1> res;
+    for (int d = 0; d < Dim; ++d) res(d) = pos(d);
+    res(Dim) = 1;
+    return res;
+  }
+  
+  template<typename DataT,int Dim>
+  blitz::TinyVector<DataT,Dim-1>
+  homogeneousToEuclidean(blitz::TinyVector<DataT,Dim> const &pos)
+  {
+    blitz::TinyVector<DataT,Dim-1> res;
+    for (int d = 0; d < Dim-1; ++d) res(d) = pos(d);
+    res /= pos(Dim-1);
+    return res;
+  }
+
+  template<typename DataT>
+  blitz::TinyVector<DataT,3>
+  rotate(blitz::TinyVector<DataT,3> const &vec,
+         blitz::TinyVector<DataT,3> const &axis,
+         DataT angle)
+  {
+    blitz::TinyVector<DataT,3> naxis(
+        axis / std::sqrt(blitz::dot(axis, axis)));
+    Quaternion<DataT> qr(cos(angle / 2),
+                        sin(angle / 2) * naxis(0),
+                        sin(angle / 2) * naxis(1),
+                        sin(angle / 2) * naxis(2));
+    Quaternion<DataT> qv(0, vec(0), vec(1), vec(2));
+    Quaternion<DataT> qres = qr * qv * conj(qr);
+    blitz::TinyVector<DataT,3> res(qres(1), qres(2), qres(3));
+    return res;
+  }
+
+  template<typename DataT>
+  double dot(blitz::Array<DataT,1> const &vec1,
+             blitz::Array<DataT,1> const &vec2)
+  {
+    assert(vec1.extent(0) == vec2.extent(0));
+    return blitz::sum(vec1 * vec2);    
+  }
+
+  template<typename DataT, int Dim1, int Dim2>
+  blitz::TinyMatrix<DataT,Dim1,Dim2>
+  outerProduct(blitz::TinyVector<DataT,Dim1> const &vec1,
+               blitz::TinyVector<DataT,Dim2> const &vec2)
+  {
+    blitz::TinyMatrix<DataT,Dim1,Dim2> res;
+    for (int i = 0; i < Dim1; ++i) 
+        for (int j = 0; j < Dim2; ++j) 
+            res(i, j) = vec1(i) * vec2(j);
+    return res;    
+  }
+
+  template<typename DataT, int Dim1, int Dim2>
+  blitz::TinyMatrix<DataT,Dim2,Dim1>
+  transpose(blitz::TinyMatrix<DataT,Dim1,Dim2> const &in)
+  {
+    blitz::TinyMatrix<DataT,Dim2,Dim1> out;
+    for (int r = 0; r < Dim1; ++r) 
+    {
+      for (int c = 0; c < Dim2; ++c) 
+      {
+        out(c, r) = in(r, c);
+      }
+    }
+    return out;    
+  }
+      
+  template<typename DataT>
+  blitz::Array<DataT,2> transpose(blitz::Array<DataT,2> const &in)
+  {
+    blitz::Array<DataT,2> out(in.extent(1), in.extent(0));
+    for (int r = 0; r < in.extent(1); ++r) 
+        for (int c = 0; c < in.extent(0); ++c) 
+            out(r, c) = in(c, r);
+    return out;
+  }
+
+  template<typename MatrixT, typename BaseT, int Dim>
+  blitz::TinyVector<BaseT,Dim>
+  mvMult(MatrixT const &m, blitz::TinyVector<BaseT,Dim> const &v)
+  {
+    blitz::TinyVector<BaseT,Dim> res;
+    res = 0;
+    for (int d1 = 0; d1 < Dim; ++d1) 
+    {
+      for (int d2 = 0; d2 < Dim; ++d2) 
+      {
+        res(d1) += m(d1, d2) * v(d2);
+      }
+    }
+    return res;    
+  }
+
+  template<typename BaseT, int Dim>
+  blitz::TinyVector<BaseT,Dim>
+  mvMult(blitz::Array<BaseT,2> const &m, blitz::TinyVector<BaseT,Dim> const &v)
+  {
+    assert(m.extent(0) == Dim && m.extent(1) == Dim);
+    blitz::TinyVector<BaseT,Dim> res;
+    res = 0;
+    for (int d1 = 0; d1 < Dim; ++d1) 
+        for (int d2 = 0; d2 < Dim; ++d2) 
+            res(d1) += m(d1, d2) * v(d2);
+    return res;
+  }
+
+  template<typename BaseT>
+  blitz::Array<BaseT,1>
+  mvMult(blitz::Array<BaseT,2> const &m, blitz::Array<BaseT,1> const &v)
+  {
+    assert(m.extent(1) == v.extent(0));
+    blitz::Array<BaseT,1> res(m.extent(0));
+    res = 0;
+    for (int d1 = 0; d1 < m.extent(0); ++d1) 
+    {
+      for (int d2 = 0; d2 < m.extent(1); ++d2) 
+      {
+        res(d1) += m(d1, d2) * v(d2);
+      }
+    }
+    return res;    
+  }
+
+  template<typename DataT>
+  blitz::Array<DataT,2>
+  mmMult(blitz::Array<DataT,2> const &A, blitz::Array<DataT,2> const &B)
+  {
+    assert(A.extent(1) == B.extent(0));
+    blitz::Array<DataT,2> res(A.extent(0), B.extent(1));
+    res = 0;
+    for (int i = 0; i < res.extent(0); ++i) 
+        for (int j = 0; j < res.extent(1); ++j) 
+            for (int k = 0; k < A.extent(1); ++k) 
+                res(i, j) += A(i, k) * B(k, j);
+    return res;
+  }
+
+  template<typename DataT, int Dim1, int Dim2, int Dim3>
+  blitz::TinyMatrix<DataT,Dim1,Dim3>
+  mmMult(blitz::TinyMatrix<DataT,Dim1,Dim2> const &A,
+         blitz::TinyMatrix<DataT,Dim2,Dim3> const &B)
+  {
+    blitz::TinyMatrix<DataT,Dim1,Dim3> res;
+    res = 0;
+    for (int i = 0; i < Dim1; ++i) 
+    {
+      for (int j = 0; j < Dim3; ++j) 
+      {
+        for (int k = 0; k < Dim2; ++k) 
+        {
+          res(i, j) += A(i, k) * B(k, j);
+        }
+      }
+    }
+    return res;
+  }
+
+  template<int Dim>
+  blitz::TinyMatrix<double,Dim,Dim>
+  invert(blitz::TinyMatrix<double,Dim,Dim> const &A)
+  {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    gsl_set_error_handler(&atb_gsl_error_handler);
+
+    blitz::TinyMatrix<double,Dim,Dim> Acopy;
+    Acopy = A;
+    gsl_matrix* Agsl = GSLWrapper::getGSLView(Acopy);
+  
+    blitz::TinyMatrix<double,Dim,Dim> Ainv;
+    gsl_matrix* AinvGsl = GSLWrapper::getGSLView(Ainv);    
+  
+    int sign = 0;
+    int row_sq = Dim;
+    gsl_permutation* p = gsl_permutation_calloc(row_sq);
+    gsl_linalg_LU_decomp(Agsl, p, &sign);
+    gsl_linalg_LU_invert(Agsl, p, AinvGsl);
+    gsl_permutation_free(p);
+    delete Agsl;
+    delete AinvGsl;
+    return Ainv;    
+  }
+
+  template<int Dim>
+  double determinant(blitz::TinyMatrix<double,Dim,Dim> const &A)
+  {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    gsl_set_error_handler(&atb_gsl_error_handler);
+
+    blitz::TinyMatrix<double,Dim,Dim> Acopy;
+    Acopy = A;
+    gsl_matrix* Agsl = GSLWrapper::getGSLView(Acopy);
+
+    int sign = 0;
+    int row_sq = Dim;
+    gsl_permutation* p = gsl_permutation_calloc(row_sq);
+    gsl_linalg_LU_decomp(Agsl, p, &sign);
+    double det = gsl_linalg_LU_det(Agsl, sign);
+    gsl_permutation_free(p);
+    delete Agsl;
+    return det;
+  }
+
+  template<typename DataT>
+  void sortElements(blitz::TinyVector<DataT,3> &v, SortingType sort)
+  {
+    switch (sort)
+    {
+
+    case Ascending :
+      if (v(0) < v(1))
+      {
+        if (v(0) < v(2))
+        {
+          if (v(1) >= v(2))
+          {
+            double swap = v(1);
+            v(1) = v(2);
+            v(2) = swap;
+          }
+        }
+        else
+        {
+          double swap = v(0);
+          v(0) = v(2);
+          v(2) = v(1);
+          v(1) = swap;
+        }
+      }
+      else
+      {
+        if (v(0) < v(2))
+        {
+          double swap = v(0);
+          v(0) = v(1);
+          v(1) = swap;
+        }
+        else
+        {
+          if (v(1) < v(2))
+          {
+            double swap = v(0);
+            v(0) = v(1);
+            v(1) = v(2);
+            v(2) = swap;
+          }
+          else
+          {
+            double swap = v(0);
+            v(0) = v(2);
+            v(2) = swap;
+          }
+        }
+      }
+      return;
+
+    case Descending:
+      if (v(0) > v(1))
+      {
+        if (v(0) > v(2))
+        {
+          if (v(1) <= v(2))
+          {
+            double swap = v(1);
+            v(1) = v(2);
+            v(2) = swap;
+          }
+        }
+        else
+        {
+          double swap = v(0);
+          v(0) = v(2);
+          v(2) = v(1);
+          v(1) = swap;
+        }
+      }
+      else
+      {
+        if (v(0) > v(2))
+        {
+          double swap = v(0);
+          v(0) = v(1);
+          v(1) = swap;
+        }
+        else
+        {
+          if (v(1) > v(2))
+          {
+            double swap = v(0);
+            v(0) = v(1);
+            v(1) = v(2);
+            v(2) = swap;
+          }
+          else
+          {
+            double swap = v(0);
+            v(0) = v(2);
+            v(2) = swap;
+          }
+        }
+      }
+      return;
+
+    case AbsAscending :
+      if (std::abs(v(0)) < std::abs(v(1)))
+      {
+        if (std::abs(v(0)) < std::abs(v(2)))
+        {
+          if (std::abs(v(1)) >= std::abs(v(2)))
+          {
+            double swap = v(1);
+            v(1) = v(2);
+            v(2) = swap;
+          }
+        }
+        else
+        {
+          double swap = v(0);
+          v(0) = v(2);
+          v(2) = v(1);
+          v(1) = swap;
+        }
+      }
+      else
+      {
+        if (std::abs(v(0)) < std::abs(v(2)))
+        {
+          double swap = v(0);
+          v(0) = v(1);
+          v(1) = swap;
+        }
+        else
+        {
+          if (std::abs(v(1)) < std::abs(v(2)))
+          {
+            double swap = v(0);
+            v(0) = v(1);
+            v(1) = v(2);
+            v(2) = swap;
+          }
+          else
+          {
+            double swap = v(0);
+            v(0) = v(2);
+            v(2) = swap;
+          }
+        }
+      }
+      return;
+
+    case AbsDescending:
+      if (std::abs(v(0)) > std::abs(v(1)))
+      {
+        if (std::abs(v(0)) > std::abs(v(2)))
+        {
+          if (std::abs(v(1)) <= std::abs(v(2)))
+          {
+            double swap = v(1);
+            v(1) = v(2);
+            v(2) = swap;
+          }
+        }
+        else
+        {
+          double swap = v(0);
+          v(0) = v(2);
+          v(2) = v(1);
+          v(1) = swap;
+        }
+      }
+      else
+      {
+        if (std::abs(v(0)) > std::abs(v(2)))
+        {
+          double swap = v(0);
+          v(0) = v(1);
+          v(1) = swap;
+        }
+        else
+        {
+          if (std::abs(v(1)) > std::abs(v(2)))
+          {
+            double swap = v(0);
+            v(0) = v(1);
+            v(1) = v(2);
+            v(2) = swap;
+          }
+          else
+          {
+            double swap = v(0);
+            v(0) = v(2);
+            v(2) = swap;
+          }
+        }
+      }
+      return;
+
+    case None:
+      return;
+    }
+
+  }
+
+  void eigenvalueDecompositionRealSymmetric(
+      blitz::TinyMatrix<double,2,2> const &A,
+      blitz::TinyVector<double,2> &lambda,
+      SortingType sort = Descending);
+
+  void computeEigenvectors(
+      blitz::TinyMatrix<double,2,2> const &A,
+      blitz::TinyMatrix<double,2,2> &U,
+      blitz::TinyVector<double,2> const &lambda);
+
+  // Explicit fast version for 2D
+  void eigenvalueDecompositionRealSymmetric(
+      blitz::TinyMatrix<double,2,2> const &A,
+      blitz::TinyMatrix<double,2,2> &U,
+      blitz::TinyVector<double,2> &lambda,
+      SortingType sort);
+      
+  void eigenvalueDecompositionRealSymmetric(
+      blitz::TinyMatrix<double,3,3> const &A,
+      blitz::TinyVector<double,3> &lambda,
+      SortingType sort = Descending);
+
+  void computeEigenvectors(
+      blitz::TinyMatrix<double,3,3> const &A,
+      blitz::TinyMatrix<double,3,3> &U,
+      blitz::TinyVector<double,3> const &lambda);
+
+  // Explicit fast version for 3D
+  void eigenvalueDecompositionRealSymmetric(
+      blitz::TinyMatrix<double,3,3> const &A,
+      blitz::TinyMatrix<double,3,3> &U,
+      blitz::TinyVector<double,3> &lambda,
+      SortingType sort);
+      
+  template<int Dim>
+  void eigenvalueDecompositionRealSymmetric(
+      blitz::TinyMatrix<double,Dim,Dim> const &A,
+      blitz::TinyVector<double,Dim> &lambda,
+      SortingType sort)
+  {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    gsl_set_error_handler(&atb_gsl_error_handler);
+
+    blitz::TinyMatrix<double,Dim,Dim> Acopy;
+    Acopy = A;
+    gsl_matrix* Agsl = GSLWrapper::getGSLView(Acopy);
+    gsl_vector* lambdaGsl = GSLWrapper::getGSLView(lambda);
+    gsl_vector* lambda2 = gsl_vector_alloc(Dim);
+  
+    gsl_eigen_symm_workspace* w = gsl_eigen_symm_alloc(Dim);
+    gsl_eigen_symm(Agsl, lambda2, w);
+
+    switch (sort)
+    {
+    case Ascending:
+      gsl_sort_vector_smallest(lambda.data(), Dim, lambda2);
+      break;
+    case Descending:
+      gsl_sort_vector_largest(lambda.data(), Dim, lambda2);
+      break;
+    case AbsAscending:
+    {
+      gsl_permutation *perm = gsl_permutation_alloc(Dim);
+      for (int d = 0; d < Dim; ++d)
+      {
+        lambdaGsl->data[d * lambdaGsl->stride] =
+            lambda2->data[d * lambda2->stride];
+        lambda2->data[d * lambda2->stride] =
+            std::abs(lambda2->data[d * lambda2->stride]);
+      }
+      gsl_sort_vector_index(perm, lambda2);
+      gsl_permute_vector(perm, lambdaGsl);
+      gsl_permutation_free(perm);
+      break;
+    }
+    case AbsDescending:
+    {
+      gsl_permutation *perm = gsl_permutation_alloc(Dim);
+      for (int d = 0; d < Dim; ++d)
+      {
+        lambdaGsl->data[d * lambdaGsl->stride] =
+            lambda2->data[d * lambda2->stride];
+        lambda2->data[d * lambda2->stride] =
+            -std::abs(lambda2->data[d * lambda2->stride]);
+      }
+      gsl_sort_vector_index(perm, lambda2);
+      gsl_permute_vector(perm, lambdaGsl);
+      gsl_permutation_free(perm);
+      break;
+    }
+    default:
+      break;
+    }
+  
+    gsl_eigen_symm_free(w);
+    gsl_vector_free(lambda2);
+    delete Agsl;
+    delete lambdaGsl;    
+  }
+
+  template<int Dim>
+  void computeEigenvectors(
+      blitz::TinyMatrix<double,Dim,Dim> const &A,
+      blitz::TinyMatrix<double,Dim,Dim> &U,
+      blitz::TinyVector<double,Dim> const &lambda)
+  {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    gsl_set_error_handler(&atb_gsl_error_handler);
+
+    blitz::TinyMatrix<double,Dim,Dim> Acopy;
+    Acopy = A;
+    gsl_matrix* Agsl = GSLWrapper::getGSLView(Acopy);
+    gsl_matrix* Ugsl = GSLWrapper::getGSLView(U);
+    gsl_vector* lambdaGsl = gsl_vector_alloc(Dim);
+  
+    gsl_eigen_symmv_workspace* w = gsl_eigen_symmv_alloc(Dim);
+    gsl_eigen_symmv(Agsl, lambdaGsl, Ugsl, w);
+
+    bool isOrderedAscending = true;
+    bool isOrderedDescending = true;
+    bool isOrderedAbsAscending = true;
+    bool isOrderedAbsDescending = true;
+    for (int d = 1; d < Dim; ++d)
+    {
+      isOrderedAscending &= lambda(d) < lambda(d - 1);
+      isOrderedDescending &= lambda(d - 1) < lambda(d);
+      isOrderedAbsAscending &= std::abs(lambda(d)) < std::abs(lambda(d - 1));
+      isOrderedAbsDescending &= std::abs(lambda(d - 1)) < std::abs(lambda(d));
+    }
+    if (isOrderedAscending)
+        gsl_eigen_gensymmv_sort(lambdaGsl, Ugsl, GSL_EIGEN_SORT_VAL_ASC);
+    else if (isOrderedDescending)
+        gsl_eigen_gensymmv_sort(lambdaGsl, Ugsl, GSL_EIGEN_SORT_VAL_DESC);
+    else if (isOrderedAbsAscending)
+        gsl_eigen_gensymmv_sort(lambdaGsl, Ugsl, GSL_EIGEN_SORT_ABS_ASC);
+    else if (isOrderedAbsDescending)
+        gsl_eigen_gensymmv_sort(lambdaGsl, Ugsl, GSL_EIGEN_SORT_ABS_DESC);
+  
+    gsl_eigen_symmv_free(w);
+    delete Agsl;
+    delete Ugsl;
+    gsl_vector_free(lambdaGsl);
+  }
+
+  template<int Dim>
+  void eigenvalueDecompositionRealSymmetric(
+      blitz::TinyMatrix<double,Dim,Dim> const &A,
+      blitz::TinyMatrix<double,Dim,Dim> &U,
+      blitz::TinyVector<double,Dim> &lambda,
+      SortingType sort)
+  {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    gsl_set_error_handler(&atb_gsl_error_handler);
+
+    blitz::TinyMatrix<double,Dim,Dim> Acopy;
+    Acopy = A;
+    gsl_matrix* Agsl = GSLWrapper::getGSLView(Acopy);
+    gsl_matrix* Ugsl = GSLWrapper::getGSLView(U);
+    gsl_vector* lambdaGsl = GSLWrapper::getGSLView(lambda);
+  
+    gsl_eigen_symmv_workspace* w = gsl_eigen_symmv_alloc(Dim);
+    gsl_eigen_symmv(Agsl, lambdaGsl, Ugsl, w);
+
+    switch (sort)
+    {
+    case Ascending:
+      gsl_eigen_gensymmv_sort(lambdaGsl, Ugsl, GSL_EIGEN_SORT_VAL_ASC);
+      break;
+    case Descending:
+      gsl_eigen_gensymmv_sort(lambdaGsl, Ugsl, GSL_EIGEN_SORT_VAL_DESC);
+      break;
+    case AbsAscending:
+      gsl_eigen_gensymmv_sort(lambdaGsl, Ugsl, GSL_EIGEN_SORT_ABS_ASC);
+      break;
+    case AbsDescending:
+      gsl_eigen_gensymmv_sort(lambdaGsl, Ugsl, GSL_EIGEN_SORT_ABS_DESC);
+      break;
+    default:
+      break;
+    }
+  
+    gsl_eigen_symmv_free(w);
+    delete Agsl;
+    delete Ugsl;
+    delete lambdaGsl;    
+  }
+
+}

@@ -1,0 +1,234 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename DataT, int Dim>
+  CentralGradientFilter<DataT,Dim>::CentralGradientFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _accuracy(SecondOrder)
+  {}
+
+  template<typename DataT, int Dim>
+  CentralGradientFilter<DataT,Dim>::CentralGradientFilter(
+      Accuracy accuracy, BoundaryTreatmentType btType,
+      DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _accuracy(accuracy)
+  {}
+
+  template<typename DataT, int Dim>
+  CentralGradientFilter<DataT,Dim>::~CentralGradientFilter()
+  {}
+  
+  template<typename DataT, int Dim>
+  typename CentralGradientFilter<DataT,Dim>::Accuracy
+  CentralGradientFilter<DataT,Dim>::accuracy() const
+  {
+    return _accuracy;
+  }
+
+  template<typename DataT, int Dim>
+  void CentralGradientFilter<DataT,Dim>::setAccuracy(Accuracy accuracy)
+  {
+    _accuracy = accuracy;
+  }
+
+  template<typename DataT, int Dim>
+  void CentralGradientFilter<DataT,Dim>::applyAlongDim(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter *pr) const
+  {
+    typedef typename traits<DataT>::HighPrecisionT hp_t;
+
+    if (&data != &filtered) filtered.resize(data.shape());
+    
+    ptrdiff_t n = data.extent(dim);
+    ptrdiff_t stride = data.stride(dim);
+
+    ptrdiff_t currentVoxel = 0;
+    int totalProgress = (pr != NULL) ?
+        (pr->taskProgressMax() - pr->taskProgressMin()) : 1;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < data.size() / n; ++i)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) continue;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+        {
+          if (currentVoxel % 1000 == 0)
+              pr->updateProgress(
+                  pr->taskProgressMin() + (totalProgress * currentVoxel) /
+                  (data.size() / n - 1));
+          ++currentVoxel;
+        }
+      }
+      blitz::TinyVector<ptrdiff_t,Dim> pos;
+      ptrdiff_t resid = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        if (d != dim)
+        {
+          pos(d) = resid % data.extent(d);
+          resid /= data.extent(d);
+        }
+      }
+      pos(dim) = 0;
+      
+      DataT const *constLineIter = &data(pos);
+      
+      // Copy the Array line into a temporary processing buffer
+      DataT *tmp = new DataT[n];
+      for (ptrdiff_t j = 0; j < n; ++j, constLineIter += stride)
+          tmp[j] = *constLineIter;
+      DataT *f = new DataT[n];
+      
+      if (_accuracy == SecondOrder)
+      {
+        double hInv = 1.0 / (2.0 * elementSizeUm(dim));
+        f[0] = DataT(
+            (hp_t(tmp[1]) - hp_t(this->p_bt->get(tmp, -1, n))) * hInv);
+        for (ptrdiff_t i = 1; i < n - 1; ++i)
+            f[i] = DataT(
+                (hp_t(tmp[i + 1]) - hp_t(tmp[i - 1])) * hInv);
+        f[n - 1] = DataT(
+            (hp_t(this->p_bt->get(tmp, n, n)) - hp_t(tmp[n - 2])) * hInv);
+      }
+      else if (_accuracy == FourthOrder)
+      {
+        double hInv = 1.0 / (elementSizeUm(dim) * elementSizeUm(dim));
+        f[0] = DataT(
+            (hp_t(this->p_bt->get(tmp, -2, n)) - hp_t(tmp[1]) -
+             8.0 * hp_t(this->p_bt->get(tmp, -1, n)) +
+             8.0 * hp_t(tmp[1]) - hp_t(tmp[2])) * hInv);
+        f[1] = DataT(
+            (hp_t(this->p_bt->get(tmp, -1, n)) - hp_t(tmp[1]) -
+             8.0 * hp_t(tmp[0]) + 8.0 * hp_t(tmp[2]) - hp_t(tmp[3])) * hInv);
+        for (ptrdiff_t i = 2; i < n - 2; ++i)
+            f[i] = DataT(
+                (hp_t(tmp[i - 2]) - 8.0 * hp_t(tmp[i - 1]) +
+                 8.0 * hp_t(tmp[i + 1]) - hp_t(tmp[i + 2])) * hInv);
+        f[n - 2] = DataT(
+            (hp_t(tmp[n - 4]) - 8.0 * hp_t(tmp[n - 3]) +
+             8.0 * hp_t(tmp[n - 1]) - hp_t(this->p_bt->get(tmp, n, n))) * hInv);
+        f[n - 1] = DataT(
+            (hp_t(tmp[n - 3]) - 8.0 * hp_t(tmp[n - 2]) +
+             8.0 * hp_t(this->p_bt->get(tmp, n, n)) -
+             hp_t(this->p_bt->get(tmp, n + 1, n))) * hInv);
+      }
+      else
+      {
+        std::cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation"
+                  << std::endl;
+        exit(-1);
+      }
+      DataT *lineIter = &filtered(pos);
+      for (ptrdiff_t j = 0; j < n; ++j, lineIter += stride)
+          *lineIter = f[j];
+
+      delete[] tmp;
+      delete[] f;      
+    }
+    if (pr != NULL) pr->setProgress(pr->taskProgressMax());
+  }
+
+  template<typename DataT, int Dim>
+  void CentralGradientFilter<DataT,Dim>::applyAlongDim(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter *pr) const
+  {
+    if (blitz::any(data.shape() != filtered.shape()))
+        filtered.resize(data.shape());
+    blitz::Array<DataT,Dim> tmp(data.shape());
+    applyAlongDim(data, elementSizeUm, tmp, dim, pr);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < data.size(); ++i)
+        filtered.data()[i](dim) = tmp.data()[i];
+    if (pr != NULL) pr->setProgress(pr->taskProgressMax());
+  }
+
+  template<typename DataT, int Dim>
+  void CentralGradientFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    filtered.resize(data.shape());
+    int progressMin = (pr != NULL) ? pr->taskProgressMin() : 0;
+    int progressMax = (pr != NULL) ? pr->taskProgressMax() : 100;
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) break;
+        pr->setTaskProgressMin(
+            progressMin + d * (progressMax - progressMin) / Dim);
+        pr->setTaskProgressMax(
+            progressMin + (d + 1) * (progressMax - progressMin) / Dim);
+      }
+      applyAlongDim(data, elementSizeUm, filtered, d, pr);
+    }
+    if (pr != NULL)
+    {
+      pr->setTaskProgressMin(progressMin);
+      pr->setTaskProgressMax(progressMax);
+      pr->setProgress(progressMax);
+    }
+  }
+
+  template<typename DataT, int Dim>
+  void CentralGradientFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      Accuracy accuracy, BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    CentralGradientFilter<DataT,Dim> f(accuracy, btType, boundaryValue);
+    f.apply(data, elementSizeUm, filtered, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void CentralGradientFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<ResultT,Dim> &filtered,
+      Accuracy accuracy, BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    CentralGradientFilter<DataT,Dim> f(accuracy, btType, boundaryValue);
+    f.apply(data, filtered, pr);
+  }
+
+}

@@ -1,0 +1,208 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+  
+  template<typename DataT, int Dim>
+  LaplacianFilter<DataT,Dim>::LaplacianFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : Filter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _accuracy(SecondOrder)
+  {}
+
+  template<typename DataT, int Dim>
+  LaplacianFilter<DataT,Dim>::LaplacianFilter(
+      Accuracy accuracy, BoundaryTreatmentType btType,
+      DataT const &boundaryValue)
+          : Filter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _accuracy(accuracy)
+  {}
+
+  template<typename DataT, int Dim>
+  LaplacianFilter<DataT,Dim>::~LaplacianFilter()
+  {}
+  
+  template<typename DataT, int Dim>
+  void LaplacianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    blitz::Array<DataT,Dim> *out;
+    if (&data == &filtered) out = new blitz::Array<DataT,Dim>(data.shape());
+    else
+    {
+      filtered.resize(data.shape());
+      out = &filtered;
+    }
+    blitz::TinyVector<ptrdiff_t,Dim> offset;
+    offset(Dim - 1) = 1;
+    for (int d = Dim - 2; d >= 0; --d)
+        offset(d) = offset(d + 1) * data.extent(d + 1);
+    
+    ptrdiff_t currentVoxel = 0;
+    int totalProgress = (pr != NULL) ?
+        (pr->taskProgressMax() - pr->taskProgressMin()) : 1;
+    if (_accuracy == FourthOrder)
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t i = 0; i < data.size(); ++i)
+      {
+        if (pr != NULL)
+        {
+          if (pr->isAborted()) continue;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+          {
+            if (currentVoxel % 100 == 0)
+                pr->updateProgress(
+                    pr->taskProgressMin() + (totalProgress * currentVoxel) /
+                    (data.size() - 1));
+            ++currentVoxel;
+          }
+        }
+        blitz::TinyVector<ptrdiff_t,Dim> p;
+        ptrdiff_t tmp = i;
+        for (int d = Dim - 1; d >= 0; --d)
+        {
+          p(d) = tmp % data.extent(d);
+          tmp /= data.extent(d);
+        }
+        out->data()[i] = DataT(0);
+        for (int r = 0; r < Dim; ++r)
+        {
+          DataT deriv = -30.0 * data.data()[i];
+          if (p(r) > 1 && p(r) < data.extent(r) - 2)
+          {
+            deriv += 
+                - data.data()[i - 2 * offset(r)]
+                + 16.0 * data.data()[i - offset(r)]
+                + 16.0 * data.data()[i + offset(r)]
+                - data.data()[i + 2 * offset(r)];
+          }
+          else
+          {
+            blitz::TinyVector<ptrdiff_t,Dim> rPos(p);
+            rPos(r) -= 2;
+            deriv -= this->p_bt->get(data, rPos);
+            rPos(r)++;
+            deriv += 16.0 * this->p_bt->get(data, rPos);
+            rPos(r) += 2;
+            deriv += 16.0 * this->p_bt->get(data, rPos);
+            rPos(r)++;
+            deriv -= this->p_bt->get(data, rPos);
+          }
+          out->data()[i] +=
+              deriv / (12.0 * elementSizeUm(r) * elementSizeUm(r));
+        }
+      }
+    }
+    else
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t i = 0; i < data.size(); ++i)
+      {
+        if (pr != NULL)
+        {
+          if (pr->isAborted()) continue;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+          {
+            if (currentVoxel % 1000 == 0)
+                pr->updateProgress(
+                    pr->taskProgressMin() + (totalProgress * currentVoxel) /
+                    (data.size() - 1));
+            ++currentVoxel;
+          }
+        }
+        blitz::TinyVector<ptrdiff_t,Dim> p;
+        ptrdiff_t tmp = i;
+        for (int d = Dim - 1; d >= 0; --d)
+        {
+          p(d) = tmp % data.extent(d);
+          tmp /= data.extent(d);
+        }
+        out->data()[i] = DataT(0);
+        for (int r = 0; r < Dim; ++r)
+        {
+          DataT deriv = -2.0 * data.data()[i];
+          if (p(r) > 0 && p(r) < data.extent(r) - 1)
+              deriv += data.data()[i - offset(r)] + data.data()[i + offset(r)];
+          else
+          {
+            blitz::TinyVector<ptrdiff_t,Dim> rPos(p);
+            rPos(r)--;
+            deriv += this->p_bt->get(data, rPos);
+            rPos(r) += 2;
+            deriv += this->p_bt->get(data, rPos);
+          }
+          out->data()[i] += deriv / (elementSizeUm(r) * elementSizeUm(r));
+        }
+      }
+    }
+    if (pr != NULL)
+    {
+      if (pr->isAborted())
+      {
+        if (&data == &filtered) delete out;
+        return;
+      }
+      pr->setProgress(pr->taskProgressMax());
+    }
+    if (&data == &filtered) 
+    {
+      std::memcpy(filtered.data(), out->data(), out->size() * sizeof(DataT));
+      delete out;
+    }
+  }
+
+  template<typename DataT, int Dim>
+  void LaplacianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      Accuracy accuracy, BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    LaplacianFilter<DataT,Dim> f(accuracy, btType, boundaryValue);
+    f.apply(data, elementSizeUm, filtered, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void LaplacianFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<ResultT,Dim> &filtered,
+      Accuracy accuracy, BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    LaplacianFilter<DataT,Dim> f(accuracy, btType, boundaryValue);
+    f.apply(data, filtered, pr);
+  }
+
+}

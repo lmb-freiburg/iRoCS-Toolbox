@@ -1,0 +1,138 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+#include <cstddef>
+
+
+
+
+
+template< typename FVP>
+bool labelLessThan( const FVP& v1, const FVP& v2)
+{
+  return (v1->getLabel() < v2->getLabel());
+}
+
+
+template< typename FV>
+void svt::GroupedTrainingData<FV>::create(const SVM_Problem<FV>& problem)
+{
+  /*-----------------------------------------------------------------------
+   *  create temporary feature vectors (using std::pair), that contain
+   *  the labels for sorting  
+   *-----------------------------------------------------------------------*/
+  SVM_ASSERT( problem.l != 0);
+
+  std::vector<std::pair<double,FV*> > fVecs(problem.l);
+  typename std::vector<std::pair<double,FV*> >::iterator p = fVecs.begin();
+  
+  for( int i = 0; i < problem.l; ++i)
+  {
+    p->first  = problem.y[i];
+    p->second = problem.x[i];
+    ++p;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  sort the array according to the labels
+   *-----------------------------------------------------------------------*/
+  std::sort( fVecs.begin(), fVecs.end());
+  
+  /*-----------------------------------------------------------------------
+   *  find start indizes of each class and copy feature vector pointers
+   *  to internal array
+   *-----------------------------------------------------------------------*/
+  _classStartIndizes.clear();
+  _classIndexToLabel.clear();
+  _featureVectors.resize( problem.l);
+  _labels.resize( problem.l);
+  _labelsStoredInExtraArray = true;
+  
+  _featureVectors[0] = fVecs[0].second;
+  _classStartIndizes.push_back(0);
+  _classIndexToLabel.push_back(fVecs[0].first);
+
+  for( int i = 1; i < problem.l; ++i)
+  {
+    _labels[i] = fVecs[i].first;
+    _featureVectors[i] = fVecs[i].second;
+    if( fVecs[i].first != fVecs[i-1].first )
+    {
+      _classStartIndizes.push_back(i);
+      _classIndexToLabel.push_back( fVecs[i].first);
+    }
+  }
+  _classStartIndizes.push_back( problem.l);
+}
+
+
+  
+
+template< typename FV>
+template< typename ForwardIter, typename Accessor>
+void svt::GroupedTrainingData<FV>::create( ForwardIter FV_begin,  
+                                           const ForwardIter& FV_end,
+                                           Accessor accessor)
+{
+  /*-----------------------------------------------------------------------
+   *  copy feature vector pointers to internal array
+   *-----------------------------------------------------------------------*/
+  ptrdiff_t size = FV_end - FV_begin;
+  SVM_ASSERT( size != 0);
+  _featureVectors.resize( size);
+  _labels.resize( 0);
+  _labelsStoredInExtraArray = false;
+
+  ForwardIter srcP = FV_begin;
+  typename std::vector<FV*>::iterator trgP = _featureVectors.begin();  
+  for( int i = 0; i < size; ++i)
+  {
+    *trgP = &(accessor(srcP));
+    ++srcP;
+    ++trgP;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  sort the array according to the labels
+   *-----------------------------------------------------------------------*/
+  std::stable_sort( _featureVectors.begin(), _featureVectors.end(), labelLessThan<FV*>);
+  
+  /*-----------------------------------------------------------------------
+   *  find start indizes of each class 
+   *-----------------------------------------------------------------------*/
+  _classStartIndizes.clear();
+  _classIndexToLabel.clear();
+  _classStartIndizes.push_back(0);
+  _classIndexToLabel.push_back(_featureVectors[0]->getLabel());
+  
+  for( int i = 1; i < size; ++i)
+  {
+    if( _featureVectors[i]->getLabel() != _featureVectors[i-1]->getLabel())
+    {
+      _classStartIndizes.push_back(i);
+      _classIndexToLabel.push_back(_featureVectors[i]->getLabel());
+    }
+  }
+  _classStartIndizes.push_back(static_cast<unsigned int>(size));
+  
+}

@@ -1,0 +1,24 @@
+The iRoCS Toolbox was written by members of the Image Analysis Lab at the
+University of Freiburg
+
+Main authors:
+
+Thorsten Falk     falk@cs.uni-freiburg.de
+Kun Liu           liu@cs.uni-freiburg.de
+Olaf Ronneberger  ronneber@cs.uni-freiburg.de
+
+Contributing authors:
+
+Matthias Schlachter, Marco Reisert, Henrik Skibbe, Margret Keuper,
+Robert Bensch, Alexandra Teynor, Mario Emmenlauer, Benjamin Ummenhofer
+
+Address:
+
+Georges-Köhler-Allee Geb. 52
+79110 Freiburg i. Brsg.
+Germany
+
+
+Thirdparty libraries:
+
+S2kit: Copyright (C) 2004 Peter J. Kostelec and Daniel N. Rockmore

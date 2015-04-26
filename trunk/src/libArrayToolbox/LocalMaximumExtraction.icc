@@ -1,0 +1,254 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename Type, typename IndexT, int Dim>
+  void
+  extractLocalMaxima(blitz::Array<Type,Dim> const &data,
+                     std::list< blitz::TinyVector<IndexT,Dim> > &localMaxima,
+                     NHood nh, iRoCS::ProgressReporter *progress)
+  {
+    extractLocalMaxima(
+        data, localMaxima, traits<Type>::smallest, nh, progress);
+  }
+
+  template<typename Type, typename IndexT, int Dim>
+  void
+  extractLocalMaxima(blitz::Array<Type,Dim> const &data,
+                     std::list< blitz::TinyVector<IndexT,Dim> > &localMaxima,
+                     Type const &minValue,
+                     NHood nh, iRoCS::ProgressReporter *progress) 
+  {
+    if (blitz::any(data.shape() < 3)) return;
+
+    if (progress != NULL && !progress->updateProgressMessage(
+            "Preparing neighborhood")) return;
+
+    std::vector< blitz::TinyVector<BlitzIndexT,Dim> > neighbors;
+    switch (nh) 
+    {
+    case SIMPLE_NHOOD :
+    {
+      for (int d = 0; d < Dim; ++d) 
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> nb(BlitzIndexT(0));
+        nb(d) = -1;
+        neighbors.push_back(nb);
+        nb(d) = 1;
+        neighbors.push_back(nb);
+      }
+      break;
+    }
+    case COMPLEX_NHOOD :
+    {
+      int nElements = 3;
+      for (int d = 1; d < Dim; ++d) nElements *= 3;
+    
+      blitz::TinyVector<BlitzIndexT,Dim> index(BlitzIndexT(0));
+      int fraction;
+      for (int i = 0; i < nElements; ++i) 
+      {
+        fraction = i;
+        for (int d = Dim - 1; d >= 0; --d) 
+        {
+          index(d) = fraction % 3;
+          fraction /= 3;
+        }
+        if (blitz::any(index != BlitzIndexT(1)))
+            neighbors.push_back(index - BlitzIndexT(1));
+      }
+      break;
+    }
+    }
+  
+    if (progress != NULL && !progress->updateProgressMessage(
+            "Extracting local maxima")) return;
+
+    double pStart = (progress != NULL) ? progress->taskProgressMin() : 0;
+    double pScale =
+        (progress != NULL) ? (progress->taskProgressMax() - pStart) : 1.0;
+    BlitzIndexT progressModulus =
+        static_cast<BlitzIndexT>((data.size() - 1) / pScale);
+
+    ptrdiff_t p = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (BlitzIndexT i = 0; i < data.size(); ++i)
+    {
+      if (progress != NULL)
+      {
+        if (progress->isAborted()) continue;
+        if (p % progressModulus == 0)
+            progress->updateProgress(
+                static_cast<int>(pStart + pScale * p / (data.size() - 1)));
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+        ++p;
+      }
+    
+      if (data.data()[i] < minValue) continue;
+
+      blitz::TinyVector<BlitzIndexT,Dim> pos;
+      BlitzIndexT tmp = i;
+      int d = Dim - 1;
+      for (; d >= 0; --d)
+      {
+        pos(d) = tmp % data.extent(d);
+        if (pos(d) == 0 || pos(d) == data.extent(d) - 1) break;
+        tmp /= data.extent(d);
+      }
+      if (d >= 0) continue;
+    
+      size_t nb_index = 0;
+      for (; nb_index < neighbors.size(); ++nb_index)
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> nbIndex = pos + neighbors[nb_index];
+        if (data(nbIndex) >= data.data()[i]) break;
+      }
+      if (nb_index == neighbors.size()) 
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+          localMaxima.push_back(pos);
+    }
+    if (progress != NULL) progress->setProgress(progress->taskProgressMax());
+  }
+
+  template<typename Type, typename IndexT, int Dim>
+  void
+  extractLocalMaxima(blitz::Array<Type,Dim> const &data,
+                     std::vector< blitz::TinyVector<IndexT,Dim> > &localMaxima,
+                     NHood nh, iRoCS::ProgressReporter *progress)
+  {
+    extractLocalMaxima(
+        data, localMaxima, traits<Type>::smallest, nh, progress);
+  }
+
+  template<typename Type, typename IndexT, int Dim>
+  void
+  extractLocalMaxima(blitz::Array<Type,Dim> const &data,
+                     std::vector< blitz::TinyVector<IndexT,Dim> > &localMaxima,
+                     Type const &minValue,
+                     NHood nh, iRoCS::ProgressReporter *progress) 
+  {
+    if (blitz::any(data.shape() < 3)) return;
+
+    if (progress != NULL && !progress->updateProgressMessage(
+            "Preparing neighborhood")) return;
+
+    std::vector< blitz::TinyVector<BlitzIndexT,Dim> > neighbors;
+    switch (nh) 
+    {
+    case SIMPLE_NHOOD :
+    {
+      for (int d = 0; d < Dim; ++d) 
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> nb(BlitzIndexT(0));
+        nb(d) = -1;
+        neighbors.push_back(nb);
+        nb(d) = 1;
+        neighbors.push_back(nb);
+      }
+      break;
+    }
+    case COMPLEX_NHOOD :
+    {
+      int nElements = 3;
+      for (int d = 1; d < Dim; ++d) nElements *= 3;
+    
+      blitz::TinyVector<BlitzIndexT,Dim> index(BlitzIndexT(0));
+      int fraction;
+      for (int i = 0; i < nElements; ++i) 
+      {
+        fraction = i;
+        for (int d = Dim - 1; d >= 0; --d) 
+        {
+          index(d) = fraction % 3;
+          fraction /= 3;
+        }
+        if (blitz::any(index != BlitzIndexT(1)))
+            neighbors.push_back(index - BlitzIndexT(1));
+      }
+      break;
+    }
+    }
+  
+    if (progress != NULL && !progress->updateProgressMessage(
+            "Extracting local maxima")) return;
+
+    double pStart = (progress != NULL) ? progress->taskProgressMin() : 0;
+    double pScale =
+        (progress != NULL) ? (progress->taskProgressMax() - pStart) : 1.0;
+    BlitzIndexT progressModulus =
+        static_cast<BlitzIndexT>((data.size() - 1) / pScale);
+
+    ptrdiff_t p = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (BlitzIndexT i = 0; i < data.size(); ++i)
+    {
+      if (progress != NULL)
+      {
+        if (progress->isAborted()) continue;
+        if (p % progressModulus == 0)
+            progress->updateProgress(
+                static_cast<int>(pStart + pScale * p / (data.size() - 1)));
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+        ++p;
+      }
+    
+      if (data.data()[i] < minValue) continue;
+
+      blitz::TinyVector<BlitzIndexT,Dim> pos;
+      BlitzIndexT tmp = i;
+      int d = Dim - 1;
+      for (; d >= 0; --d)
+      {
+        pos(d) = tmp % data.extent(d);
+        if (pos(d) == 0 || pos(d) == data.extent(d) - 1) break;
+        tmp /= data.extent(d);
+      }
+      if (d >= 0) continue;
+    
+      size_t nb_index = 0;
+      for (; nb_index < neighbors.size(); ++nb_index)
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> nbIndex = pos + neighbors[nb_index];
+        if (data(nbIndex) >= data.data()[i]) break;
+      }
+      if (nb_index == neighbors.size()) 
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+          localMaxima.push_back(pos);
+    }
+    if (progress != NULL) progress->setProgress(progress->taskProgressMax());
+  }
+
+}

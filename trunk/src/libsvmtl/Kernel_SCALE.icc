@@ -1,0 +1,262 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**************************************************************************
+**       Title: 
+**    $RCSfile$
+**   $Revision: 4820 $$Name$
+**       $Date: 2011-11-08 10:57:01 +0100 (Tue, 08 Nov 2011) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.2  2007/01/10 09:50:27  fehr
+**  cache size bug sixed
+**
+**  Revision 1.1  2004/09/03 07:11:39  ronneber
+**  inisital revison
+**
+**
+**
+**************************************************************************/
+
+#include <math.h>
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  calcScaleAndOffset
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename KERNEL>
+template< typename ForwardIter, typename Accessor>
+void svt::Kernel_SCALE<KERNEL>::calcScaleAndOffset( 
+    const ForwardIter& fvBegin, 
+    const ForwardIter& fvEnd,
+    Accessor accessor) const
+{
+  typedef typename Accessor::template Traits<ForwardIter>::value_type FV;
+
+  /*-----------------------------------------------------------------------
+   *  ensure that fv array is not empty
+   *-----------------------------------------------------------------------*/
+  size_t nFV = fvEnd - fvBegin;
+  SVM_ASSERT( nFV > 0);
+
+  /*-----------------------------------------------------------------------
+   *  get number of components (assuming that all feature vectors have
+   *  same number of components )
+   *-----------------------------------------------------------------------*/
+  size_t nComponents = accessor(fvBegin).size();
+  
+  _offset.resize( nComponents);
+  _scaleFactor.resize( nComponents);
+  
+  if( _algorithm == "minmax")
+  {
+    std::vector<double> minVals( nComponents);
+    std::vector<double> maxVals( nComponents);
+    
+    /*---------------------------------------------------------------------
+     *   init minVals and maxVals with first FV
+     *---------------------------------------------------------------------*/
+    const FV& firstFV = accessor(fvBegin);
+    
+    for( unsigned int i= 0; i < nComponents; ++i)
+    {
+      minVals[i] = firstFV[i];
+      maxVals[i] = minVals[i];
+    }
+    
+    /*---------------------------------------------------------------------
+     *  Now search for min and max for each component in remaining vectors
+     *---------------------------------------------------------------------*/
+    ForwardIter p = fvBegin;
+    ++p;
+    for( unsigned int i = 1; i < nFV; ++i, ++p)
+    {
+      const FV& fv = accessor(p);
+      for( unsigned int j = 0; j < nComponents; ++j)
+      {
+        double val = fv[j];
+        if( val < minVals[j]) minVals[j] = val;
+        if( val > maxVals[j]) maxVals[j] = val;
+      }
+    }
+    
+    /*---------------------------------------------------------------------
+     *  calculate offset ans scaleFactor from min and max, so that min
+     *  become -1 and max becomes +1
+     *---------------------------------------------------------------------*/
+    for( unsigned int i= 0; i < nComponents; ++i)
+    {
+      double range = maxVals[i] - minVals[i];
+      if( range == 0)
+      {
+        _scaleFactor[i] = 1;
+      }
+      else
+      {
+        _scaleFactor[i] = 2 / range;
+      }
+      
+      _offset[i] =  -minVals[i] - range / 2;
+    }
+  }
+  else if( _algorithm == "stddev")
+  {
+    /*---------------------------------------------------------------------
+     *  calculate mean
+     *---------------------------------------------------------------------*/
+    std::vector<double> meanVals( nComponents);
+    std::fill( meanVals.begin(), meanVals.end(), 0);
+    
+    ForwardIter p = fvBegin;
+    for( size_t i = 0; i < nFV; ++i, ++p)
+    {
+      const FV& fv = accessor(p);
+      for( size_t j = 0; j < nComponents; ++j)
+      {
+        meanVals[j] += fv[static_cast<int>(j)];
+      }
+    }
+    
+    for( size_t j = 0; j < nComponents; ++j)
+    {
+      meanVals[j] /= static_cast<double>(nFV);
+    }
+
+    /*---------------------------------------------------------------------
+     *  calculate variance
+     *---------------------------------------------------------------------*/
+    std::vector<double> variance( nComponents);
+    std::fill( variance.begin(), variance.end(), 0);
+
+    p = fvBegin;
+    for( size_t i = 0; i < nFV; ++i, ++p)
+    {
+      const FV& fv = accessor(p);
+      for( size_t j = 0; j < nComponents; ++j)
+      {
+        double v = fv[static_cast<int>(j)] - meanVals[j];
+        variance[j] += v * v;
+      }
+    }
+
+    for( size_t j = 0; j < nComponents; ++j)
+    {
+      variance[j] /= static_cast<double>(nFV - 1);
+    }
+
+    /*---------------------------------------------------------------------
+     *  calculate resulting offset and scale factor
+     *---------------------------------------------------------------------*/
+    for( size_t j= 0; j < nComponents; ++j)
+    {
+      double stddev = ::sqrt( variance[j]);
+      if( stddev == 0.0)
+      {
+        _scaleFactor[j] = 1.0;
+      }
+      else
+      {
+        _scaleFactor[j] = 1.0 / stddev;
+      }
+      
+      _offset[j] =  -meanVals[j];
+    }
+    
+  }
+  else
+  {
+    UnknownScaleAlgorithm err;
+    err << "unknown scale algorithm '" << _algorithm << "'.";
+    throw err;
+  }
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  updateCache
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename KERNEL>
+template< typename ForwardIter, typename Accessor>
+void svt::Kernel_SCALE<KERNEL>::updateCache( const ForwardIter& fvBegin,  
+                                             const ForwardIter& fvEnd,
+                                             Accessor accessor,
+                                             ProgressReporter* pr) const
+{
+  /*--------------------------------------------------------------
+   *  update cache of underlying kernel
+   *--------------------------------------------------------------*/
+  _kernel.updateCache( fvBegin, fvEnd, accessor, pr);
+
+  /*-------------------------------------------------------------
+   *  if algorithm is specified, calculate offsets and scale
+   *  factors
+   *-------------------------------------------------------------*/
+  if( _algorithm != "")
+  {
+    calcScaleAndOffset( fvBegin, fvEnd, accessor);
+  }
+  
+  /*---------------------------------------------------------------
+   *  search max uid
+   *---------------------------------------------------------------*/
+  unsigned int maxUID = 0;
+  size_t nFV = fvEnd - fvBegin;
+  ForwardIter p = fvBegin;
+  for( size_t i = 0; i < nFV; ++i, ++p)
+  {
+    if( accessor(p).uniqueID() > maxUID)
+    {
+      maxUID = accessor(p).uniqueID();
+    }
+  }
+  SVM_ASSERT( maxUID <= MAX_BELIEVABLE_UNIQUE_ID);
+  
+  /*-------------------------------------------------------------
+   *  update _scaledFVsByUID array
+   *-------------------------------------------------------------*/
+  _scaledFVsByUID.resize( maxUID+1);
+  
+  p = fvBegin;
+  for( unsigned int i = 0; i < nFV; ++i, ++p)
+  {
+    if( accessor(p).size() != nComponents() )
+    {
+      ScaleComponentsMismatch err;
+      err << "number of scale factors (" << nComponents()
+          << ") and number of feature vectors components (" 
+          << accessor(p).size() << ") don't match for " << i << "th "
+          "feature vector! Maybe you forgot to specify the scale_algorithm?";
+      throw err;
+    }
+    unsigned int uid = accessor(p).uniqueID();
+    _scaledFVsByUID[uid].resize( accessor(p).size());
+    scaleSingleFV( accessor(p), _scaledFVsByUID[uid]);
+  }
+  _cacheIsUpToDate = true;
+}

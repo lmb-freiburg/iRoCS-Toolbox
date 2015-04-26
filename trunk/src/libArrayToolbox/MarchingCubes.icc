@@ -1,0 +1,133 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename DataT>
+  void MarchingCubes::triangulate(
+      atb::Array<DataT,3> const &data, SurfaceGeometry &surface,
+      double isoLevel, double simplifyTolerance)
+  {
+    triangulate(
+        data, data.elementSizeUm(), surface, isoLevel, simplifyTolerance);
+  }
+
+  template<typename DataT>
+  void MarchingCubes::triangulate(
+      blitz::Array<DataT,3> const &data,
+      blitz::TinyVector<double,3> const &elementSizeUm,
+      SurfaceGeometry &surface, double isoLevel, double simplifyTolerance)
+  {
+    surface.vertices().clear();
+    surface.normals().clear();
+    surface.indices().clear();
+
+    // Prepare cellcorner positions
+    std::vector< blitz::TinyVector<ptrdiff_t,3> > cellCorners;
+    cellCorners.push_back(blitz::TinyVector<ptrdiff_t,3>(0, 0, 0));
+    cellCorners.push_back(blitz::TinyVector<ptrdiff_t,3>(1, 0, 0));
+    cellCorners.push_back(blitz::TinyVector<ptrdiff_t,3>(1, 1, 0));
+    cellCorners.push_back(blitz::TinyVector<ptrdiff_t,3>(0, 1, 0));
+    cellCorners.push_back(blitz::TinyVector<ptrdiff_t,3>(0, 0, 1));
+    cellCorners.push_back(blitz::TinyVector<ptrdiff_t,3>(1, 0, 1));
+    cellCorners.push_back(blitz::TinyVector<ptrdiff_t,3>(1, 1, 1));
+    cellCorners.push_back(blitz::TinyVector<ptrdiff_t,3>(0, 1, 1));
+            
+    // Prepare predecessor cells
+    atb::Neighborhood<3> predecessors;
+    predecessors.clear();
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, -1, -1));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, -1, 0));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, -1, 1));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, 0, -1));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, 0, 0));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, 0, 1));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, 1, -1));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, 1, 0));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(-1, 1, 1));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(0, -1, -1));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(0, -1, 0));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(0, -1, 1));
+    predecessors.insert(blitz::TinyVector<ptrdiff_t,3>(0, 0, -1));
+            
+    blitz::Array<blitz::TinyVector<int,12>,3> cells(data.shape());
+    GridCell cell;
+
+    for (ptrdiff_t z = 0; z < data.extent(0) - 1; ++z)
+    {
+      for (ptrdiff_t y = 0; y < data.extent(1) - 1; ++y)
+      {
+        for (ptrdiff_t x = 0; x < data.extent(2) - 1; ++x)
+        {
+          blitz::TinyVector<ptrdiff_t,3> pos(z, y, x);
+          
+          cells(pos) = -1;
+
+          int nhIndex = 0;
+          for (std::vector< blitz::TinyVector<ptrdiff_t,3> >::const_iterator
+                   it = cellCorners.begin(); it != cellCorners.end();
+               ++it, ++nhIndex)
+          {
+            blitz::TinyVector<ptrdiff_t,3> cornerPos(pos + *it);
+            cell.cornerCoordinates(nhIndex) =
+                blitz::TinyVector<double,3>(cornerPos) * elementSizeUm;
+            cell.cornerValues(nhIndex) =
+                static_cast<double>(data(cornerPos));
+          }
+          
+          if (z > 0)
+          {
+            blitz::TinyVector<ptrdiff_t,3> nbPos(z - 1, y, x);
+            cells(pos)(3) = cells(nbPos)(1);
+            cells(pos)(7) = cells(nbPos)(5);
+            cells(pos)(8) = cells(nbPos)(9);
+            cells(pos)(11) = cells(nbPos)(10);
+          }
+
+          if (y > 0)
+          {
+            blitz::TinyVector<ptrdiff_t,3> nbPos(z, y - 1, x);
+            cells(pos)(0) = cells(nbPos)(2);
+            cells(pos)(4) = cells(nbPos)(6);
+            cells(pos)(8) = cells(nbPos)(11);
+            cells(pos)(9) = cells(nbPos)(10);
+          }
+          
+          if (x > 0)
+          {
+            blitz::TinyVector<ptrdiff_t,3> nbPos(z, y, x - 1);
+            cells(pos)(0) = cells(nbPos)(4);
+            cells(pos)(1) = cells(nbPos)(5);
+            cells(pos)(2) = cells(nbPos)(6);
+            cells(pos)(3) = cells(nbPos)(7);
+          }
+
+          computeTrianglesForGridCell(cell, cells(pos), surface, isoLevel);
+        }
+      }
+    }
+
+    simplifyMesh(surface, simplifyTolerance);
+    surface.computeDefaultNormals();
+  }
+}

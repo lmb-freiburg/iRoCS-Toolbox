@@ -1,0 +1,1438 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/*-----------------------------------------------------------------------
+ *  BlitzH5Error class implementation
+ *-----------------------------------------------------------------------*/
+
+template<typename DataT>
+BlitzH5Error &BlitzH5Error::operator<<(DataT const &data)
+{
+  std::ostringstream os;
+  os << data;
+  _message += os.str();
+  return *this;
+}
+
+/*-----------------------------------------------------------------------
+ *  BlitzH5File class implementation
+ *-----------------------------------------------------------------------*/
+template<typename FixedSizeNumericT>
+void BlitzH5File::readDataset(
+    FixedSizeNumericT &data, std::string const &name) const
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name
+          << "'. The BlitzH5File is not open.";
+  hid_t datasetId = H5Dopen2(_fileId, name.c_str(), H5P_DEFAULT);
+  if (datasetId < 0)
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name << "'. Dataset not found.";
+  hid_t datatypeId = H5Dget_type(datasetId);
+  if (datatypeId < 0)
+  {
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Could not get datatype.";
+  }
+  if (H5Tget_class(datatypeId) != H5T_INTEGER &&
+      H5Tget_class(datatypeId) != H5T_FLOAT)
+  {
+    H5Tclose(datatypeId);
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name
+        << "'. Only numerical scalar datasets supported.";
+  }
+  hid_t dataspaceId = H5Dget_space(datasetId);
+  if (dataspaceId < 0)
+  {
+    H5Tclose(datatypeId);
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Could not get dataspace.";
+  }
+  std::vector<hsize_t> dataDims(BlitzH5Traits<FixedSizeNumericT>::h5Dims(data));
+  size_t nElementsData = 1;
+  for (size_t i = 0; i < dataDims.size(); ++i) nElementsData *= dataDims[i];
+  size_t nElementsDataset = H5Sget_simple_extent_npoints(dataspaceId);
+  if (nElementsData != nElementsDataset)
+  {
+    H5Sclose(dataspaceId);
+    H5Tclose(datatypeId);
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Cannot read dataset '" << name << "' with " << nElementsDataset
+        << " elements into a fixed size container with " << nElementsData
+        << " elements. The container size must equal the datset size!";
+  }
+
+  char *buf = new char[nElementsData * H5Tget_size(datatypeId)];
+  herr_t err = H5Dread(
+      datasetId, datatypeId, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
+  H5Sclose(dataspaceId);
+  H5Dclose(datasetId);  
+  if (err < 0)
+  {
+    H5Tclose(datatypeId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. H5Dread failed.";
+  }
+
+  typename BlitzH5Traits<FixedSizeNumericT>::BasicT* dataPtr =
+      reinterpret_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT*>(
+          BlitzH5Traits<FixedSizeNumericT>::data(data));
+
+  if (H5Tequal(datatypeId, H5T_NATIVE_UCHAR))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned char*>(buf)[i]);
+  else if (H5Tequal(datatypeId, H5T_NATIVE_CHAR) ||
+           H5Tequal(datatypeId, H5T_NATIVE_SCHAR))
+      std::memcpy(dataPtr, buf, nElementsData);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_USHORT))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned short*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_SHORT))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<short*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_UINT))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned int*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_INT))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<int*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_ULONG))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LONG))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_ULLONG))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<unsigned long long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LLONG))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<long long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_FLOAT))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<float*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_DOUBLE))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<double*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LDOUBLE))
+      for (size_t i = 0; i < nElementsData; ++i)
+          dataPtr[i] =
+              static_cast<typename BlitzH5Traits<FixedSizeNumericT>::BasicT>(
+                  reinterpret_cast<long double*>(buf)[i]);
+  else
+  {
+    H5Tclose(datatypeId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Datatype not supported.";
+  }
+  H5Tclose(datatypeId);
+}
+
+template<typename DataT>
+void BlitzH5File::readDataset(
+    std::vector<DataT> &data, std::string const &name) const
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name
+          << "'. The BlitzH5File is not open.";
+  hid_t datasetId = H5Dopen2(_fileId, name.c_str(), H5P_DEFAULT);
+  if (datasetId < 0)
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name << "'. Dataset not found.";
+  hid_t datatypeId = H5Dget_type(datasetId);
+  if (datatypeId < 0)
+  {
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Could not get datatype.";
+  }
+  if (H5Tget_class(datatypeId) != H5T_INTEGER &&
+      H5Tget_class(datatypeId) != H5T_FLOAT)
+  {
+    H5Tclose(datatypeId);
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name
+        << "'. Only numerical scalar datasets supported.";
+  }
+  hid_t dataspaceId = H5Dget_space(datasetId);
+  if (dataspaceId < 0)
+  {
+    H5Tclose(datatypeId);
+    H5Dclose(datasetId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Could not get dataspace.";
+  }
+  size_t nElementsDataset = H5Sget_simple_extent_npoints(dataspaceId);
+  data.resize(nElementsDataset);
+  
+  char *buf = new char[nElementsDataset * H5Tget_size(datatypeId)];
+  herr_t err = H5Dread(
+      datasetId, datatypeId, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
+  H5Sclose(dataspaceId);
+  H5Dclose(datasetId);  
+  if (err < 0)
+  {
+    H5Tclose(datatypeId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. H5Dread failed.";
+  }
+
+  DataT* dataPtr = data.data();
+
+  if (H5Tequal(datatypeId, H5T_NATIVE_UCHAR))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned char*>(buf)[i]);
+  else if (H5Tequal(datatypeId, H5T_NATIVE_CHAR) ||
+           H5Tequal(datatypeId, H5T_NATIVE_SCHAR))
+      std::memcpy(dataPtr, buf, nElementsDataset);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_USHORT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned short*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_SHORT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<short*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_UINT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned int*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_INT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<int*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_ULONG))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LONG))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_ULLONG))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<unsigned long long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LLONG))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<long long*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_FLOAT))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<float*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_DOUBLE))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<double*>(buf)[i]);
+  else if(H5Tequal(datatypeId, H5T_NATIVE_LDOUBLE))
+      for (size_t i = 0; i < nElementsDataset; ++i)
+          dataPtr[i] = static_cast<DataT>(
+              reinterpret_cast<long double*>(buf)[i]);
+  else
+  {
+    H5Tclose(datatypeId);
+    throw BlitzH5Error()
+        << "Could not read dataset '" << name << "'. Datatype not supported.";
+  }
+  H5Tclose(datatypeId);  
+}
+
+template<typename DataT, int Rank>
+void BlitzH5File::readDataset(
+    blitz::Array<DataT,Rank> &data, std::string const &name,
+    iRoCS::ProgressReporter *pr) const
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name
+          << "'. The BlitzH5File is not open.";
+
+  if (pr != NULL) pr->updateProgress(pr->taskProgressMin());
+
+  // Check dimensionality and shape compatibility
+  std::vector<hsize_t> blitzDims(
+      BlitzH5Traits< blitz::Array<DataT,Rank> >::h5Dims(data));
+  if (blitzDims.size() > Rank + 1)
+      throw BlitzH5Error()
+          << __FILE__ << ":" << __LINE__ << ": Internal Error. "
+          << "The type traits increased the Array Rank by more than "
+          << "one. This is not supported.";
+
+  bool vectorial = (blitzDims.size() == Rank + 1);
+
+  std::vector<hsize_t> datasetDims(getDatasetShape(name));
+  if (blitzDims.size() < datasetDims.size())
+      throw BlitzH5Error()
+          << "Cannot load " << datasetDims.size()
+          << "-D dataset into a " << blitzDims.size() << "-D Array";
+
+  if (vectorial && blitzDims.back() != datasetDims.back())
+      throw BlitzH5Error()
+          << "Mismatch in the number of vector components. "
+          << "The given Array can store " << blitzDims[Rank]
+          << "-D vectors but the dataset contains "
+          << datasetDims[Rank] << "-D vectors.";
+  
+  // Resize blitz++ Array to dataset shape (if the dataset rank is less than
+  // the blitz Array rank, set the extra-dimensions to 1)
+  blitz::TinyVector<int,Rank> dataShape(1);
+  for (int d = Rank - datasetDims.size() + (vectorial ? 1 : 0); d < Rank; ++d)
+      dataShape(d) = datasetDims[
+          d - (Rank - datasetDims.size() + (vectorial ? 1 : 0))];
+  data.resize(dataShape);
+          
+  // Create shortcut for raw output type
+  typedef typename BlitzH5Traits<blitz::Array<DataT,Rank> >::BasicT
+      DestT;
+          
+  hid_t datasetTypeId = getDatasetType(name);
+    
+  // Check whether dataset is stored in chunked layout
+  hid_t datasetAccessPropertiesId = H5Pcreate(H5P_DATASET_ACCESS);
+  if (datasetAccessPropertiesId < 0)
+  {
+    H5Tclose(datasetTypeId);
+    throw BlitzH5Error()
+        << "Could not open dataset '" << name
+        << "'. Could not create dataset access properties list.";
+  }
+  hid_t datasetId = H5Dopen2(_fileId, name.c_str(), H5P_DEFAULT);
+  if (datasetId < 0)
+  {
+    H5Tclose(datasetTypeId);
+    throw BlitzH5Error()
+        << "Could not open dataset '" << name << "'. H5Dopen2 failed.";
+  }
+  hid_t createPropertiesId = H5Dget_create_plist(datasetId);
+  if (createPropertiesId < 0)
+  {
+    H5Dclose(datasetId);
+    H5Tclose(datasetTypeId);
+    throw BlitzH5Error()
+        << "Could not get creation properties for dataset '" << name
+        << "'.";
+  }
+  H5D_layout_t layout = H5Pget_layout(createPropertiesId);
+  if (layout == H5D_CHUNKED)
+  {
+    // Get chunk shape
+    std::vector<hsize_t> chunkDims(datasetDims.size());
+    int chunkNDims =
+        H5Pget_chunk(createPropertiesId, datasetDims.size(), chunkDims.data());
+    H5Pclose(createPropertiesId);
+    if (chunkNDims != static_cast<int>(datasetDims.size()))
+    {
+      H5Dclose(datasetId);
+      H5Tclose(datasetTypeId);
+      throw BlitzH5Error()
+          << "Chunk dimension for dataset '" << name << "' does not "
+          << "match dataset dimension.";
+    }
+
+    try
+    {
+      if (H5Tequal(datasetTypeId, H5T_NATIVE_UCHAR))
+          _loadChunkedDataset<unsigned char>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if (H5Tequal(datasetTypeId, H5T_NATIVE_CHAR) ||
+               H5Tequal(datasetTypeId, H5T_NATIVE_SCHAR))
+          _loadChunkedDataset<char>(
+              datasetId, datasetDims, chunkDims,
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_USHORT))
+          _loadChunkedDataset<unsigned short>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_SHORT))
+          _loadChunkedDataset<short>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_UINT))
+          _loadChunkedDataset<unsigned int>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_INT))
+          _loadChunkedDataset<int>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_ULONG))
+          _loadChunkedDataset<unsigned long>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_LONG))
+          _loadChunkedDataset<long>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_ULLONG))
+          _loadChunkedDataset<unsigned long long>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_LLONG))
+          _loadChunkedDataset<long long>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_FLOAT))
+          _loadChunkedDataset<float>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_DOUBLE))
+          _loadChunkedDataset<double>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_LDOUBLE))
+          _loadChunkedDataset<long double>(
+              datasetId, datasetDims, chunkDims, 
+              reinterpret_cast<DestT*>(data.data()), pr);
+      else throw BlitzH5Error() << "Dataset type not supported.";
+    }
+    catch (BlitzH5Error &e)
+    {
+      H5Dclose(datasetId);
+      H5Tclose(datasetTypeId);
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name << "'. " << e.what();
+    }
+  }
+  else
+  {
+    H5Pclose(createPropertiesId);
+    try
+    {
+      if (H5Tequal(datasetTypeId, H5T_NATIVE_UCHAR))
+          _loadContiguousDataset<unsigned char>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if (H5Tequal(datasetTypeId, H5T_NATIVE_CHAR) ||
+               H5Tequal(datasetTypeId, H5T_NATIVE_SCHAR))
+          _loadContiguousDataset<char>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_USHORT))
+          _loadContiguousDataset<unsigned short>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_SHORT))
+          _loadContiguousDataset<short>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_UINT))
+          _loadContiguousDataset<unsigned int>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_INT))
+          _loadContiguousDataset<int>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_ULONG))
+          _loadContiguousDataset<unsigned long>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_LONG))
+          _loadContiguousDataset<long>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_ULLONG))
+          _loadContiguousDataset<unsigned long long>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_LLONG))
+          _loadContiguousDataset<long long>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_FLOAT))
+          _loadContiguousDataset<float>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_DOUBLE))
+          _loadContiguousDataset<double>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else if(H5Tequal(datasetTypeId, H5T_NATIVE_LDOUBLE))
+          _loadContiguousDataset<long double>(
+              datasetId, reinterpret_cast<DestT*>(data.data()));
+      else throw BlitzH5Error() << "Dataset type not supported.";
+    }
+    catch (BlitzH5Error &e)
+    {
+      H5Dclose(datasetId);
+      H5Tclose(datasetTypeId);
+      throw BlitzH5Error()
+          << "Could not read dataset '" << name << "'. " << e.what();
+    }
+  }
+  H5Dclose(datasetId);
+  H5Tclose(datasetTypeId);
+  if (pr != NULL) pr->updateProgress(pr->taskProgressMax());
+}
+
+template <typename DataT>
+void BlitzH5File::writeDataset(
+    DataT const &data, std::string const &name)
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not write dataset '" << name
+          << "'. The BlitzH5File is not open.";
+  if (_mode == ReadOnly)
+      throw BlitzH5Error()
+          << "Could not write dataset '" << name
+          << "'. File is opened ReadOnly.";
+
+  if (existsDataset(name)) deleteDataset(name);
+
+  hid_t dataspaceId = -1;
+  std::vector<hsize_t> dataShape(BlitzH5Traits<DataT>::h5Dims(data));
+  if (dataShape.size() == 1 && dataShape[0] == 1)
+      dataspaceId = H5Screate(H5S_SCALAR);
+  else
+      dataspaceId = H5Screate_simple(dataShape.size(), dataShape.data(), NULL);
+  if (dataspaceId < 0)
+      throw BlitzH5Error()
+          << "Could not write dataset '" << name
+          << "'. Could not create dataspace.";
+          
+  hid_t datatypeId = H5Tcopy(BlitzH5Traits<DataT>::h5Type());
+  if (datatypeId < 0)
+  {
+    H5Sclose(dataspaceId);
+    throw BlitzH5Error()
+        << "Could not write dataset '" << name << "'. Could not copy datatype.";
+  }
+  
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+
+  hid_t datasetId = H5Dcreate2(
+      _fileId, name.c_str(), datatypeId, dataspaceId,
+      linkCreationPropertiesId, H5P_DEFAULT, H5P_DEFAULT);
+  H5Pclose(linkCreationPropertiesId);
+  if (datasetId < 0)
+  {
+    H5Tclose(datatypeId);
+    H5Sclose(dataspaceId);
+    throw BlitzH5Error()
+        << "Could not write dataset '" << name
+        << "'. Could not create dataset.";
+  }
+          
+  herr_t err = H5Dwrite(
+      datasetId, datatypeId, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+      BlitzH5Traits<DataT>::data(data));
+  H5Dclose(datasetId);
+  H5Tclose(datatypeId);
+  H5Sclose(dataspaceId);
+  if (err < 0)
+      throw BlitzH5Error()
+          << "Could not write dataset '" << name << "'. H5Dwrite failed.";
+}
+
+template<typename DataT, int Rank>
+void BlitzH5File::writeDataset(
+    blitz::Array<DataT,Rank> const &data, std::string const &name,
+    int compression, iRoCS::ProgressReporter *pr)
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not write dataset '" << name
+          << "'. The BlitzH5File is not open.";
+  if (_mode == ReadOnly)
+      throw BlitzH5Error()
+          << "Could not write dataset '" << name
+          << "'. File is opened ReadOnly.";
+  if (data.size() == 0)
+      throw BlitzH5Error()
+          << "Could not write dataset '" << name
+          << "'. The given blitz::Array has zero elements.";
+
+  if (pr != NULL) pr->updateProgress(pr->taskProgressMin());
+
+  // Check dimensionality and shape compatibility
+  std::vector<hsize_t> datasetDims(
+      BlitzH5Traits< blitz::Array<DataT,Rank> >::h5Dims(data));
+  if (datasetDims.size() > Rank + 1)
+      throw BlitzH5Error()
+          << __FILE__ << ":" << __LINE__ << ": Internal Error. "
+          << "The type traits increased the Array Rank by more than "
+          << "one. This is not supported.";
+
+  bool vectorial = (datasetDims.size() == Rank + 1);
+
+  hid_t datasetId = -1;
+  if (existsDataset(name))
+  {
+    // Check whether existing dataset is compatible
+    std::vector<hsize_t> shape(getDatasetShape(name));
+    bool compatible = (shape.size() == datasetDims.size());
+    if (compatible) 
+        for (size_t d = 0; d < shape.size() && compatible; ++d)
+            if (shape[d] != datasetDims[d]) compatible = false;
+    if (compatible)
+    {
+      hid_t datasetTypeId = getDatasetType(name);
+      compatible = H5Tequal(
+          BlitzH5Traits< blitz::Array<DataT,Rank> >::h5Type(),
+          datasetTypeId);
+      H5Tclose(datasetTypeId);
+    }
+    if (compatible)
+    {
+      datasetId = H5Dopen2(_fileId, name.c_str(), H5P_DEFAULT);
+      if (datasetId < 0)
+          throw BlitzH5Error()
+              << "Could not open existing dataset '" << name
+              << "'. Internal error.";
+    }
+    else deleteDataset(name);
+  }
+
+  // Create new dataset
+  if (datasetId == -1)
+  {
+    hid_t datasetCreationPropertiesId = H5Pcreate(H5P_DATASET_CREATE);
+    hsize_t *chunkShape = new hsize_t[datasetDims.size()];
+    for (size_t d = 0; d < datasetDims.size(); ++d)
+        if (static_cast<int>(d) <
+            static_cast<int>(datasetDims.size()) -
+            (vectorial ? 3 : 2)) chunkShape[d] = 1;
+        else chunkShape[d] = datasetDims[d];
+
+    H5Pset_chunk(datasetCreationPropertiesId, datasetDims.size(),
+                 chunkShape);
+    H5Pset_deflate(datasetCreationPropertiesId, compression);
+    hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+    H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+    hsize_t *maxDims = new hsize_t[datasetDims.size()];
+    for (size_t i = 0; i < datasetDims.size(); ++i)
+        maxDims[i] = H5S_UNLIMITED;
+    hid_t dataspaceId = H5Screate_simple(
+        datasetDims.size(), datasetDims.data(), maxDims);
+    if (dataspaceId < 0)
+        throw BlitzH5Error()
+            << "Could not write dataset '" << name
+            << "'. Could not create dataspace.";
+    datasetId = H5Dcreate2(
+        _fileId, name.c_str(), BlitzH5Traits<DataT>::h5Type(),
+        dataspaceId, linkCreationPropertiesId,
+        datasetCreationPropertiesId, H5P_DEFAULT);
+    H5Sclose(dataspaceId);
+    delete[] maxDims;
+    delete[] chunkShape;
+    H5Pclose(linkCreationPropertiesId);
+    H5Pclose(datasetCreationPropertiesId);
+    if (datasetId < 0)
+        throw BlitzH5Error()
+            << "Could not create dataset '" << name
+            << "'. Invalid dataset path?";
+  }
+
+  typedef typename BlitzH5Traits<blitz::Array<DataT,Rank> >::BasicT
+      BasicT;
+          
+  if (Rank <= 2)
+  {
+    // Write dataset in one chunk
+    herr_t err = H5Dwrite(
+        datasetId, BlitzH5Traits<DataT>::h5Type(), H5S_ALL, H5S_ALL,
+        H5P_DEFAULT, reinterpret_cast<BasicT const*>(data.data()));
+    H5Dclose(datasetId);
+    if (err < 0)
+    {
+      throw BlitzH5Error()
+          << "Could not write dataset '" << name
+          << "'. H5Dwrite failed.";
+    }
+  }
+  else
+  {
+    // Prepare hyperslab
+    std::vector<hsize_t> start(datasetDims.size());
+    std::vector<hsize_t> count(datasetDims.size());
+
+    // Get number of slabs, slab size and set block extents
+    int nChunks = 1, chunkSize = 1;
+    for (size_t d = 0; d < datasetDims.size(); ++d)
+    {
+      if (d < datasetDims.size() - (vectorial ? 3 : 2))
+      {
+        count[d] = 1;
+        nChunks *= datasetDims[d];
+      }
+      else
+      {
+        start[d] = 0;
+        count[d] = datasetDims[d];
+        chunkSize *= datasetDims[d];
+      }
+    }
+
+    float progressStep =
+        (pr != NULL) ?
+        (static_cast<float>(
+            pr->taskProgressMax() -
+            pr->taskProgressMin()) / static_cast<float>(nChunks - 1))
+        : 1.0f;
+
+    // Sequentially write all chunks
+    for (int chunk = 0; chunk < nChunks; ++chunk)
+    {
+      if (pr != NULL && !pr->updateProgress(
+              static_cast<int>(
+                  pr->taskProgressMin() + chunk * progressStep)))
+      {
+        H5Dclose(datasetId);
+        return;
+      }
+      int chunkIndex = chunk;
+      for (int d = static_cast<int>(datasetDims.size()) -
+               (vectorial ? 3 : 2) - 1; d >= 0; --d)
+      {
+        start[d] = chunkIndex % datasetDims[d];
+        chunkIndex /= datasetDims[d];
+      }
+ 
+      hid_t dataspaceId = H5Dget_space(datasetId);
+      if (dataspaceId < 0)
+      {
+        H5Dclose(datasetId);
+        throw BlitzH5Error()
+            << "Could not write dataset '" << name
+            << "'. Could not get dataspace of dataset.";
+      }
+      herr_t err = H5Sselect_hyperslab(
+          dataspaceId, H5S_SELECT_SET, start.data(), NULL, count.data(), NULL);
+      if (err < 0)
+      {
+        H5Sclose(dataspaceId);
+        H5Dclose(datasetId);
+        throw BlitzH5Error()
+            << "Could not write dataset '" << name
+            << "'. Could not select slice " << chunk << ".";
+      }
+      hid_t memorySpaceId = H5Screate_simple(
+          datasetDims.size(), count.data(), NULL);
+      if (memorySpaceId < 0)
+      {
+        H5Sclose(dataspaceId);
+        H5Dclose(datasetId);
+        throw BlitzH5Error()
+            << "Could not write dataset '" << name
+            << "'. Could not create memory space.";
+      }
+      H5Dwrite(datasetId, BlitzH5Traits<DataT>::h5Type(),
+               memorySpaceId, dataspaceId, H5P_DEFAULT,
+               reinterpret_cast<BasicT const*>(data.data()) +
+               chunk * chunkSize);
+      H5Sclose(memorySpaceId);
+      H5Sclose(dataspaceId);
+    }
+  }
+  H5Dclose(datasetId);
+  time_t mtime = time(NULL);
+  writeAttribute(mtime, ".mtime", name);
+  if (pr != NULL) pr->updateProgress(pr->taskProgressMax());
+}
+
+template<typename DataT>
+void BlitzH5File::readAttribute(
+    DataT &data, std::string const &attName,
+    std::string const &objectName) const
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName
+          << ":" << attName << "'. The BlitzH5File is not open.";
+  if (typeid(typename BlitzH5Traits<DataT>::BasicT) != typeid(DataT))
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "': The given container type is not supported";
+  hid_t attributeId =
+      H5Aopen_by_name(
+          _fileId, objectName.c_str(), attName.c_str(),
+          H5P_DEFAULT, H5P_DEFAULT);
+  if (attributeId < 0)
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "'. Attribute not found.";
+  hid_t dataspaceId = H5Aget_space(attributeId);
+  if (dataspaceId < 0)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Could not get the attribute's dataspace.";
+  }
+  hssize_t nElements = H5Sget_simple_extent_npoints(dataspaceId);
+  H5Sclose(dataspaceId);
+  if (nElements != 1)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Cannot load vectorial attribute into scalar "
+        << "container.";
+  }
+  hid_t datatypeId = H5Aget_type(attributeId);
+  if (datatypeId < 0)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Could not get attribute type.";
+  }
+  try
+  {
+    if (H5Tequal(datatypeId, H5T_NATIVE_UCHAR))
+        _loadAttribute<unsigned char>(attributeId, &data);
+    else if (H5Tequal(datatypeId, H5T_NATIVE_CHAR) ||
+             H5Tequal(datatypeId, H5T_NATIVE_SCHAR))
+        _loadAttribute<char>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_USHORT))
+        _loadAttribute<unsigned short>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_SHORT))
+        _loadAttribute<short>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_UINT))
+        _loadAttribute<unsigned int>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_INT))
+        _loadAttribute<int>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_ULONG))
+        _loadAttribute<unsigned long>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LONG))
+        _loadAttribute<long>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_ULLONG))
+        _loadAttribute<unsigned long long>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LLONG))
+        _loadAttribute<long long>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_FLOAT))
+        _loadAttribute<float>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_DOUBLE))
+        _loadAttribute<double>(attributeId, &data);
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LDOUBLE))
+        _loadAttribute<long double>(attributeId, &data);
+    else throw BlitzH5Error() << "Attribute type not supported.";
+  }
+  catch (BlitzH5Error &e)
+  {
+    H5Tclose(datatypeId);
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. " << e.what();
+  }
+  H5Tclose(datatypeId);
+  H5Aclose(attributeId);
+}
+
+template<typename DataT, int Dim>
+void BlitzH5File::readAttribute(
+    blitz::TinyVector<DataT,Dim> &data, std::string const &attName,
+    std::string const &objectName) const
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName
+          << ":" << attName << "'. The BlitzH5File is not open.";
+  if (typeid(typename BlitzH5Traits<DataT>::BasicT) != typeid(DataT))
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "': The given container type is not supported";
+  hid_t attributeId =
+      H5Aopen_by_name(
+          _fileId, objectName.c_str(), attName.c_str(),
+          H5P_DEFAULT, H5P_DEFAULT);
+  if (attributeId < 0)
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "'. Attribute not found.";
+  hid_t dataspaceId = H5Aget_space(attributeId);
+  if (dataspaceId < 0)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Could not get the attribute's dataspace.";
+  }
+  hssize_t nElements = H5Sget_simple_extent_npoints(dataspaceId);
+  H5Sclose(dataspaceId);
+  if (nElements != Dim)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. The provided container is a TinyVector with "
+        << Dim << " elements, but the attribute contains "
+        << nElements << " values.";
+  }
+  hid_t datatypeId = H5Aget_type(attributeId);
+  if (datatypeId < 0)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Could not get attribute type.";
+  }
+  try
+  {
+    if (H5Tequal(datatypeId, H5T_NATIVE_UCHAR))
+        _loadAttribute<unsigned char>(attributeId, data.data());
+    else if (H5Tequal(datatypeId, H5T_NATIVE_CHAR) ||
+             H5Tequal(datatypeId, H5T_NATIVE_SCHAR))
+        _loadAttribute<char>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_USHORT))
+        _loadAttribute<unsigned short>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_SHORT))
+        _loadAttribute<short>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_UINT))
+        _loadAttribute<unsigned int>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_INT))
+        _loadAttribute<int>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_ULONG))
+        _loadAttribute<unsigned long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LONG))
+        _loadAttribute<long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_ULLONG))
+        _loadAttribute<unsigned long long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LLONG))
+        _loadAttribute<long long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_FLOAT))
+        _loadAttribute<float>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_DOUBLE))
+        _loadAttribute<double>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LDOUBLE))
+        _loadAttribute<long double>(attributeId, data.data());
+    else throw BlitzH5Error() << "Attribute type not supported.";
+  }
+  catch (BlitzH5Error &e)
+  {
+    H5Tclose(datatypeId);
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. " << e.what();
+  }
+  H5Tclose(datatypeId);
+  H5Aclose(attributeId);
+}
+
+template<typename DataT, int NRows, int NCols>
+void BlitzH5File::readAttribute(
+    blitz::TinyMatrix<DataT,NRows,NCols> &data, std::string const &attName,
+    std::string const &objectName) const
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName
+          << ":" << attName << "'. The BlitzH5File is not open.";
+  if (typeid(typename BlitzH5Traits<DataT>::BasicT) != typeid(DataT))
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "': The given container type is not supported";
+  hid_t attributeId =
+      H5Aopen_by_name(
+          _fileId, objectName.c_str(), attName.c_str(),
+          H5P_DEFAULT, H5P_DEFAULT);
+  if (attributeId < 0)
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "'. Attribute not found.";
+  hid_t dataspaceId = H5Aget_space(attributeId);
+  if (dataspaceId < 0)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Could not get the attribute's dataspace.";
+  }
+  hssize_t nElements = H5Sget_simple_extent_npoints(dataspaceId);
+  H5Sclose(dataspaceId);
+  if (nElements != NRows * NCols)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. The provided container is a TinyMatrix with extents ("
+        << NRows << "," << NCols << "), but the attribute contains "
+        << nElements << " values.";
+  }
+  hid_t datatypeId = H5Aget_type(attributeId);
+  if (datatypeId < 0)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Could not get attribute type.";
+  }
+  try
+  {
+    if (H5Tequal(datatypeId, H5T_NATIVE_UCHAR))
+        _loadAttribute<unsigned char>(attributeId, data.data());
+    else if (H5Tequal(datatypeId, H5T_NATIVE_CHAR) ||
+             H5Tequal(datatypeId, H5T_NATIVE_SCHAR))
+        _loadAttribute<char>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_USHORT))
+        _loadAttribute<unsigned short>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_SHORT))
+        _loadAttribute<short>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_UINT))
+        _loadAttribute<unsigned int>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_INT))
+        _loadAttribute<int>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_ULONG))
+        _loadAttribute<unsigned long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LONG))
+        _loadAttribute<long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_ULLONG))
+        _loadAttribute<unsigned long long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LLONG))
+        _loadAttribute<long long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_FLOAT))
+        _loadAttribute<float>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_DOUBLE))
+        _loadAttribute<double>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LDOUBLE))
+        _loadAttribute<long double>(attributeId, data.data());
+    else throw BlitzH5Error() << "Attribute type not supported.";
+  }
+  catch (BlitzH5Error &e)
+  {
+    H5Tclose(datatypeId);
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. " << e.what();
+  }
+  H5Tclose(datatypeId);
+  H5Aclose(attributeId);
+}
+
+template<typename DataT>
+void BlitzH5File::readAttribute(
+    std::vector<DataT> &data, std::string const &attName,
+    std::string const &objectName) const
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName
+          << ":" << attName << "'. The BlitzH5File is not open.";
+  if (typeid(typename BlitzH5Traits<DataT>::BasicT) != typeid(DataT))
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "': The given container type is not supported";
+  hid_t attributeId =
+      H5Aopen_by_name(
+          _fileId, objectName.c_str(), attName.c_str(),
+          H5P_DEFAULT, H5P_DEFAULT);
+  if (attributeId < 0)
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "'. Attribute not found.";
+  hid_t dataspaceId = H5Aget_space(attributeId);
+  if (dataspaceId < 0)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Could not get the attribute's dataspace.";
+  }
+  hssize_t nElements = H5Sget_simple_extent_npoints(dataspaceId);
+  H5Sclose(dataspaceId);
+  data.resize(nElements);
+  hid_t datatypeId = H5Aget_type(attributeId);
+  if (datatypeId < 0)
+  {
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. Could not get attribute type.";
+  }
+  try
+  {
+    if (H5Tequal(datatypeId, H5T_NATIVE_UCHAR))
+        _loadAttribute<unsigned char>(attributeId, data.data());
+    else if (H5Tequal(datatypeId, H5T_NATIVE_CHAR) ||
+             H5Tequal(datatypeId, H5T_NATIVE_SCHAR))
+        _loadAttribute<char>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_USHORT))
+        _loadAttribute<unsigned short>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_SHORT))
+        _loadAttribute<short>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_UINT))
+        _loadAttribute<unsigned int>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_INT))
+        _loadAttribute<int>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_ULONG))
+        _loadAttribute<unsigned long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LONG))
+        _loadAttribute<long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_ULLONG))
+        _loadAttribute<unsigned long long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LLONG))
+        _loadAttribute<long long>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_FLOAT))
+        _loadAttribute<float>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_DOUBLE))
+        _loadAttribute<double>(attributeId, data.data());
+    else if(H5Tequal(datatypeId, H5T_NATIVE_LDOUBLE))
+        _loadAttribute<long double>(attributeId, data.data());
+    else throw BlitzH5Error() << "Attribute type not supported.";
+  }
+  catch (BlitzH5Error &e)
+  {
+    H5Tclose(datatypeId);
+    H5Aclose(attributeId);
+    throw BlitzH5Error()
+        << "Could not read attribute '" << objectName << ":"
+        << attName << "'. " << e.what();
+  }
+  H5Tclose(datatypeId);
+  H5Aclose(attributeId);
+}
+
+template<typename DataT>
+void BlitzH5File::writeAttribute(
+    DataT const &in, std::string const &attName,
+    std::string const &objectName)
+{
+  if (_fileId < 0)
+      throw BlitzH5Error()
+          << "Could not write attribute '" << objectName
+          << ":" << attName << "'. The BlitzH5File is not open.";
+  if (_mode == ReadOnly)
+      throw BlitzH5Error()
+          << "Could not write attribute '" << objectName
+          << ":" << attName << "'. File is opened ReadOnly.";
+
+  if (existsAttribute(attName, objectName))
+      deleteAttribute(attName, objectName);
+
+  std::vector<hsize_t> dataShape(BlitzH5Traits<DataT>::h5Dims(in));
+  hid_t dataspaceId = (dataShape.size() == 1 && dataShape[0] == 1) ?
+      H5Screate(H5S_SCALAR) :
+      H5Screate_simple(dataShape.size(), dataShape.data(), NULL);
+  if (dataspaceId < 0)
+      throw BlitzH5Error()
+          << "Could not write attribute '" << objectName
+          << ":" << attName << "'. Could not create dataspace.";
+          
+  if (simplifyGroupDescriptor(objectName) != "")
+  {
+    htri_t exists = H5Lexists(_fileId, objectName.c_str(), H5P_DEFAULT);
+    if (exists <= 0)
+    {
+      hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+      H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+      hid_t groupId = H5Gcreate2(
+          _fileId, objectName.c_str(), linkCreationPropertiesId,
+          H5P_DEFAULT, H5P_DEFAULT);
+      H5Pclose(linkCreationPropertiesId);
+      if (groupId < 0)
+      {
+        H5Sclose(dataspaceId);
+        throw BlitzH5Error()
+            << "Could not write attribute '" << objectName
+            << ":" << attName << "'. Could not create group.";
+      }
+      H5Gclose(groupId);
+    }
+  }
+          
+  hid_t attributeId = H5Acreate_by_name(
+      _fileId, objectName.c_str(), attName.c_str(),
+      BlitzH5Traits<DataT>::h5Type(), dataspaceId, H5P_DEFAULT,
+      H5P_DEFAULT, H5P_DEFAULT);
+  if (attributeId < 0)
+  {
+    H5Sclose(dataspaceId);
+    throw BlitzH5Error()
+        << "Could not write attribute '" << objectName
+        << ":" << attName << "'. Could not create attribute.";
+  }
+          
+  herr_t err = H5Awrite(
+      attributeId, BlitzH5Traits<DataT>::h5Type(),
+      BlitzH5Traits<DataT>::data(in));
+  H5Aclose(attributeId);
+  H5Sclose(dataspaceId);
+  if (err < 0)
+      throw BlitzH5Error()
+          << "Could not write attribute '" << objectName
+          << ":" << attName << "'. Could not write attribute data.";
+}
+
+  
+template<typename SourceT, typename DestT>
+void BlitzH5File::_loadAttribute(hid_t attributeId, DestT *target) const
+{
+  hid_t dataspaceId = H5Aget_space(attributeId);
+  if (dataspaceId < 0)
+      throw BlitzH5Error() << "Could not get attribute dataspace.";
+  hssize_t nElements = H5Sget_simple_extent_npoints(dataspaceId);
+  H5Sclose(dataspaceId);          
+  std::vector<SourceT> buf(nElements);
+  hid_t datatypeId = H5Aget_type(attributeId);
+  if (datatypeId < 0)
+      throw BlitzH5Error() << "Could not get attribute type.";
+  herr_t err = H5Aread(attributeId, datatypeId, buf.data());
+  H5Tclose(datatypeId);
+  if (err < 0) throw BlitzH5Error() << "H5Aread failed.";
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (int i = 0; i < nElements; ++i)
+      target[i] = static_cast<DestT>(buf[i]);
+}
+
+template<typename SourceT, typename DestT>
+void BlitzH5File::_loadChunkedDataset(
+    hid_t datasetId, std::vector<hsize_t> const &datasetDims,
+    std::vector<hsize_t> const &chunkDims, DestT *target,
+    iRoCS::ProgressReporter *pr) const
+{
+#ifdef DEBUG
+  std::cerr << "BlitzH5File::_loadChunkedDataset(datasetId = " << datasetId
+            << ", datasetDims = [" << std::flush;
+  for (size_t i = 0; i < datasetDims.size(); ++i)
+      std::cerr << " " << datasetDims[i] << std::flush;
+  std::cerr << " ], chunkDims = [" << std::flush;
+  for (size_t i = 0; i < chunkDims.size(); ++i)
+      std::cerr << " " << chunkDims[i] << std::flush;
+  std::cerr << " ], target = " << reinterpret_cast<void*>(target) << ", pr = "
+            << pr << std::endl;
+#endif
+
+  // Compute chunk size
+  hsize_t chunkSize = 1;
+  for (size_t d = 0; d < chunkDims.size(); ++d) chunkSize *= chunkDims[d];
+  
+  // Allocate buffer to hold a chunk of data
+  SourceT *buf = new SourceT[chunkSize];
+  
+  // Prepare memory space
+  hid_t memoryspaceId = H5Screate_simple(
+      chunkDims.size(), chunkDims.data(), NULL);
+  if (memoryspaceId < 0)
+  {
+    delete[] buf;    
+    throw BlitzH5Error() << "Could not create memory space.";
+  }
+  
+  // Prepare file space
+  hid_t filespaceId = H5Dget_space(datasetId);
+  if (filespaceId < 0)
+  {
+    delete[] buf;
+    H5Sclose(memoryspaceId);
+    throw BlitzH5Error() << "Could not create file space.";    
+  }
+
+  // Compute number of chunks
+  std::vector<size_t> chunksPerDim(datasetDims.size());
+  size_t nChunks = 1;
+  for (size_t d = 0; d < datasetDims.size(); ++d)
+  {
+    chunksPerDim[d] = datasetDims[d] / chunkDims[d] +
+        ((datasetDims[d] % chunkDims[d] != 0) ? 1 : 0);
+    nChunks *= chunksPerDim[d];
+  }
+
+  // Check whether chunks are contiguous
+  bool contiguous = true;
+  bool dimsEqual = true;
+  for (int d = static_cast<int>(datasetDims.size()) - 1;
+       d >= 0 && contiguous; --d)
+  {
+    if (!dimsEqual && chunkDims[d] > 1) contiguous = false;
+    else if (dimsEqual) dimsEqual = (datasetDims[d] == chunkDims[d]);
+  }
+
+  // Compute buffer and target strides (only if the chunks are not contiguous)
+  std::vector<ptrdiff_t> bufStrides;
+  std::vector<ptrdiff_t> targetStrides;
+  if (!contiguous)
+  {
+    bufStrides.resize(datasetDims.size());
+    bufStrides[datasetDims.size() - 1] = 1;
+    targetStrides.resize(datasetDims.size());
+    targetStrides[datasetDims.size() - 1] = 1;
+    for (int d = static_cast<int>(datasetDims.size()) - 2; d >= 0; --d)
+    {
+      bufStrides[d] = bufStrides[d + 1] * chunkDims[d + 1];
+      targetStrides[d] = targetStrides[d + 1] * datasetDims[d + 1];
+    }
+  }
+
+  // Prepare selection hyperslab
+  std::vector<hsize_t> start(datasetDims.size());
+  std::vector<hsize_t> memStart(datasetDims.size(), 0);
+  std::vector<hsize_t> block(datasetDims.size());
+
+  // Prepare ProgressReporter
+  float progressStep =
+      (pr != NULL) ?
+      (static_cast<float>(pr->taskProgressMax() - pr->taskProgressMin()) /
+       static_cast<float>(nChunks - 1)) : 1.0f;
+  
+  for (size_t chunk = 0; chunk < nChunks; ++chunk)
+  {
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pr->taskProgressMin() + chunk * progressStep)))
+    {
+      delete[] buf;
+      H5Sclose(filespaceId);
+      H5Sclose(memoryspaceId);
+      return;
+    }
+
+    // Select chunk in dataspace
+    size_t tmp = chunk, nElements = 1;
+    for (int d = static_cast<int>(datasetDims.size()) - 1; d >= 0; --d)
+    {
+      start[d] = chunkDims[d] * (tmp % chunksPerDim[d]);
+      block[d] = std::min(datasetDims[d] - start[d], chunkDims[d]);
+      nElements *= block[d];
+      tmp /= chunksPerDim[d];
+    }
+
+    herr_t err = H5Sselect_hyperslab(
+        filespaceId, H5S_SELECT_SET, start.data(), NULL, block.data(), NULL);
+    if (err < 0)
+    {
+      delete[] buf;
+      H5Sclose(filespaceId);
+      H5Sclose(memoryspaceId);
+      throw BlitzH5Error()
+          << "Could not select chunk at index " << chunk << ".";
+    }
+
+    err = H5Sselect_hyperslab(
+        memoryspaceId, H5S_SELECT_SET, memStart.data(), NULL, block.data(),
+        NULL);
+    if (err < 0)
+    {
+      delete[] buf;
+      H5Sclose(filespaceId);
+      H5Sclose(memoryspaceId);
+      throw BlitzH5Error()
+          << "Could not select memory chunk at index " << chunk << ".";
+    }
+
+    // Read chunk from file into buffer
+    err = H5Dread(
+        datasetId, BlitzH5Traits<SourceT>::h5Type(), memoryspaceId,
+        filespaceId, H5P_DEFAULT, buf);
+
+    if (err < 0)
+    {
+      delete[] buf;
+      H5Sclose(filespaceId);
+      H5Sclose(memoryspaceId);
+      std::stringstream msg;
+      msg << "Could not read chunk " << chunk << ". dataset shape = [";
+      for (size_t i = 0; i < datasetDims.size(); ++i)
+          msg << " " << datasetDims[i];
+      msg << " ]; chunk shape = [";
+      for (size_t i = 0; i < chunkDims.size(); ++i) msg << " " << chunkDims[i];
+      msg << " ]; chunk start = [";
+      for (size_t i = 0; i < start.size(); ++i) msg << " " << start[i];
+      msg << " ]; chunk block = [";
+      for (size_t i = 0; i < block.size(); ++i) msg << " " << block[i];
+      msg << " ]";
+      throw BlitzH5Error() << msg.str();
+    }
+    
+    // Copy buffer contents to output Array
+    if (contiguous)
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(nElements); ++i)
+          target[chunk * chunkSize + i] = static_cast<DestT>(buf[i]);
+    }
+    else
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(nElements); ++i)
+      {
+        // Compute position in chunk and output array
+        ptrdiff_t tmp2 = i, srcIndex = 0, targetIndex = 0, pos;
+        for (int d = static_cast<int>(datasetDims.size()) - 1; d >= 0; --d)
+        {
+          pos = (tmp2 % block[d]);
+          srcIndex += bufStrides[d] * pos;
+          targetIndex += targetStrides[d] * (pos + start[d]);
+          tmp2 /= block[d];
+        }
+        target[targetIndex] = static_cast<DestT>(buf[srcIndex]);
+      }
+    }
+  }  
+
+  H5Sclose(filespaceId);
+  H5Sclose(memoryspaceId);
+  delete[] buf;          
+}
+
+template<typename SourceT, typename DestT>
+void BlitzH5File::_loadContiguousDataset(hid_t datasetId, DestT *target) const
+{
+  hid_t dataspaceId = H5Dget_space(datasetId);
+  if (dataspaceId < 0) throw BlitzH5Error() << "Could not open dataspace.";
+  ptrdiff_t nElements = H5Sget_simple_extent_npoints(dataspaceId);
+  SourceT *buf = new SourceT[nElements];
+  herr_t err = H5Dread(
+      datasetId, BlitzH5Traits<SourceT>::h5Type(),
+      H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
+  if (err < 0)
+  {
+    delete[] buf;
+    H5Sclose(dataspaceId);
+    throw BlitzH5Error() << "H5Dread failed.";
+  }
+  for (ptrdiff_t i = 0; i < nElements; ++i)
+      target[i] = static_cast<DestT>(buf[i]);
+  delete[] buf;
+  H5Sclose(dataspaceId);
+}
+

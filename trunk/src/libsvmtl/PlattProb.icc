@@ -1,0 +1,109 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**************************************************************************
+**       Title: 
+**    $RCSfile$
+**   $Revision: 604 $$Name$
+**       $Date: 2005-02-11 13:26:53 +0100 (Fri, 11 Feb 2005) $
+**   Copyright: GPL $Author: ronneber $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.1  2005/02/11 12:26:49  ronneber
+**  - initial revision
+**
+**
+**
+**************************************************************************/
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  train()
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename WrappedSVM>
+template<typename FV>
+void svt::PlattProb<WrappedSVM>::train( 
+    const SVM_Problem<FV>& trainData,
+    typename Traits<FV>::ModelType& model) const
+{
+  /*-----------------------------------------------------------------------
+   *  Create a cross validator to calculate dec_values for each 
+   *  training vector (this avoids clustering of dec_values at -1 and
+   *  +1, see Platt 1999: Probabilistic Outputs for Support Vector Machines)
+   *-----------------------------------------------------------------------*/
+  svt::CrossValidator<FV, WrappedSVM, SVM_Problem<FV> > cv( _svm);
+  cv.setTrainingData( &trainData);
+  cv.preprocessTrainingData();
+
+  /*-----------------------------------------------------------------------
+   *  the full model (from preprocessTrainingData) is already the
+   *  model we want to return
+   *-----------------------------------------------------------------------*/
+  model = cv.fullModel();
+  
+  /*-----------------------------------------------------------------------
+   *  Now perform a crossvalidation with 10 subsets
+   *-----------------------------------------------------------------------*/
+  std::vector<int> subsetIndexByUID;
+  svt::generateSortedSubsets( trainData.nFeatureVectors(),
+                              4, subsetIndexByUID);
+
+  std::vector<double> decisionValuesByUID;
+  cv.doFullCV( subsetIndexByUID, decisionValuesByUID);
+  
+  /*-----------------------------------------------------------------------
+   *  Fit sigmoid curve to data, where x = dec_value and y = label
+   *-----------------------------------------------------------------------*/
+  double* dec_values = new double[trainData.nFeatureVectors()];
+  for( int i = 0; i < trainData.nFeatureVectors(); ++i)
+  {
+    dec_values[i] = decisionValuesByUID[ trainData.featureVector(i)->uid()];
+  }
+  
+  double probA, probB;
+  sigmoid_train( trainData.nFeatureVectors(), dec_values, trainData.y,
+                 probA, probB);
+  
+  model.setProbAB( probA, probB);
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  classify
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename WrappedSVM>
+template<typename FV>
+double svt::PqlattProb<WrappedSVM>::classify( 
+    const FV& testObject, 
+    const typename Traits<FV>::ModelType& model) const
+{
+  double dec_value = _svm->classify( testObject, model);
+  return sigmoid_predict( dec_value, model.probA(), model.probB());
+}

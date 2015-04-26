@@ -1,0 +1,451 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**************************************************************************
+**       Title: multi class svm using "one versus rest" technique
+**    $RCSfile$
+**   $Revision: 4820 $$Name$
+**       $Date: 2011-11-08 10:57:01 +0100 (Tue, 08 Nov 2011) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.3  2005/03/29 18:01:53  ronneber
+**  - replaced updateCacheFlag, etc with updateKernelCache() and
+**    clearKernelCache() methods
+**
+**  Revision 1.2  2004/09/03 07:13:36  ronneber
+**  - adapted to new updateCache() interface of Kernels
+**
+**  Revision 1.1  2004/08/26 08:36:59  ronneber
+**  initital import
+**
+**  Revision 1.8  2003/05/19 11:05:38  ronneber
+**  - converted from MapTools to ParamMapWrapper
+**  - added new train() method where access to the feature vectors
+**    container is done via a custom functor. This means, you now can give
+**    your training vectors, e.g.,  as std::vector<FV> or std::vector<FV*>
+**    or somethin completely different. You just have to pass an
+**    appropriate Accessor to make an FV* from an iterator
+**
+**  Revision 1.7  2002/10/28 16:00:52  mechnich
+**  fixed compatibility problems with gcc3
+**
+**  Revision 1.6  2002/07/09 06:41:41  ronneber
+**  added progress reporter for OneVsRest
+**
+**  Revision 1.5  2002/07/08 13:46:50  ronneber
+**  - added copySVCoef... methods for OneVsRest SVM
+**
+**  Revision 1.4  2002/07/03 23:53:49  mechnich
+**  added a few std::'s to maintain Win32 compatibility
+**
+**  Revision 1.3  2002/06/07 07:57:31  ronneber
+**  - adapted to new Two-class-train() method. Now there is no more need
+**    for a setLabel() method in the feature vector class and the feature
+**    vectors may be passed read-only
+**
+**  - the labels in the two-class Models are now to +1 for the actual
+**    class and -1 for the rest
+**
+**  Revision 1.2  2002/05/10 11:07:03  ronneber
+**  - removed FV template for all public classes, because Feature Vector type
+**    can be extracted automatically from passed iterators or other
+**    parameters -- this makes the public interface much more intuitive
+**
+**  Revision 1.1  2002/05/08 10:37:31  ronneber
+**  intitial revision
+**
+**
+**
+**************************************************************************/
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  train()
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename SVM>
+template< typename FV>
+void MultiClassSVMOneVsRest<SVM>::train( 
+    const GroupedTrainingData<FV>& trainData,
+    typename Traits<FV>::ModelType& model) const
+{
+  CHECK_MEMBER_TEMPLATE( svt_check::RequireFeatureVectorUniqueID<FV>);
+  CHECK_MEMBER_TEMPLATE( svt_check::RequireMinimalTCModel<typename SVM::template Traits<FV>::ModelType>);
+  CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireSVMKernelUpdateCache<SVM,FV>);
+  CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireSVMBasicTraining<SVM,FV>);
+
+  /*-----------------------------------------------------------------------
+   *  ensure, that uniqueIDs are set properly
+   *-----------------------------------------------------------------------*/
+  for( unsigned int i = 0; i < trainData.nFeatureVectors(); ++i)
+  {
+    SVM_ASSERT( trainData.featureVector(i)->uniqueID() 
+                <= MAX_BELIEVABLE_UNIQUE_ID);
+  }
+  
+
+  /*-----------------------------------------------------------------------
+   *  resize Model to number of classes
+   *-----------------------------------------------------------------------*/
+  model.resizeModelsVector( trainData.nClasses());
+
+    
+  /*-----------------------------------------------------------------------
+   *  report progress
+   *-----------------------------------------------------------------------*/
+  if( _pr != 0)
+  {
+    std::ostringstream os;
+    os << "start training of " << model.nTwoClassModels() << " SVM's";
+    _pr->reportProgress( TASK_LEVEL_MULTICLASS, os.str(), 0, "");
+  }
+  int svmsDone = 0;
+
+  /*-----------------------------------------------------------------------
+   *  copy feature vectors to svm_problem (they are identical for all
+   *  subproblems, only the labels change)
+   *-----------------------------------------------------------------------*/
+  SVM_Problem<FV> problem( static_cast<int>(trainData.nFeatureVectors()));
+  std::copy( trainData.allFeatureVectors().begin(),
+             trainData.allFeatureVectors().end(), 
+             problem.x);
+
+  /*-----------------------------------------------------------------------
+   *  train a Model for each class against the rest
+   *-----------------------------------------------------------------------*/
+  for( unsigned int classIndex = 0; classIndex < trainData.nClasses(); ++classIndex)
+  {
+    /*------------------------------------------------------------------
+     *  report progress
+     *------------------------------------------------------------------*/
+    if( _pr != 0)
+    {
+      std::ostringstream os;
+      os << "training SVM for class " << classIndex << " vs. Rest";
+      std::ostringstream os2;
+      os2 << svmsDone << " of " << model.nTwoClassModels();
+      
+      _pr->reportProgress(
+          TASK_LEVEL_MULTICLASS, os.str(), 
+          static_cast<float>(svmsDone) /
+          static_cast<float>(model.nTwoClassModels()),
+          os2.str());
+      ++svmsDone;
+    }
+    
+    /*-------------------------------------------------------------------
+     *  create lables for the subproblem
+     *-------------------------------------------------------------------*/
+    std::fill_n( problem.y, problem.l, -1);
+
+    std::fill( problem.y + trainData.classStartIndex( classIndex),
+               problem.y + trainData.classStartIndex( classIndex+1),
+               +1);
+
+    /*-------------------------------------------------------------------
+     *  train the appropriate Model in the models vector with these
+     *  two classes
+     *-------------------------------------------------------------------*/
+    _twoClassSVM.train( problem, model.twoClassModel( classIndex) );
+
+    if( _pr != 0)
+    {
+      _pr->additionalInfo( TASK_LEVEL_TRAINING_INFO,
+                          model.twoClassModel(classIndex).trainingInfoPlainText());
+          
+    }
+    
+  }
+ 
+  /*-----------------------------------------------------------------------
+   *  report progress
+   *-----------------------------------------------------------------------*/
+  if( _pr != 0)
+  {
+    std::ostringstream os;
+    os << "training of all " << model.nTwoClassModels() << " SVM's done";
+    std::ostringstream os2;
+    os2 << svmsDone << " of " << model.nTwoClassModels();
+        
+    _pr->reportProgress( TASK_LEVEL_MULTICLASS, os.str(), 1.0, os2.str());
+  }
+
+  /*-----------------------------------------------------------------------
+   *  collect all feature vectors that became support vectors
+   *-----------------------------------------------------------------------*/
+  model.collectSupportVectorsFromTCModels();
+
+  /*-----------------------------------------------------------------------
+   *  copy the classIndexToLabel translation table into the model
+   *-----------------------------------------------------------------------*/
+  model.setClassIndizesToLabels( trainData.classIndizesToLabels());
+}
+  
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  retrainWithLeftOutVectors
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename SVM>
+template<typename FV>
+void MultiClassSVMOneVsRest<SVM>::retrainWithLeftOutVectors( 
+    const GroupedTrainingData<FV>& trainData,
+    const typename Traits<FV>::ModelType& fullModel,
+    const std::vector<char>& leaveOutFlagsByUID,
+    typename Traits<FV>::ModelType& resultingModel) const
+{
+  CHECK_MEMBER_TEMPLATE( svt_check::RequireFeatureVectorUniqueID<FV>);
+  CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireSVMBasicTraining<SVM,FV>);
+
+  /*-----------------------------------------------------------------------
+   *  resize Model to number of classes
+   *-----------------------------------------------------------------------*/
+  resultingModel.resizeModelsVector( trainData.nClasses());
+ 
+  /*-----------------------------------------------------------------------
+   *  report progress
+   *-----------------------------------------------------------------------*/
+  if( _pr != 0)
+  {
+    std::ostringstream os;
+    os << "start retraining of " << resultingModel.nTwoClassModels() 
+       << " SVM's";
+    _pr->reportProgress( TASK_LEVEL_MULTICLASS, os.str(), 0, "");
+  }
+  int svmsDone = 0;
+  
+  /*-----------------------------------------------------------------------
+   *  count number non-left-out vectors
+   *-----------------------------------------------------------------------*/
+  size_t nTrainingVectors =
+      std::count(leaveOutFlagsByUID.begin(), leaveOutFlagsByUID.end(), 0);
+  
+  /*-----------------------------------------------------------------------
+   *  copy feature vectors to svm_problem (they are identical for all
+   *  subproblems, only the labels change)
+   *  and create a helper array with the classIndex of each feature vector
+   *-----------------------------------------------------------------------*/
+  SVM_Problem<FV> problem( static_cast<int>(nTrainingVectors));
+  std::vector<unsigned int> classIndexByFVIndex( nTrainingVectors);
+  unsigned int problemIndex = 0;
+  unsigned int currentClassIndex = 0;
+  
+  for( unsigned int i = 0; i < trainData.nFeatureVectors(); ++i)
+  {
+    // find out current class index
+    if( trainData.classStartIndex( currentClassIndex + 1) <= i)
+    {
+      ++currentClassIndex;
+    }
+    
+    unsigned int uid = trainData.featureVector(i)->uniqueID();
+    SVM_ASSERT( uid < leaveOutFlagsByUID.size());
+    if( !leaveOutFlagsByUID[uid])
+    {
+      problem.x[problemIndex] = trainData.featureVector(i);
+      classIndexByFVIndex[problemIndex] = currentClassIndex;
+      ++problemIndex;
+    }
+  }
+  SVM_ASSERT( problemIndex == nTrainingVectors);
+
+  /*-----------------------------------------------------------------------
+   *  debugging of class indizes
+   *-----------------------------------------------------------------------*/
+//   std::cerr << "resulting class indizes = ";
+//   
+//   for( unsigned int i = 0; i < classIndexByFVIndex.size(); ++i)
+//   {
+//     std::cerr << classIndexByFVIndex[i]  << " ";
+//   }
+//   std::cerr << std::endl;
+//   
+  
+  /*-----------------------------------------------------------------------
+   *  train a Model for each class against the rest
+   *-----------------------------------------------------------------------*/
+  for( unsigned int classIndex = 0; classIndex < trainData.nClasses(); ++classIndex)
+  {
+    /*-------------------------------------------------------------------
+     *  check if training is required
+     *-------------------------------------------------------------------*/
+    if( fullModel.twoClassModel( classIndex).isModelAffectedByLeftOutVectors( leaveOutFlagsByUID) == false)
+    {
+      /*-----------------------------------------------------------------
+       *  No training required, we can just copy the two-class model
+       *  from _fullModel 
+       *-----------------------------------------------------------------*/
+      resultingModel.twoClassModel( classIndex) 
+          = fullModel.twoClassModel( classIndex);
+      
+      /*-----------------------------------------------------------------
+       *  report progess
+       *-----------------------------------------------------------------*/
+      if( _pr != 0)
+      {
+        std::ostringstream os;
+        os << "copying two-class model for class " 
+           << classIndex << " vs. Rest";
+          std::ostringstream os2;
+          os2 << svmsDone << " of " << resultingModel.nTwoClassModels();
+          
+          _pr->reportProgress(
+              TASK_LEVEL_MULTICLASS, os.str(), 
+              static_cast<float>(svmsDone) / 
+              static_cast<float>(resultingModel.nTwoClassModels()),
+              os2.str());
+          ++svmsDone;
+      }
+    }
+    else
+    {
+      /*------------------------------------------------------------------
+       *  two-class model is affected from left out vectors, so we must 
+       *  train it 
+       *------------------------------------------------------------------*/
+      if( _pr != 0)
+      {
+        std::ostringstream os;
+        os << "training SVM for class " << classIndex << " vs. Rest";
+        std::ostringstream os2;
+        os2 << svmsDone << " of " << resultingModel.nTwoClassModels();
+        
+        _pr->reportProgress(
+            TASK_LEVEL_MULTICLASS, os.str(), 
+            static_cast<float>(svmsDone) /
+            static_cast<float>(resultingModel.nTwoClassModels()),
+            os2.str());
+        ++svmsDone;
+      }
+      
+      /*-------------------------------------------------------------------
+       *  create the subproblem (only need to update the y array)
+       *-------------------------------------------------------------------*/
+      for( unsigned int i = 0; i < problem.nFeatureVectors(); ++i)
+      {
+        problem.y[i] = (classIndexByFVIndex[i] == classIndex)? +1 : -1;
+      }
+      
+      /*-------------------------------------------------------------------
+       *  train the appropriate Model in the models vector with these
+       *  two classes
+       *-------------------------------------------------------------------*/
+      _twoClassSVM.train( problem, 
+                          resultingModel.twoClassModel( classIndex) );
+      
+      if( _pr != 0)
+      {
+        _pr->additionalInfo( TASK_LEVEL_TRAINING_INFO,
+                            resultingModel.twoClassModel(classIndex).trainingInfoPlainText());
+        
+      }
+    }
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  report progress
+   *-----------------------------------------------------------------------*/
+  if( _pr != 0)
+  {
+    std::ostringstream os;
+    os << "retraining of all " << resultingModel.nTwoClassModels() << " SVM's done";
+    std::ostringstream os2;
+    os2 << svmsDone << " of " << resultingModel.nTwoClassModels();
+        
+    _pr->reportProgress( TASK_LEVEL_MULTICLASS, os.str(), 1.0, os2.str());
+  }
+
+  /*-----------------------------------------------------------------------
+   *  collect all feature vectors that became support vectors
+   *-----------------------------------------------------------------------*/
+  resultingModel.collectSupportVectorsFromTCModels();
+
+  /*-----------------------------------------------------------------------
+   *  copy the classIndexToLabel translation table into the model
+   *-----------------------------------------------------------------------*/
+  resultingModel.setClassIndizesToLabels( trainData.classIndizesToLabels());
+}
+  
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  classify
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename SVM>
+template<  typename FV, typename ResultVector>
+unsigned int MultiClassSVMOneVsRest<SVM>::predictClassIndex( 
+    const FV& testObject, 
+    const typename Traits<FV>::ModelType& model, 
+    ResultVector& resultVector) const
+{
+  CHECK_MEMBER_TEMPLATE( svt_check::RequireFeatureVectorUniqueID<FV>);
+  CHECK_MEMBER_TEMPLATE_2PARAM(svt_check::RequireSVMBasicClassification<SVM,FV>);
+  /*-----------------------------------------------------------------------
+   *  evaluate kernel function for each support vector
+   *-----------------------------------------------------------------------*/
+  std::vector<double> kernelResultByUID( model.maxUniqueID()+1);
+  
+  _twoClassSVM.calcClassificationCache( 
+      testObject,
+      model.collectedSupportVectors().begin(),
+      model.collectedSupportVectors().end(),
+      kernelResultByUID);
+  
+  /*-----------------------------------------------------------------------
+   *  perform all classifications and find the "most positive" result
+   *-----------------------------------------------------------------------*/
+  double bestResult = 0;
+  int bestResultClassIndex = -1;
+  resultVector.resize( model.nClasses());
+  
+  for( unsigned int classIndex = 0; classIndex < model.nClasses(); 
+       ++classIndex)
+  {
+    double result = _twoClassSVM.classifyWithCache( 
+        model.twoClassModel(classIndex), kernelResultByUID);
+
+    if( bestResultClassIndex == -1 || result > bestResult)
+    {
+      bestResult = result;
+      bestResultClassIndex = classIndex;
+    }
+
+      
+    resultVector[classIndex] = result;
+    
+  }
+  
+  return bestResultClassIndex;
+}
+
+  

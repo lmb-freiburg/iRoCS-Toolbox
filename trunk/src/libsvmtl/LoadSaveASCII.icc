@@ -1,0 +1,518 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**************************************************************************
+**       Title: load/save policy doe SVMApplication for ASCII files
+**    $RCSfile$
+**   $Revision: 2825 $$Name$
+**       $Date: 2009-09-15 17:04:15 +0200 (Tue, 15 Sep 2009) $
+**   Copyright: GPL $Author: ronneber $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.5  2005/10/26 07:15:47  ronneber
+**  - added getParamInfosForLoadSubsetLabels(),
+**    checkParamsForLoadSubsetLabels() and loadSubsetLabels() for using
+**    predefined subsets in cross validation
+**  - classifcation details are now given in key-value pairs, which allows
+**    more flexibility
+**  - classification details are now saved to the extra file
+**    <outpufilename>_details in the format "<uid>_<key> <value>" one per
+**    line, where uid is the unique id of the feature vector and key,
+**    value the given key value pair from the given details-vector
+**
+**  Revision 1.4  2004/09/09 14:39:28  ronneber
+**  - ignore white spaces at line end
+**
+**  Revision 1.3  2004/09/08 14:31:42  ronneber
+**  - adapted to new ParamInfo class
+**
+**  Revision 1.2  2004/08/27 09:53:55  ronneber
+**  - fixed bug in saving crossval results
+**
+**  Revision 1.1  2004/08/26 08:36:59  ronneber
+**  initital import
+**
+**
+**
+**************************************************************************/
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForLoadFeatureVectors
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+getParamInfosForLoadFeatureVectors( std::vector<ParamInfo>&)
+{
+  // no additional parameters
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  checkParamsForLoadFeatureVectors
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+checkParamsForLoadFeatureVectors(StDataCmdLine&) const
+{
+  // nothing to do here
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  loadFeatureVectors
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV>
+void svt::LoadSaveASCII::
+loadFeatureVectors( StDataCmdLine& cmdline, 
+                    std::vector<FV>& featureVectors)
+{
+  /*-----------------------------------------------------------------------
+   *  open input file
+   *-----------------------------------------------------------------------*/
+  if( cmdline.filenames().size() != 1)
+  {
+    svt::LoadError err;
+    err << "In ASCII-mode exact one input data file is required, but "
+        "you passed " << cmdline.filenames().size() << "!\n";
+    throw err;
+  }
+  std::string inFileName = cmdline.filenames()[0];
+
+  std::ifstream inFile( inFileName.c_str());
+  if( !inFile)
+  {
+    svt::LoadError err;
+    err << "error: Can't open '" << inFileName << "': " << strerror(errno);
+    throw err;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  read feature vectors one per line
+   *-----------------------------------------------------------------------*/
+  int lineNo = 0;
+  while( inFile.good())
+  {
+    /*---------------------------------------------------------------------
+     *  read one line from file and create string stream from it
+     *---------------------------------------------------------------------*/
+    ++lineNo;
+    std::string line;
+    getline( inFile, line);
+    std::istringstream iss( line);
+    
+    /*---------------------------------------------------------------------
+     *  skip white spaces
+     *---------------------------------------------------------------------*/
+    char c;
+    while (iss.good() && iss.get(c) && isspace(c)) 
+    {}
+    
+    /*---------------------------------------------------------------------
+     *  skip empty lines
+     *---------------------------------------------------------------------*/
+    if (iss.good())
+    {
+      /*-------------------------------------------------------------------
+       *  read feature vector
+       *-------------------------------------------------------------------*/
+      iss.putback(c);
+      FV fv;
+      iss >> fv;
+
+      /*-------------------------------------------------------------------
+       *  skip white spaces at end of line
+       *-------------------------------------------------------------------*/
+      iss >> std::ws;
+
+      /*-------------------------------------------------------------------
+       *  check if full line was read
+       *-------------------------------------------------------------------*/
+      if( iss.good())
+      {
+        svt::LoadError err;
+        err << inFileName << ":" << lineNo << ": illegal feature vector "
+            "format!\n"
+            "Feature vector must be stored as:\n";
+        err << FV::helpPipeFormat();
+        throw err;
+        
+      }
+      featureVectors.push_back(fv);
+    }
+    
+  }
+
+  if( featureVectors.size() == 0)
+  {
+    svt::LoadError err;
+    err << "No feature vectors found in file '" << inFileName << "'!\n";
+    throw err;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Adjust their unique Id's
+   *-----------------------------------------------------------------------*/
+  svt::adjustUniqueIDs( featureVectors);
+  
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForLoadSubsetLabels
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+getParamInfosForLoadSubsetLabels( std::vector<ParamInfo>& p)
+{
+  p.push_back(
+      ParamInfo( "subset_file", "sx", "filename", 
+                 "ASCII File, that contains the subset labels (one per "
+                 "line). Use this, if you want to manually specify the "
+                 "subsets for " 
+                 "cross validation, e.g. to avoid, that the data from one "
+                 "experiment is distributed over traning and test-set. "
+                 "The label may be any numerical or string value."
+                 ));
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  checkParamsForLoadSubsetLabels
+ *  ==> see headerfile
+ *=======================================================================*/
+inline bool svt::LoadSaveASCII::
+checkParamsForLoadSubsetLabels(StDataCmdLine& cmdline) const
+{
+  // avoid "unknwon parameter" error
+  std::string dummy;
+  cmdline.getValue( "subset_file", dummy);
+  return (dummy != "");
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  loadSubsetLabels
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+loadSubsetLabels( StDataCmdLine& cmdline, 
+                  std::vector<int>& subsetIndexByUID)
+{
+  std::string subsetLabelFileName;
+  cmdline.getValue( "subset_file", subsetLabelFileName);
+  
+  std::map<std::string, int> labelToIndex;
+  std::vector<std::string> labelsByUID;
+  
+  /*-----------------------------------------------------------------------
+   *  read labels from file
+   *-----------------------------------------------------------------------*/
+  std::ifstream subsetLabelFile( subsetLabelFileName.c_str());
+  if( !subsetLabelFile)
+  {
+    svt::LoadError err;
+    err << "error: Can't open subset label file '" << subsetLabelFileName << "': " << strerror(errno);
+    throw err;
+  }
+  
+  while( subsetLabelFile.good())
+  {
+    std::string label;
+    getline( subsetLabelFile, label);
+    if( label != "")
+    {
+      labelsByUID.push_back( label);
+      ++labelToIndex[label];
+    }
+  }
+  
+  std::cerr << "found " << labelToIndex.size() 
+            << " different subset labels:\n";
+  
+
+  /*-----------------------------------------------------------------------
+   *  update label to index translation table
+   *-----------------------------------------------------------------------*/
+  int index = 0;
+  for( std::map<std::string, int>::iterator p = labelToIndex.begin();
+       p != labelToIndex.end(); ++p, ++index)
+  {
+    std::cerr << " o " << p->first << " (" << p->second << " samples)\n";
+    p->second = index;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  fill subsetIndexByUID vector using the translation table
+   *-----------------------------------------------------------------------*/
+  subsetIndexByUID.resize( labelsByUID.size());
+  for( size_t i = 0; i < labelsByUID.size(); ++i)
+  {
+    subsetIndexByUID[i] = labelToIndex[labelsByUID[i]];
+  }
+  
+}
+
+
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForSaveModel
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+getParamInfosForSaveModel( std::vector<ParamInfo>& p)
+{
+  p.push_back(
+      ParamInfo( "modelfile", "m", "filename", 
+                 "filename for model file. Default: training file name "
+                 "with \".model\" extension"));
+}
+
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  checkParamsForSaveModel
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+checkParamsForSaveModel(StDataCmdLine& cmdline) const
+{
+  // avoid "unknwon parameter" error
+  std::string dummy;
+  cmdline.getValue( "modelfile", dummy);
+  
+}
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  saveModel
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV>
+void svt::LoadSaveASCII::
+saveModel( StDataCmdLine& cmdline, 
+           BasicSVMAdapter<FV,STDATA>* svm,
+           int detailLevel,
+           std::ostream&)
+{
+  std::string modelFileName = "";
+  cmdline.getValue( "modelfile", modelFileName);
+
+  if( modelFileName == "")
+  {
+    if( cmdline.filenames().size() == 0)
+    {
+      modelFileName = "svmtl.model";
+    }
+    else
+    {
+      std::string inFileName = cmdline.filenames()[0];
+      
+      std::string::size_type dotpos = inFileName.rfind('.');
+      if( dotpos == std::string::npos)
+      {
+        modelFileName = inFileName + ".model";
+      }
+      else
+      {
+        modelFileName = inFileName.substr( 0, dotpos) + ".model";
+      }
+    }
+  }
+  
+//  os << "Saving model to `" << modelFileName << "'...\n";
+  STDATA modelData;
+  svm->saveModel( modelData);
+  svm->saveParameters( modelData);
+  svm->saveTrainingInfos(modelData, detailLevel);
+  
+  
+  std::ofstream modelFile( modelFileName.c_str());
+  if( !modelFile)
+  {
+    svt::SaveError err;
+    err << "error: Can't create '" << modelFileName << "': " << strerror(errno);
+    throw err;
+  }
+  
+  modelData.save( modelFile);
+}
+
+  
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForCreateSVMAndLoadModel
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+getParamInfosForCreateSVMAndLoadModel( std::vector<ParamInfo>& p)
+{
+  p.push_back(
+      ParamInfo( "modelfile", "m", "filename", 
+                 "filename of model file. Default: 'svmtl.model'"));
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  createSVMAndLoadModel
+ *  ==> see headerfile
+ *=======================================================================*/
+template< typename FV, typename ALGORITHMS> 
+svt::BasicSVMAdapter<FV, svt::StDataASCIIFile>* 
+svt::LoadSaveASCII::
+createSVMAndLoadModel( StDataCmdLine& cmdline)
+{
+  std::string modelFileName = "svmtl.model";
+  cmdline.getValue( "modelfile", modelFileName);
+
+  std::ifstream modelFile( modelFileName.c_str());
+  if( !modelFile)
+  {
+    svt::LoadError err;
+    err << "error: Can't open model file '" << modelFileName << "': " << strerror(errno);
+    throw err;
+  }
+  STDATA modelData;
+  modelData.load( modelFile);
+  
+  BasicSVMAdapter<FV,STDATA>* svm = svt::BasicSVMFactory<
+        FV, 
+        STDATA, 
+        typename ALGORITHMS::MCLIST, 
+        typename ALGORITHMS::TCLIST, 
+        typename ALGORITHMS::KFLIST>::createFromStData( modelData);
+
+  svm->loadParameters( modelData);
+  svm->loadModel( modelData);
+  svm->loadParameters( cmdline); // may be user specified "verbose_level", ...
+  return svm;
+  
+}
+
+
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForSaveClassificationResults
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+getParamInfosForSaveClassificationResults( std::vector<ParamInfo>& p)
+{
+  p.push_back(
+      ParamInfo( "outfile", "o",  "filename", 
+                 "filename for output file with classification results. "
+                 "Default: test file name with \".output\" extension"));
+}
+
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  checkParamsForSaveClassificationResults
+ *  ==> see headerfile
+ *=======================================================================*/
+inline bool svt::LoadSaveASCII::
+checkParamsForSaveClassificationResults(StDataCmdLine& cmdline) const
+{
+  // avoid "unknwon parameter" error
+  std::string dummy;
+  cmdline.getValue( "outfile", dummy);
+  return (dummy != "");
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  saveClassificationResults
+ *  ==> see headerfile
+ *=======================================================================*/
+inline void svt::LoadSaveASCII::
+saveClassificationResults( StDataCmdLine& cmdline,
+                           const std::vector<double>& results,
+                           const std::vector< StDataASCII>& details,
+                           bool saveDetails,
+                           std::ostream& os)
+{
+  std::string outFileName = "";
+  cmdline.getValue( "outfile", outFileName);
+  if( outFileName == "")
+  {
+    if( cmdline.filenames().size() == 0)
+    {
+      outFileName = "svmtl.output";
+    }
+    else
+    {
+      std::string inFileName = cmdline.filenames()[0];
+      
+      std::string::size_type dotpos = inFileName.rfind('.');
+      if( dotpos == std::string::npos)
+      {
+        outFileName = inFileName + ".output";
+      }
+      else
+      {
+        outFileName = inFileName.substr( 0, dotpos) + ".output";
+      }
+    }
+  }
+  
+   os << "Saving results to `" << outFileName << "'\n";
+
+  std::ofstream outFile( outFileName.c_str());
+  if( !outFile)
+  {
+    svt::SaveError err;
+    err << "error: Can't create '" << outFileName << "': " << strerror(errno);
+    throw err;
+  }
+    
+  for( unsigned int i = 0; i < results.size(); ++i)
+  {
+    outFile << results[i] << std::endl;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  save classification details to extra file if requested
+   *-----------------------------------------------------------------------*/
+    if( saveDetails)
+    {
+      std::string detailFileName = outFileName + "_details";
+      os << "Saving details to `" << detailFileName << "'\n";
+      std::ofstream detailFile( detailFileName.c_str());
+      if( !detailFile)
+      {
+        svt::SaveError err;
+        err << "error: Can't create '" << detailFile << "': " << strerror(errno);
+        throw err;
+      }
+      
+      for( unsigned int i = 0; i < details.size(); ++i)
+      {
+        for( std::map<std::string, std::string>::const_iterator p =
+                 details[i].begin(); p != details[i].end(); ++p)
+        {
+          detailFile << i << " " << p->first << " " << p->second << "\n";
+        }
+      }
+    }
+  
+
+}
+
+ 
+  

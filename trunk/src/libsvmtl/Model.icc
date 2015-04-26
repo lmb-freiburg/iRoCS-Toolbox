@@ -1,0 +1,211 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**************************************************************************
+**       Title: SVM Model 
+**    $RCSfile$
+**   $Revision: 4820 $$Name$
+**       $Date: 2011-11-08 10:57:01 +0100 (Tue, 08 Nov 2011) $
+**   Copyright: GPL $Author: tschmidt $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log$
+**  Revision 1.1  2004/08/26 08:36:59  ronneber
+**  initital import
+**
+**  Revision 1.2  2002/10/28 16:00:52  mechnich
+**  fixed compatibility problems with gcc3
+**
+**  Revision 1.1  2002/05/13 16:21:36  ronneber
+**  initial revision
+**
+**
+**
+**************************************************************************/
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  free_memory
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename FV>
+void svt::Model<FV>::free_memory()
+{
+  if( _supportVectors != 0 || _alphas != 0)
+  {
+    if( _owningSupportVectors)
+    {
+      for( unsigned int i = 0; i < _size; ++i)
+      {
+        delete _supportVectors[i];
+        _supportVectors[i] = 0;
+      }
+    }
+    delete[] _supportVectors;
+    delete[] _alphas;
+    _supportVectors = 0;
+    _alphas = 0;
+    _size = 0;
+    _owningSupportVectors = false;
+  }
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  resize
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename FV>
+void svt::Model<FV>::resize( size_t nSupportVectors)
+{
+  if( nSupportVectors == _size)
+  {
+    return;
+  }
+  if( _supportVectors != 0 || _alphas != 0)
+  {
+    free_memory();
+  }
+  _supportVectors = new FV*[nSupportVectors];
+  _alphas = new double[nSupportVectors];
+  _size = nSupportVectors;
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  saveParameters
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename FV>
+template<typename STDATA>
+void  svt::Model<FV>::saveParameters( STDATA& stData, 
+                                      const std::string& prefix) const
+{
+  CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireStDataFVArray<STDATA,FV>);
+  
+  stData.setValue( prefix+"rho", _rho);
+  // save alphas
+  stData.setArray( prefix+"alphas", _alphas, _size);
+  
+  // save feature vectors
+  stData.setFVArray( prefix+"SV", _supportVectors, _size);
+  
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  loadParameters
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename FV>
+template<typename STDATA>
+void svt::Model<FV>::loadParameters( STDATA& stData, 
+                                     const std::string& prefix)
+{
+  CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireStDataFVArray<STDATA,FV>);
+  
+  // be sure, thet we get exceptions if some keys are missing
+  SVM_ASSERT( stData.exceptionFlag() == true);
+  
+  // read rho
+  stData.getValue( prefix+"rho", _rho);
+  
+  // read alphas
+  size_t nSV = stData.getArraySize( "alphas");
+  resize( nSV);
+  stData.getArray( prefix+"alphas", _alphas, static_cast<int>(nSV));
+  
+  // read support vectors
+  for( size_t i = 0; i < nSV; ++i)
+  {
+    _supportVectors[i] = new FV;
+  }
+  stData.getFVArray( prefix+"SV", _supportVectors, static_cast<int>(nSV));
+  
+  _owningSupportVectors = true;
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  saveParametersWithUIDs
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename FV>
+template<typename STDATA>
+void svt::Model<FV>::saveParametersWithUIDs( STDATA& stData, 
+                                             const std::string& prefix) const
+{
+  CHECK_MEMBER_TEMPLATE( svt_check::RequireStData<STDATA>);
+  CHECK_MEMBER_TEMPLATE( svt_check::RequireFeatureVectorUniqueID<FV>); 
+ 
+  stData.setValue( prefix+"rho", _rho);
+  // save alphas
+  stData.setArray( prefix+"alphas", _alphas, _size);
+  
+  // save feature vector uids
+  std::vector<unsigned int> uids( _size);
+  for( unsigned int i = 0; i < _size; ++i)
+  {
+    uids[i] = _supportVectors[i]->uniqueID();
+  }
+  stData.setArray( prefix+"sv_uids", uids.begin(), uids.size());
+  
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  loadParametersWithUIDs
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename FV>
+template<typename STDATA>
+void svt::Model<FV>::loadParametersWithUIDs( STDATA& stData,
+                                             const std::vector<FV*>& fvsByUID,
+                                             const std::string& prefix)
+{
+  CHECK_MEMBER_TEMPLATE( svt_check::RequireStData<STDATA>);
+  CHECK_MEMBER_TEMPLATE( svt_check::RequireFeatureVectorUniqueID<FV>); 
+  
+  // be sure, thet we get exceptions if some keys are missing
+  SVM_ASSERT( stData.exceptionFlag() == true);
+  
+  // read rho
+  stData.getValue( prefix+"rho", _rho);
+  
+  // read alphas
+  size_t nSV = stData.getArraySize( prefix+"alphas");
+  resize( nSV);
+  stData.getArray( prefix+"alphas", _alphas, static_cast<int>(nSV));
+  
+  // read support vectors
+  std::vector<unsigned int> uids(nSV);
+  stData.getArray(prefix+"sv_uids", uids.begin(), static_cast<int>(nSV));
+  for( size_t i = 0; i < nSV; ++i)
+  {
+    _supportVectors[i] = fvsByUID[ uids[i]];
+  }
+  
+  _owningSupportVectors = false;
+}

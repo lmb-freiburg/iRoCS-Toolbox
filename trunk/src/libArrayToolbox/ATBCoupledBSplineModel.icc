@@ -1,0 +1,1612 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<int Dim>
+  CoupledBSplineModel<Dim>::CoupledBSplineModel()
+          : _axis(BSpline< blitz::TinyVector<double,Dim> >(3, 4)),
+            _thickness(BSpline<double>(3, 4))
+  {
+    // std::cerr << "CCM constructor" << std::endl;
+  }
+  
+  template<int Dim>
+  CoupledBSplineModel<Dim>::CoupledBSplineModel(
+      CoupledBSplineModel<Dim> const &model)
+          : _axis(model._axis), _thickness(model._thickness)
+  {
+    // std::cerr << "CCM copy constructor" << std::endl;
+  }
+  
+  template<int Dim>
+  CoupledBSplineModel<Dim>::~CoupledBSplineModel()
+  {
+    // std::cerr << "CCM destructor" << std::endl;
+  }
+  
+  template<int Dim>
+  CoupledBSplineModel<Dim> &CoupledBSplineModel<Dim>::operator=(
+      CoupledBSplineModel<Dim> const &model)
+  {
+    _axis = model._axis;
+    _thickness = model._thickness;
+    return *this;
+  }
+  
+  template<int Dim>
+  BSpline< blitz::TinyVector<double,Dim> > const
+  &CoupledBSplineModel<Dim>::axis() const
+  {
+    return _axis;
+  }
+
+  template<int Dim>
+  BSpline< blitz::TinyVector<double,Dim> >
+  &CoupledBSplineModel<Dim>::axis()
+  {
+    return _axis;
+  }
+
+  template<int Dim>
+  Polyline<Dim> const &CoupledBSplineModel<Dim>::axisPolyline() const
+  {
+    return _axisPolyline;
+  }
+
+  template<int Dim>
+  Polyline<Dim> &CoupledBSplineModel<Dim>::axisPolyline()
+  {
+    return _axisPolyline;
+  }
+
+  template<int Dim>
+  BSpline<double> const &CoupledBSplineModel<Dim>::thickness() const
+  {
+    return _thickness;
+  }
+
+  template<int Dim>
+  BSpline<double> &CoupledBSplineModel<Dim>::thickness()
+  {
+    return _thickness;
+  }
+
+  template<int Dim>
+  void CoupledBSplineModel<Dim>::updateAxisPolyline()
+  {
+    _axisPolyline.fitToSpline(_axis);
+  }
+
+  template<int Dim>
+  Energy computeCoupledSplineEnergy(
+      std::vector< blitz::TinyVector<double,Dim> > const &points,
+      CoupledBSplineModel<Dim> &model,
+      double kappa, double lambda, double mu,
+      double (&regularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters)
+  {
+    /*-----------------------------------------------------------------
+     *  Data term
+     *-----------------------------------------------------------------*/
+    Energy E(kappa, lambda, mu);
+
+    if (kappa > 0.0)
+    {
+            
+      model.updateAxisPolyline();
+
+      for (ptrdiff_t i = 0;
+           i < static_cast<ptrdiff_t>(points.size()); ++i)
+      {
+        double dist = 0.0, rho = 0.0, uOpt = 0.0;
+        dist = model.axisPolyline().distance(points[i], uOpt);
+        rho = dist - model.thickness()(uOpt);
+              
+        double regularized;
+              
+        if (dataTermUsePerpendicularPointsOnly &&
+            (uOpt == model.axis().knot(0) ||
+             uOpt == model.axis().knot(model.axis().nKnots() - 1)))
+            regularized = regularizer(-1.0, regularizerParameters);
+        else
+            regularized = regularizer(rho * rho, regularizerParameters);
+              
+        E.data += regularized;
+      }
+    }
+          
+    double curveLength = model.axis().curveIntegral(
+        model.axis().knot(0),
+        model.axis().knot(model.axis().nKnots() - 1));
+
+    /*-----------------------------------------------------------------
+     *  Axis curvature regularizer
+     *-----------------------------------------------------------------*/
+    if (lambda > 0.0)
+    {
+      BSpline< blitz::TinyVector<double,Dim> > d2Axis(
+          model.axis().derivative(static_cast<size_t>(2)));
+            
+      if (d2Axis.degree() >= 0)
+      {
+        for (int d = 0; d < Dim; ++d)
+        {
+          for (size_t j = 0; j < d2Axis.nControlPoints(); ++j)
+          {
+            double sqrBaseIntegral = 0.0;
+            for (size_t k = j; k <= j + d2Axis.degree() &&
+                     k < d2Axis.nKnots() - 1; ++k)
+            {
+              Polynomial<double> basePoly(
+                  d2Axis.basePolynomial(k, j) *
+                  d2Axis.basePolynomial(k, j));
+              basePoly = basePoly.indefiniteIntegral();
+              sqrBaseIntegral +=
+                  basePoly(d2Axis.knot(k + 1)) - basePoly(d2Axis.knot(k));
+            }
+            double dECurvature = d2Axis.controlPoint(j)(d) *
+                d2Axis.controlPoint(j)(d) * sqrBaseIntegral;
+            if (weighCurvatureWithSplineLength)
+                dECurvature /= curveLength;
+            E.curvature += dECurvature;
+          }
+          for (size_t j = 0; j < d2Axis.nControlPoints(); ++j)
+          {
+            double sqrBaseIntegral = 0.0;
+            for (size_t jp = j + 1; jp < d2Axis.nControlPoints(); ++jp)
+            {
+              for (size_t k = jp; k <= j + d2Axis.degree() &&
+                       k < d2Axis.nKnots() - 1; ++k)
+              {
+                Polynomial<double> basePoly(
+                    d2Axis.basePolynomial(k, j) *
+                    d2Axis.basePolynomial(k, jp));
+                basePoly = basePoly.indefiniteIntegral();
+                sqrBaseIntegral +=
+                    basePoly(d2Axis.knot(k + 1)) -
+                    basePoly(d2Axis.knot(k));
+              }
+              double dECurvature = 2.0 * d2Axis.controlPoint(j)(d) *
+                  d2Axis.controlPoint(jp)(d) * sqrBaseIntegral;
+              if (weighCurvatureWithSplineLength)
+                  dECurvature /= curveLength;
+              E.curvature += dECurvature;
+            }
+          }         
+        }
+      }
+    }
+          
+    /*-----------------------------------------------------------------
+     *  Axis thickness regularizer
+     *-----------------------------------------------------------------*/
+    if (mu > 0.0)
+    {
+      BSpline<double> dThickness(model.thickness().derivative());
+
+      if (dThickness.degree() >= 0)
+      {
+        for (size_t j = 0; j < dThickness.nControlPoints(); ++j)
+        {
+          double sqrBaseIntegral = 0.0;
+          for (size_t k = j; k <= j + dThickness.degree() &&
+                   k < dThickness.nKnots() - 1; ++k)
+          {
+            Polynomial<double> basePoly(
+                dThickness.basePolynomial(k, j) *
+                dThickness.basePolynomial(k, j));
+            basePoly = basePoly.indefiniteIntegral();
+            sqrBaseIntegral +=
+                basePoly(dThickness.knot(k + 1)) -
+                basePoly(dThickness.knot(k));
+          }
+          E.thickness += dThickness.controlPoint(j) *
+              dThickness.controlPoint(j) * sqrBaseIntegral;
+        }
+        for (size_t j = 0; j < dThickness.nControlPoints(); ++j)
+        {
+          double sqrBaseIntegral = 0.0;
+          for (size_t jp = j + 1; jp < dThickness.nControlPoints(); ++jp)
+          {
+            for (size_t k = jp; k <= j + dThickness.degree() &&
+                     k < dThickness.nKnots() - 1; ++k)
+            {
+              Polynomial<double> basePoly(
+                  dThickness.basePolynomial(k, j) *
+                  dThickness.basePolynomial(k, jp));
+              basePoly = basePoly.indefiniteIntegral();
+              sqrBaseIntegral +=
+                  basePoly(dThickness.knot(k + 1)) -
+                  basePoly(dThickness.knot(k));
+            }
+            E.thickness += 2.0 * dThickness.controlPoint(j) *
+                dThickness.controlPoint(jp) * sqrBaseIntegral;
+          }
+        }
+      }
+    }
+          
+    return E;
+  }
+
+  template<int Dim>
+  void updateCoupledSplineModel(
+      CoupledBSplineModel<Dim> &model,
+      std::vector< blitz::TinyVector<double,Dim> > const &dAxisControlPoints,
+      std::vector<double> const &dThicknessControlPoints, double tau)
+  {
+    for (size_t j = 0; j < model.axis().nControlPoints(); ++j)
+    {
+      model.axis().setControlPoint(
+          j, blitz::TinyVector<double,Dim>(
+              model.axis().controlPoint(j) - tau * dAxisControlPoints[j]));
+      model.thickness().setControlPoint(
+          j, model.thickness().controlPoint(j) -
+          tau * dThicknessControlPoints[j]);
+    }          
+  }
+
+  template<int Dim>
+  Energy computeUpdatedCoupledSplineEnergy(
+      std::vector< blitz::TinyVector<double,Dim> > const &points,
+      CoupledBSplineModel<Dim> model,
+      std::vector< blitz::TinyVector<double,Dim> > const &dAxisControlPoints,
+      std::vector<double> const &dThicknessControlPoints,
+      double tau, double kappa, double lambda, double mu,
+      double (&regularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters)
+  {
+    updateCoupledSplineModel(
+        model, dAxisControlPoints, dThicknessControlPoints, tau);
+    return computeCoupledSplineEnergy(
+        points, model, kappa, lambda, mu, regularizer, regularizerParameters);
+  }
+
+  template<int Dim>
+  Energy refineModel(
+      std::vector< blitz::TinyVector<double,Dim> > const &points,
+      CoupledBSplineModel<Dim> &model,
+      double kappa, double lambda, double mu, int nIter, double tau,
+      double (&regularizer)(double, std::vector<double> const &),
+      double (&dRegularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters,
+      iRoCS::ProgressReporter *pr, std::string const &evolutionFileName,
+      std::string const &evolutionGroup)
+  {
+    Energy E_old(kappa, lambda, mu);
+    E_old.data = std::numeric_limits<double>::infinity();
+    Energy E = computeCoupledSplineEnergy(
+        points, model, kappa, lambda, mu, regularizer,
+        regularizerParameters);
+          
+    CoupledBSplineModel<Dim> model_old;
+          
+    std::vector< blitz::TinyVector<double,Dim> > dAxisControlPoints(
+        model.axis().nControlPoints());
+    std::vector<double> dThicknessControlPoints(
+        model.thickness().nControlPoints());
+          
+    if (normalizeGradient) tau = 1.0;
+    int iter = 1;
+    int nRetries = 5;
+    int retry = 0;
+    CoupledBSplineModel<Dim> m_opt = model;
+    Energy E_opt = E;
+    // while (E_old.value() / E.value() > 1.0 && iter < nIter)
+    while (retry < nRetries && iter < nIter)
+    {
+      if (E_opt.value() / E.value() < 1.0 + 1.0e-10)
+      {
+        tau /= 2.0;
+        retry++;
+      }
+      else
+      {
+        m_opt = model;
+        E_opt = E;
+        retry = 0;
+      }
+      
+      std::stringstream msg;
+      msg << "Fitting Coupled Curves - iteration " << iter << ": " << E;
+      if (pr != NULL)
+      {
+        if (!pr->updateProgressMessage(msg.str())) return E;
+      }
+      else if (iter % 10 == 0) std::cout << msg.str() << std::endl;
+
+      if (evolutionFileName != "")
+      {
+        std::stringstream groupName;
+        groupName << evolutionGroup << "/iteration_" << std::setw(7)
+                  << std::setfill('0') << iter;
+        m_opt.axis().save(evolutionFileName, groupName.str() + "/axis");
+        m_opt.thickness().save(
+            evolutionFileName, groupName.str() + "/thickness");
+        try
+        {
+          BlitzH5File evolutionFile(evolutionFileName, BlitzH5File::Write);
+          evolutionFile.writeAttribute(E.kappa, "kappa", groupName.str());
+          evolutionFile.writeAttribute(E.lambda, "lambda", groupName.str());
+          evolutionFile.writeAttribute(E.mu, "mu", groupName.str());
+          evolutionFile.writeAttribute(E.data, "E_data", groupName.str());
+          evolutionFile.writeAttribute(
+              E.curvature, "E_curvature", groupName.str());
+          evolutionFile.writeAttribute(
+              E.thickness, "E_thickness", groupName.str());
+          evolutionFile.writeAttribute(E.value(), "E_total", groupName.str());
+        }
+        catch (BlitzH5Error &)
+        {}
+      }
+
+      E_old = E;
+      model_old = model;
+            
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t j = 0;
+           j < static_cast<ptrdiff_t>(model.axis().nControlPoints());
+           ++j)
+      {
+        dAxisControlPoints[j] = 0.0;
+        dThicknessControlPoints[j] = 0.0;
+      }
+            
+      /*-------------------------------------------------------------
+       *  Data term
+       *-------------------------------------------------------------*/
+      if (kappa > 0)
+      {
+        for (ptrdiff_t i = 0;
+             i < static_cast<ptrdiff_t>(points.size()); ++i)
+        {
+          double uOpt = 0.0;
+          double dist = model.axisPolyline().distance(points[i], uOpt);
+          double t = model.thickness()(uOpt);
+          double rho = dist - t;
+          double dRegularized;
+                
+          if (dataTermUsePerpendicularPointsOnly &&
+              (uOpt == model.axis().knot(0) ||
+               uOpt == model.axis().knot(model.axis().nKnots() - 1)))
+              dRegularized = dRegularizer(-1.0, regularizerParameters);
+          else
+              dRegularized = dRegularizer(
+                  rho * rho, regularizerParameters);
+          
+          blitz::TinyVector<double,Dim> aF =
+              dRegularized * (1.0 - t / dist) *
+              (model.axis()(uOpt) - points[i]);
+          double tF = -dRegularized * rho;
+                
+          for (size_t j = 0; j < model.axis().nControlPoints(); ++j)
+          {
+            blitz::TinyVector<double,Dim> dA(
+                aF * model.axis().base(uOpt, j));
+            double dT = tF * model.thickness().base(uOpt, j);
+            {
+              dAxisControlPoints[j] += kappa * dA;
+              // Update the thickness only if the point projects into the
+              // spline domain to avoid thickness over-estimation at the
+              // spline end points
+              if (uOpt > model.axis().knot(0) &&
+                  uOpt < model.axis().knot(model.axis().nKnots() - 1))
+                  dThicknessControlPoints[j] += kappa * dT;
+            }
+          }
+        }
+      }
+            
+      double curveLength = model.axis().curveIntegral(
+          model.axis().knot(0),
+          model.axis().knot(model.axis().nKnots() - 1));
+            
+      /*-------------------------------------------------------------
+       *  Axis curvature term
+       *-------------------------------------------------------------*/
+      if (lambda > 0)
+      {
+        for (size_t j = 0; j < model.axis().nControlPoints(); ++j)
+        {
+          for (size_t jp = 0; jp < model.axis().nControlPoints(); ++jp)
+          {
+            double integral = 0.0;
+            for (size_t k = 0; k < model.axis().nKnots() - 1; ++k)
+            {
+              Polynomial<double> poly(
+                  model.axis().basePolynomial(k, jp, 2) *
+                  model.axis().basePolynomial(k, j, 2));
+              poly = poly.indefiniteIntegral();
+              integral += poly(model.axis().knot(k) + 1) -
+                  poly(model.axis().knot(k));
+            }
+            blitz::TinyVector<double,Dim> dCp(
+                lambda * integral * model.axis().controlPoint(jp));
+            if (weighCurvatureWithSplineLength) dCp /= curveLength;
+            dAxisControlPoints[j] += dCp;
+          }
+        }
+      }
+            
+      /*-------------------------------------------------------------
+       *  Thickness constancy term
+       *-------------------------------------------------------------*/
+      if (mu > 0)
+      {
+        for (size_t j = 0; j < model.thickness().nControlPoints(); ++j)
+        {
+          for (size_t jp = 0;
+               jp < model.thickness().nControlPoints(); ++jp)
+          {
+            double integral = 0.0;
+            for (size_t k = 0; k < model.thickness().nKnots() - 1; ++k)
+            {
+              Polynomial<double> poly(
+                  model.thickness().basePolynomial(k, jp, 2) *
+                  model.thickness().basePolynomial(k, j, 2));
+              poly = poly.indefiniteIntegral();
+              integral += poly(model.thickness().knot(k) + 1) -
+                  poly(model.thickness().knot(k));
+            }
+            dThicknessControlPoints[j] +=
+                mu * integral * model.thickness().controlPoint(jp);
+          }
+        }
+      }
+            
+      if (controlPointsUpdatePerpendicularToSpline)
+      {
+        // Only update perpendicular to the spline tangent
+        for (size_t j = 0; j < model.axis().nControlPoints(); ++j)
+        {
+          double uOpt;
+          distance(
+              model.axis(), model.axis().controlPoint(j), uOpt);
+          blitz::TinyVector<double,Dim> dAxis(
+              model.axis().derivative()(uOpt));
+          dAxisControlPoints[j] -=
+              blitz::dot(dAxis, dAxisControlPoints[j]) /
+              blitz::dot(dAxis, dAxis) * dAxis;
+        }
+      }
+            
+      if (normalizeGradient)
+      {
+        double maxComponentAbs = 0.0;
+        for (size_t i = 0; i < dAxisControlPoints.size(); ++i)
+        {
+          for (int d = 0; d < Dim; ++d)
+          {
+            double componentAbs = std::abs(dAxisControlPoints[i](d));
+            if (maxComponentAbs < componentAbs)
+                maxComponentAbs = componentAbs;
+          }
+        }
+        for (size_t i = 0; i < dThicknessControlPoints.size(); ++i)
+        {
+          double componentAbs = std::abs(dThicknessControlPoints[i]);
+          if (maxComponentAbs < componentAbs)
+              maxComponentAbs = componentAbs;
+        }
+        for (size_t i = 0; i < dAxisControlPoints.size(); ++i)
+            for (int d = 0; d < Dim; ++d)
+                dAxisControlPoints[i](d) /= maxComponentAbs;
+        for (size_t i = 0; i < dThicknessControlPoints.size(); ++i)
+            dThicknessControlPoints[i] /= maxComponentAbs;
+      }
+            
+      if (doLineSearch)
+      {
+        /*----------------------------------------------------------
+         *  Line Search along gradient direction using golden section
+         *  search in the interval [0, c] where c is determined in the
+         *  first loop
+         *----------------------------------------------------------*/
+              
+        double phi = (1.0 + std::sqrt(5.0)) / 2.0;
+        double resPhi = 2.0 - phi;
+        double tolerance = 1e-4;
+              
+        double a = 0;
+        // double E_a = E_old.value();
+        double c = tau + 1.0e-20;
+        double E_c = E_old.value();
+              
+        double E_min = E_old.value();
+              
+        // Find right interval end c
+        while (E_c <= E_min && c <= 100 * tau)
+        {
+          E_c = computeUpdatedCoupledSplineEnergy(
+              points, model, dAxisControlPoints,
+              dThicknessControlPoints,
+              c, kappa, lambda, mu,
+              regularizer, regularizerParameters).value();
+          if (E_c < E_min) E_min = E_c;
+          c += tau;
+        }
+
+        std::cout << " --- Found upper bound = " << c << std::flush;
+              
+        double b = resPhi * (c - a);
+        double E_b = computeUpdatedCoupledSplineEnergy(
+            points, model, dAxisControlPoints, dThicknessControlPoints,
+            b, kappa, lambda, mu,
+            regularizer, regularizerParameters).value();
+              
+        while (true)
+        {
+          // Insert new point x at golden section of bigger interval
+          double x;
+          if (c - b > b - a) x = b + resPhi * (c - b);
+          else x = b - resPhi * (b - a);
+                
+          // Check for convergence
+          if (std::abs(c - a) < tolerance * (std::abs(b) + std::abs(x)))
+              break;
+                
+          // Compute Energy at inserted point
+          double E_x = computeUpdatedCoupledSplineEnergy(
+              points, model, dAxisControlPoints,
+              dThicknessControlPoints,
+              x, kappa, lambda, mu, regularizer,
+              regularizerParameters).value();
+                
+          // Update interval bounds and interior point according to
+          // Energy
+          if (E_x < E_b)
+          {
+            if (c - b > b - a) // Minimum is between b and c
+            {
+              a = b;
+              // E_a = E_b;
+              b = x;
+              E_b = E_x;
+            }
+            else               // Minimum is between a and b
+            {
+              c = b;
+              E_c = E_b;
+              b = x;
+              E_b = E_x;
+            }
+          }
+          else
+          {
+            if (c - b > b - a) // Minimum is between a and b
+            {
+              c = x;
+              E_c = E_x;
+            }
+            else               // Minimum is between b and c
+            {
+              a = x;
+              // E_a = E_x;
+            }
+          }
+        }
+        tau = (a + c) / 2.0;
+              
+        std::cout << " -- final tau = " << tau << std::endl;
+      }
+            
+      model = model_old;
+      updateCoupledSplineModel(
+          model, dAxisControlPoints, dThicknessControlPoints, tau);
+      E = computeCoupledSplineEnergy(
+          points, model, kappa, lambda, mu, regularizer,
+          regularizerParameters);
+          
+      ++iter;
+      std::cout << "          " << std::flush;
+
+    }
+    std::cout << std::endl;
+
+    model = m_opt;
+    return E_opt;
+    // model = model_old;          
+    // return E_old;          
+  }
+  
+  template<int Dim>
+  bool reparametrizeModel(CoupledBSplineModel<Dim> &model)
+  {
+    model.updateAxisPolyline();
+    double curveLength = model.axis().curveIntegral(
+        model.axis().knot(0), model.axis().knot(
+            model.axis().nKnots() - 1));
+          
+    // Sample the splines and get a D+1 dimensional point cloud
+    std::vector<double> uVec(static_cast<ptrdiff_t>(curveLength));
+    std::vector< blitz::TinyVector<double,Dim + 1> > points(
+        static_cast<ptrdiff_t>(curveLength));
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+      double u = model.axis().curveLengthToU(
+          model.axis().knot(0), static_cast<double>(i));
+      blitz::TinyVector<double,Dim> axisPos = model.axis()(u);
+      for (int d = 0; d < Dim; ++d) points[i](d) = axisPos(d);
+      points[i](Dim) = model.thickness()(u);
+      uVec[i] = static_cast<double>(i) / curveLength;
+    }
+
+    // Fit a D+1 dimensional spline to the point cloud
+    BSpline< blitz::TinyVector<double,Dim+1> > coupledModel(
+        model.axis().degree(),
+        model.axis().nControlPoints());
+    coupledModel.setOpenUniformKnots();
+    fitSplineToPointCloud(coupledModel, uVec, points);
+          
+    // Split the D+1 dimensional spline into axis and thickness
+    // again
+    std::vector< blitz::TinyVector<double,Dim> > axisControlPoints(
+        coupledModel.nControlPoints());
+    std::vector<double> thicknessControlPoints(
+        coupledModel.nControlPoints());
+    for (size_t i = 0; i < coupledModel.nControlPoints(); ++i)
+    {
+      for (int d = 0; d < Dim; ++d)
+          axisControlPoints[i](d) = coupledModel.controlPoint(i)(d);
+      thicknessControlPoints[i] = coupledModel.controlPoint(i)(Dim);
+    }
+    model.axis().setControlPoints(axisControlPoints);
+    model.axis().setKnots(coupledModel.knots());
+    model.thickness().setControlPoints(thicknessControlPoints);
+    model.thickness().setKnots(coupledModel.knots());
+
+    return true;
+  }
+
+  template<int Dim>
+  bool regridModel(CoupledBSplineModel<Dim> &model, double minSegmentLength)
+  {
+    double curveLength = model.axis().curveIntegral(
+        model.axis().knot(0), model.axis().knot(
+            model.axis().nKnots() - 1));
+
+    if (curveLength / static_cast<double>(
+            model.axis().nControlPoints()) <= minSegmentLength)
+        return false;
+          
+    // Sample the splines and get a D+1 dimensional point cloud
+    std::vector<double> uVec(static_cast<ptrdiff_t>(curveLength));
+    std::vector< blitz::TinyVector<double,Dim + 1> > points(
+        static_cast<ptrdiff_t>(curveLength));
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+      double u = model.axis().curveLengthToU(
+          model.axis().knot(0), static_cast<double>(i));
+      blitz::TinyVector<double,Dim> axisPos = model.axis()(u);
+      for (int d = 0; d < Dim; ++d) points[i](d) = axisPos(d);
+      points[i](Dim) = model.thickness()(u);
+      uVec[i] = static_cast<double>(i) / curveLength;
+    }
+
+    // Fit a D+1 dimensional spline to the point cloud
+    BSpline< blitz::TinyVector<double,Dim+1> > coupledModel(
+        model.axis().degree(),
+        model.axis().nControlPoints() + 1);
+    coupledModel.setOpenUniformKnots();
+    fitSplineToPointCloud(coupledModel, uVec, points);
+          
+    // Split the D+1 dimensional spline into axis and thickness
+    // again
+    std::vector< blitz::TinyVector<double,Dim> > axisControlPoints(
+        coupledModel.nControlPoints());
+    std::vector<double> thicknessControlPoints(
+        coupledModel.nControlPoints());
+    for (size_t i = 0; i < coupledModel.nControlPoints(); ++i)
+    {
+      for (int d = 0; d < Dim; ++d)
+          axisControlPoints[i](d) = coupledModel.controlPoint(i)(d);
+      thicknessControlPoints[i] = coupledModel.controlPoint(i)(Dim);
+    }
+    model.axis().setControlPoints(axisControlPoints);
+    model.axis().setKnots(coupledModel.knots());
+    model.thickness().setControlPoints(thicknessControlPoints);
+    model.thickness().setKnots(coupledModel.knots());
+
+    return true;
+  }
+
+  template<int Dim>
+  Energy fitCoupledSplines(
+      std::vector< blitz::TinyVector<double,Dim> > const &points,
+      CoupledBSplineModel<Dim> &model,
+      double kappa, double lambda, double mu, int nIter, double tau,
+      double regridLength,
+      double (&regularizer)(double, std::vector<double> const &),
+      double (&dRegularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters,
+      iRoCS::ProgressReporter *pr, std::string const &evolutionFileName)
+  {
+     Energy E = refineModel(
+        points, model, kappa, lambda, mu, nIter, tau,
+        regularizer, dRegularizer, regularizerParameters,
+        pr, evolutionFileName, "/outerIteration_0");
+
+    if (!regrid) return E;
+
+    CoupledBSplineModel<Dim> model_old;
+    Energy E_old(kappa, lambda, mu);
+    E_old.data = std::numeric_limits<double>::infinity();
+
+    int iter = 1;
+    while (E_old.value() / E.value() > 1.0)
+    {
+      {
+        std::stringstream msg;
+        msg << "Regridding iteration " << iter << ": " << E;
+        if (pr != NULL)
+        {
+          if (!pr->updateProgressMessage(msg.str())) return E_old;
+        }
+        else std::cout << msg.str() << std::endl;
+      }
+      
+      model_old = model;
+      E_old = E;
+      
+      regridModel(model, regridLength);
+      
+      {
+        std::stringstream msg;
+        msg << "Energy after regridding to " << model.axis().nKnots()
+            << " segments: " << computeCoupledSplineEnergy(
+                points, model, kappa, lambda, mu, regularizer,
+                regularizerParameters);
+        if (pr != NULL)
+        {
+          if (!pr->updateProgressMessage(msg.str())) return E_old;
+        }
+        else std::cout << msg.str() << std::endl;        
+      }
+      std::stringstream outerIterStream;
+      outerIterStream << "/outerIteration_" << iter;
+      E = refineModel(
+          points, model, kappa, lambda, mu, nIter, tau,
+          regularizer, dRegularizer, regularizerParameters, pr,
+          evolutionFileName, outerIterStream.str());
+      
+      if (pr != NULL && pr->isAborted()) return E_old;
+
+      ++iter;
+    }
+
+    model = model_old;
+    return E_old;
+  }
+  
+  template<int Dim>
+  Energy extendCoupledBSplineModel(
+      std::vector<blitz::TinyVector<double,Dim> > const &points,
+      CoupledBSplineModel<Dim> const &model,
+      CoupledBSplineModel<Dim> &extendedModel,
+      double length, size_t direction,
+      std::vector< blitz::TinyVector<double,3> > const &searchDirections,
+      bool rightEnd, double kappa, double lambda, double mu, size_t nIter,
+      double tau, double regridLength,
+      double (&regularizer)(double, std::vector<double> const &),
+      double (&dRegularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters)
+  {
+    size_t knotIndex = 0;
+    if (rightEnd) knotIndex = model.axis().nKnots() - 1;
+
+    blitz::TinyVector<double,Dim> a1(
+        model.axis().derivative(model.axis().knot(knotIndex)));
+    a1 /= std::sqrt(blitz::dot(a1, a1));
+          
+    blitz::TinyVector<double,Dim> a2(
+        model.axis().derivative(model.axis().knot(knotIndex), 2));
+    a2 /= std::sqrt(blitz::dot(a2, a2));
+
+    blitz::TinyVector<double,Dim> a3(blitz::cross(a1, a2));
+
+    blitz::Array<double,2> R(Dim, Dim);
+    R =
+        a1(0), a1(1), a1(2),
+        a2(0), a2(1), a2(2),
+        a3(0), a3(1), a3(2);
+          
+    std::vector<double> knots = model.axis().knots();
+    knots.resize(model.axis().nKnots() + model.axis().degree());
+
+    if (rightEnd)
+    {
+      for (size_t i = model.axis().nKnots() - 1; i < knots.size(); ++i)
+          knots[i] = model.axis().knot(model.axis().nKnots() - 1) + 1;
+    }
+    else
+    {
+      for (ptrdiff_t i = knots.size() - 1;
+           i >= 2 * model.axis().degree(); --i)
+          knots[i] = model.axis().knot(i - model.axis().degree());
+      for (ptrdiff_t i = 2 * model.axis().degree() - 1;
+           i > model.axis().degree(); --i)
+          knots[i] = model.axis().knot(0);
+      for (ptrdiff_t i = model.axis().degree(); i >= 0; --i)
+          knots[i] = model.axis().knot(0) - 1.0;
+    }
+          
+    std::vector< blitz::TinyVector<double,Dim> > axisControlPoints(
+        model.axis().controlPoints());
+    axisControlPoints.resize(
+        axisControlPoints.size() + model.axis().degree());
+
+    if (!rightEnd)
+    {
+      for (ptrdiff_t i = axisControlPoints.size() - 1;
+           i >= model.axis().degree(); --i)
+          axisControlPoints[i] =
+              model.axis().controlPoint(i - model.axis().degree());
+    }
+          
+    blitz::TinyVector<double,Dim> dir(
+        mvMult(R, searchDirections[direction]));
+                
+    blitz::TinyVector<double,Dim> offset(
+        model.axis()(model.axis().knot(knotIndex)));
+          
+    if (rightEnd)
+    {
+      for (int i = 0; i < model.axis().degree(); ++i)
+      {
+        double alpha = static_cast<double>(i + 1) /
+            (static_cast<double>(model.axis().degree()));
+        axisControlPoints[model.axis().nControlPoints() + i] =
+            offset + alpha * length * dir;
+      }
+    }
+    else
+    {
+      for (int i = model.axis().degree() - 1; i >= 0; --i)
+      {
+        double alpha = static_cast<double>(model.axis().degree() - i) /
+            (static_cast<double>(model.axis().degree()));
+        axisControlPoints[i] =
+            offset - alpha * length * dir;
+      }
+    }
+          
+    CoupledBSplineModel<Dim> linearlyExtendedModel(model);
+
+    linearlyExtendedModel.axis().setControlPoints(axisControlPoints);
+    linearlyExtendedModel.axis().setKnots(knots);
+          
+    std::vector<double> thicknessControlPoints(
+        model.thickness().controlPoints());
+    thicknessControlPoints.resize(
+        thicknessControlPoints.size() + model.thickness().degree());
+
+    if (rightEnd)
+    {
+      for (int d = 0; d < model.thickness().degree(); ++d)
+          thicknessControlPoints[
+              model.thickness().nControlPoints() + d] =
+              model.thickness()(
+                  model.thickness().knot(model.thickness().nKnots() - 1));
+    }
+    else
+    {
+      for (ptrdiff_t i = thicknessControlPoints.size() - 1;
+           i >= model.thickness().degree(); --i)
+          thicknessControlPoints[i] = model.thickness().controlPoint(
+              i - model.thickness().degree());
+      for (int i = model.thickness().degree() - 1; i >= 0; --i)
+          thicknessControlPoints[i] = model.thickness().controlPoint(0);
+    }
+          
+    linearlyExtendedModel.thickness().setControlPoints(
+        thicknessControlPoints);
+    linearlyExtendedModel.thickness().setKnots(knots);
+
+    // Fit a new set of splines to the linearly extended splines
+    // which will produce overshoots around the old endpoint
+    std::vector<double> knots2(model.axis().knots());
+    knots2.resize(knots2.size() + 1,
+                  model.axis().knot(model.axis().nKnots() - 1) + 1.0);
+    if (rightEnd)
+    {
+      for (size_t i = knots2.size() - 2; i >= model.axis().nKnots() -
+               model.axis().degree(); --i)
+          knots2[i] = knots2[i + 1];
+    }
+    else
+    {
+      for (ptrdiff_t i = knots2.size() - 1; i > model.axis().degree();
+           --i) knots2[i] = model.axis().knot(i - 1);
+      for (ptrdiff_t i = model.axis().degree(); i >= 0; --i)
+          knots2[i] = model.axis().knot(0) - 1.0;
+    }
+          
+    std::vector< blitz::TinyVector<double,Dim> > cp2(
+        model.axis().nControlPoints() + 1);
+          
+    CoupledBSplineModel<Dim> m2;
+    extendedModel.axis().setControlPoints(cp2);
+    extendedModel.axis().setKnots(knots2);
+          
+    std::vector<double> cp2_t(
+        model.thickness().nControlPoints() + 1);
+    extendedModel.thickness().setControlPoints(cp2_t);
+    extendedModel.thickness().setKnots(knots2);
+          
+    fitSplineToSpline(extendedModel.axis(),
+                           linearlyExtendedModel.axis());
+    fitSplineToSpline(extendedModel.thickness(),
+                           linearlyExtendedModel.thickness());
+
+    Energy E_refined = fitCoupledSplines(
+        points, extendedModel, kappa, lambda, mu, nIter, tau,
+        regridLength, regularizer, dRegularizer, regularizerParameters);
+          
+    return E_refined;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Multiple tubes
+   *-----------------------------------------------------------------------*/
+
+  template<int Dim>
+  Energy computeCoupledSplineEnergy(
+      std::vector< blitz::TinyVector<double,Dim> > const &points,
+      std::vector< CoupledBSplineModel<Dim> > &model,
+      double kappa, double lambda, double mu,
+      double (&regularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters)
+  {
+    /*-----------------------------------------------------------------
+     *  Data term
+     *-----------------------------------------------------------------*/
+    Energy E(kappa, lambda, mu);
+
+    if (kappa > 0.0)
+    {
+
+      for (size_t m = 0; m < model.size(); ++m)
+          model[m].updateAxisPolyline();
+
+      for (ptrdiff_t i = 0;
+           i < static_cast<ptrdiff_t>(points.size()); ++i)
+      {
+        double regularizedMin = std::numeric_limits<double>::infinity();
+        for (size_t m = 0; m < model.size(); ++m)
+        {
+          double dist = 0.0, rho = 0.0, uOpt = 0.0;
+          dist = model[m].axisPolyline().distance(points[i], uOpt);
+          rho = dist - model[m].thickness()(uOpt);
+          double regularized;
+          if (dataTermUsePerpendicularPointsOnly &&
+              (uOpt == model[m].axis().knot(0) ||
+               uOpt == model[m].axis().knot(model[m].axis().nKnots() - 1)))
+              regularized = regularizer(-1.0, regularizerParameters);
+          else
+              regularized = regularizer(rho * rho, regularizerParameters);
+          if (regularized < regularizedMin) regularizedMin = regularized;
+        }
+        E.data += regularizedMin;
+      }
+    }
+
+    double curveLength = 0.0;
+    for (size_t m = 0; m < model.size(); ++m)
+        curveLength += model[m].axis().curveIntegral(
+            model[m].axis().knot(0),
+            model[m].axis().knot(model[m].axis().nKnots() - 1));
+
+    /*-----------------------------------------------------------------
+     *  Axis curvature regularizer
+     *-----------------------------------------------------------------*/
+    if (lambda > 0.0)
+    {
+      for (size_t m = 0; m < model.size(); ++m)
+      {
+        BSpline< blitz::TinyVector<double,Dim> > d2Axis(
+            model[m].axis().derivative(static_cast<size_t>(2)));
+        
+        if (d2Axis.degree() >= 0)
+        {
+          for (int d = 0; d < Dim; ++d)
+          {
+            for (size_t j = 0; j < d2Axis.nControlPoints(); ++j)
+            {
+              double sqrBaseIntegral = 0.0;
+              for (size_t k = j; k <= j + d2Axis.degree() &&
+                       k < d2Axis.nKnots() - 1; ++k)
+              {
+                Polynomial<double> basePoly(
+                    d2Axis.basePolynomial(k, j) *
+                    d2Axis.basePolynomial(k, j));
+                basePoly = basePoly.indefiniteIntegral();
+                sqrBaseIntegral +=
+                    basePoly(d2Axis.knot(k + 1)) - basePoly(d2Axis.knot(k));
+              }
+              double dECurvature = d2Axis.controlPoint(j)(d) *
+                  d2Axis.controlPoint(j)(d) * sqrBaseIntegral;
+              if (weighCurvatureWithSplineLength)
+                  dECurvature /= curveLength;
+              E.curvature += dECurvature;
+            }
+            for (size_t j = 0; j < d2Axis.nControlPoints(); ++j)
+            {
+              double sqrBaseIntegral = 0.0;
+              for (size_t jp = j + 1; jp < d2Axis.nControlPoints(); ++jp)
+              {
+                for (size_t k = jp; k <= j + d2Axis.degree() &&
+                         k < d2Axis.nKnots() - 1; ++k)
+                {
+                  Polynomial<double> basePoly(
+                      d2Axis.basePolynomial(k, j) *
+                      d2Axis.basePolynomial(k, jp));
+                  basePoly = basePoly.indefiniteIntegral();
+                  sqrBaseIntegral +=
+                      basePoly(d2Axis.knot(k + 1)) -
+                      basePoly(d2Axis.knot(k));
+                }
+                double dECurvature = 2.0 * d2Axis.controlPoint(j)(d) *
+                    d2Axis.controlPoint(jp)(d) * sqrBaseIntegral;
+                if (weighCurvatureWithSplineLength)
+                    dECurvature /= curveLength;
+                E.curvature += dECurvature;
+              }
+            }         
+          }
+        }
+      }
+    }
+
+    /*-----------------------------------------------------------------
+     *  Axis thickness regularizer
+     *-----------------------------------------------------------------*/
+    if (mu > 0.0)
+    {
+      for (size_t m = 0; m < model.size(); ++m)
+      {
+        BSpline<double> dThickness(model[m].thickness().derivative());
+        
+        if (dThickness.degree() >= 0)
+        {
+          for (size_t j = 0; j < dThickness.nControlPoints(); ++j)
+          {
+            double sqrBaseIntegral = 0.0;
+            for (size_t k = j; k <= j + dThickness.degree() &&
+                     k < dThickness.nKnots() - 1; ++k)
+            {
+              Polynomial<double> basePoly(
+                  dThickness.basePolynomial(k, j) *
+                  dThickness.basePolynomial(k, j));
+              basePoly = basePoly.indefiniteIntegral();
+              sqrBaseIntegral +=
+                  basePoly(dThickness.knot(k + 1)) -
+                  basePoly(dThickness.knot(k));
+            }
+            E.thickness += dThickness.controlPoint(j) *
+                dThickness.controlPoint(j) * sqrBaseIntegral;
+          }
+          for (size_t j = 0; j < dThickness.nControlPoints(); ++j)
+          {
+            double sqrBaseIntegral = 0.0;
+            for (size_t jp = j + 1; jp < dThickness.nControlPoints(); ++jp)
+            {
+              for (size_t k = jp; k <= j + dThickness.degree() &&
+                       k < dThickness.nKnots() - 1; ++k)
+              {
+                Polynomial<double> basePoly(
+                    dThickness.basePolynomial(k, j) *
+                    dThickness.basePolynomial(k, jp));
+                basePoly = basePoly.indefiniteIntegral();
+                sqrBaseIntegral +=
+                    basePoly(dThickness.knot(k + 1)) -
+                    basePoly(dThickness.knot(k));
+              }
+              E.thickness += 2.0 * dThickness.controlPoint(j) *
+                  dThickness.controlPoint(jp) * sqrBaseIntegral;
+            }
+          }
+        }
+      }
+    }
+          
+    return E;
+  }
+
+  template<int Dim>
+  Energy computeUpdatedCoupledSplineEnergy(
+      std::vector< blitz::TinyVector<double,Dim> > const &points,
+      std::vector< CoupledBSplineModel<Dim> > model,
+      std::vector< std::vector< blitz::TinyVector<double,Dim> > >
+      const &dAxisControlPoints,
+      std::vector< std::vector<double> > const &dThicknessControlPoints,
+      double tau, double kappa, double lambda, double mu,
+      double (&regularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters)
+  {
+    for (size_t m = 0; m < model.size(); ++m)
+        updateCoupledSplineModel(
+            model[m], dAxisControlPoints[m], dThicknessControlPoints[m], tau);
+    return computeCoupledSplineEnergy(
+        points, model, kappa, lambda, mu, regularizer, regularizerParameters);
+  }
+
+  template<int Dim>
+  Energy refineModel(
+      std::vector< blitz::TinyVector<double,Dim> > const &points,
+      std::vector< CoupledBSplineModel<Dim> > &model,
+      double kappa, double lambda, double mu, int nIter, double tau,
+      double (&regularizer)(double, std::vector<double> const &),
+      double (&dRegularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters)
+  {
+    Energy E_old(kappa, lambda, mu);
+    E_old.data = std::numeric_limits<double>::infinity();
+    Energy E = computeCoupledSplineEnergy(
+        points, model, kappa, lambda, mu, regularizer,
+        regularizerParameters);
+
+    std::vector< CoupledBSplineModel<Dim> > model_old;
+          
+    std::vector< std::vector< blitz::TinyVector<double,Dim> > >
+        dAxisControlPoints(model.size());
+    std::vector< std::vector<double> > dThicknessControlPoints(model.size());
+    for (size_t m = 0; m < model.size(); ++m)
+    {
+      dAxisControlPoints[m].resize(model[m].axis().nControlPoints());
+      dThicknessControlPoints[m].resize(model[m].thickness().nControlPoints());
+    }
+
+    if (normalizeGradient) tau = 1.0;
+    int iter = 1;
+    int nRetries = 5;
+    int retry = 0;
+    std::vector< CoupledBSplineModel<Dim> > m_opt = model;
+    Energy E_opt = E;
+    // while (E_old.value() / E.value() > 1.0 && iter < nIter)
+    while (retry < nRetries && iter < nIter)
+    {
+      if (E_opt.value() / E.value() <= 1.0)
+      {
+        tau /= 2.0;
+        retry++;
+      }
+      else
+      {
+        m_opt = model;
+        E_opt = E;
+        retry = 0;
+      }
+      
+      std::cout << "\r    Refinement Iteration " << iter << ": "
+                << E << std::flush;
+      
+#ifdef __SAVEINTERMEDIATERESULTS
+      {
+        std::stringstream __iterGroupStream;
+        __iterGroupStream << __intermediateBaseGroup << "/"
+                          << __outerIterGroup << "/iter" << iter;
+        std::string __iterGroup(__iterGroupStream.str());
+        try
+        {
+          BlitzH5File outFile(__intermediateResultFileName,
+                              BlitzH5File::WriteOrNew);
+          outFile.writeAttribute(E.kappa, "kappa", __iterGroup);
+          outFile.writeAttribute(E.lambda, "lambda", __iterGroup);
+          outFile.writeAttribute(E.mu, "mu", __iterGroup);
+          outFile.writeAttribute(E.data, "E_data", __iterGroup);
+          outFile.writeAttribute(E.curvature, "E_curvature", __iterGroup);
+          outFile.writeAttribute(E.thickness, "E_thickness", __iterGroup);
+          outFile.writeAttribute(E.value(), "E_total", __iterGroup);
+          for (size_t m = 0; m < model.size(); ++m)
+          {
+            std::stringstream modelGroupStream;
+            modelGroupStream << __iterGroup << "/tube" << m;
+            model[m].axis().save(outFile, modelGroupStream.str() + "/axis");
+            model[m].thickness().save(outFile, modelGroupStream.str() +
+                                      "/thickness");
+          }
+        }
+        catch (BlitzH5Error &e)
+        {
+          std::cerr << "Could not save intermediate results to '"
+                    << __intermediateResultFileName << ":" << __iterGroup << "'"
+                    << std::endl;
+        }
+      }
+#endif
+
+      E_old = E;
+      model_old = model;
+            
+      for (size_t m = 0; m < model.size(); ++m)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t j = 0;
+             j < static_cast<ptrdiff_t>(model[m].axis().nControlPoints());
+             ++j)
+        {
+          dAxisControlPoints[m][j] = 0.0;
+          dThicknessControlPoints[m][j] = 0.0;
+        }
+      }
+
+      /*-------------------------------------------------------------
+       *  Data term
+       *-------------------------------------------------------------*/
+      if (kappa > 0)
+      {
+        for (ptrdiff_t i = 0;
+             i < static_cast<ptrdiff_t>(points.size()); ++i)
+        {
+          size_t modelIdx = 0;
+          double rhoMin = 0.0, tMin = 0.0, distMin = 0.0, uOptMin = 0.0;
+          double regularizedMin = std::numeric_limits<double>::infinity();
+          for (size_t m = 0; m < model.size(); ++m)
+          {
+            double uOpt = 0.0;
+            double dist = model[m].axisPolyline().distance(points[i], uOpt);
+            double t = model[m].thickness()(uOpt);
+            double rho = dist - t;
+            double regularized;
+            if (dataTermUsePerpendicularPointsOnly &&
+                (uOpt == model[m].axis().knot(0) ||
+                 uOpt == model[m].axis().knot(model[m].axis().nKnots() - 1)))
+                regularized = regularizer(-1.0, regularizerParameters);
+            else
+                regularized = regularizer(
+                    rho * rho, regularizerParameters);
+            if (regularized < regularizedMin)
+            {
+              regularizedMin = regularized;
+              modelIdx = m;
+              tMin = t;
+              distMin = dist;
+              uOptMin = uOpt;
+              rhoMin = rho;
+            }
+          }
+
+          double dRegularized;                
+          if (dataTermUsePerpendicularPointsOnly &&
+              (uOptMin == model[modelIdx].axis().knot(0) ||
+               uOptMin == model[modelIdx].axis().knot(
+                   model[modelIdx].axis().nKnots() - 1)))
+              dRegularized = dRegularizer(-1.0, regularizerParameters);
+          else
+              dRegularized = dRegularizer(
+                  rhoMin * rhoMin, regularizerParameters);
+          
+          blitz::TinyVector<double,Dim> aF =
+              dRegularized * (1.0 - tMin / distMin) *
+              (model[modelIdx].axis()(uOptMin) - points[i]);
+          double tF = -dRegularized * rhoMin;
+                
+          for (size_t j = 0; j < model[modelIdx].axis().nControlPoints(); ++j)
+          {
+            blitz::TinyVector<double,Dim> dA(
+                aF * model[modelIdx].axis().base(uOptMin, j));
+            double dT = tF * model[modelIdx].thickness().base(uOptMin, j);
+            {
+              dAxisControlPoints[modelIdx][j] += kappa * dA;
+              // Update the thickness only if the point projects into the
+              // spline domain to avoid thickness over-estimation at the
+              // spline end points
+              if (uOptMin > model[modelIdx].axis().knot(0) &&
+                  uOptMin < model[modelIdx].axis().knot(
+                      model[modelIdx].axis().nKnots() - 1))
+                  dThicknessControlPoints[modelIdx][j] += kappa * dT;
+            }
+          }
+        }
+      }
+
+      double curveLength = 0.0;
+      for (size_t m = 0; m < model.size(); ++m)
+          curveLength += model[m].axis().curveIntegral(
+              model[m].axis().knot(0),
+              model[m].axis().knot(model[m].axis().nKnots() - 1));
+      
+      /*-------------------------------------------------------------
+       *  Axis curvature term
+       *-------------------------------------------------------------*/
+      if (lambda > 0)
+      {
+        for (size_t m = 0; m < model.size(); ++m)
+        {
+          for (size_t j = 0; j < model[m].axis().nControlPoints(); ++j)
+          {
+            for (size_t jp = 0; jp < model[m].axis().nControlPoints(); ++jp)
+            {
+              double integral = 0.0;
+              for (size_t k = 0; k < model[m].axis().nKnots() - 1; ++k)
+              {
+                Polynomial<double> poly(
+                    model[m].axis().basePolynomial(k, jp, 2) *
+                    model[m].axis().basePolynomial(k, j, 2));
+                poly = poly.indefiniteIntegral();
+                integral += poly(model[m].axis().knot(k) + 1) -
+                    poly(model[m].axis().knot(k));
+              }
+              blitz::TinyVector<double,Dim> dCp(
+                  lambda * integral * model[m].axis().controlPoint(jp));
+              if (weighCurvatureWithSplineLength) dCp /= curveLength;
+              dAxisControlPoints[m][j] += dCp;
+            }
+          }
+        }
+      }
+            
+      /*-------------------------------------------------------------
+       *  Thickness constancy term
+       *-------------------------------------------------------------*/
+      if (mu > 0)
+      {
+        for (size_t m = 0; m < model.size(); ++m)
+        {
+          for (size_t j = 0; j < model[m].thickness().nControlPoints(); ++j)
+          {
+            for (size_t jp = 0;
+                 jp < model[m].thickness().nControlPoints(); ++jp)
+            {
+              double integral = 0.0;
+              for (size_t k = 0; k < model[m].thickness().nKnots() - 1; ++k)
+              {
+                Polynomial<double> poly(
+                    model[m].thickness().basePolynomial(k, jp, 2) *
+                    model[m].thickness().basePolynomial(k, j, 2));
+                poly = poly.indefiniteIntegral();
+                integral += poly(model[m].thickness().knot(k) + 1) -
+                    poly(model[m].thickness().knot(k));
+              }
+              dThicknessControlPoints[m][j] +=
+                  mu * integral * model[m].thickness().controlPoint(jp);
+            }
+          }
+        }
+      }
+            
+      if (controlPointsUpdatePerpendicularToSpline)
+      {
+        for (size_t m = 0; m < model.size(); ++m)
+        {
+          // Only update perpendicular to the spline tangent
+          for (size_t j = 0; j < model[m].axis().nControlPoints(); ++j)
+          {
+            double uOpt;
+            distance(
+                model[m].axis(), model[m].axis().controlPoint(j), uOpt);
+            blitz::TinyVector<double,Dim> dAxis(
+                model[m].axis().derivative()(uOpt));
+            dAxisControlPoints[m][j] -=
+                blitz::dot(dAxis, dAxisControlPoints[m][j]) /
+                blitz::dot(dAxis, dAxis) * dAxis;
+          }
+        }
+      }
+
+      if (normalizeGradient)
+      {
+        for (size_t m = 0; m < model.size(); ++m)
+        {
+          double maxComponentAbs = 0.0;
+          for (size_t i = 0; i < dAxisControlPoints[m].size(); ++i)
+          {
+            for (int d = 0; d < Dim; ++d)
+            {
+              double componentAbs = std::abs(dAxisControlPoints[m][i](d));
+              if (maxComponentAbs < componentAbs)
+                  maxComponentAbs = componentAbs;
+            }
+          }
+          for (size_t i = 0; i < dThicknessControlPoints[m].size(); ++i)
+          {
+            double componentAbs = std::abs(dThicknessControlPoints[m][i]);
+            if (maxComponentAbs < componentAbs)
+                maxComponentAbs = componentAbs;
+          }
+          for (size_t i = 0; i < dAxisControlPoints[m].size(); ++i)
+              for (int d = 0; d < Dim; ++d)
+                  dAxisControlPoints[m][i](d) /= maxComponentAbs;
+          for (size_t i = 0; i < dThicknessControlPoints[m].size(); ++i)
+              dThicknessControlPoints[m][i] /= maxComponentAbs;
+        }
+      }
+
+      if (doLineSearch)
+      {
+        /*----------------------------------------------------------
+         *  Line Search along gradient direction using golden section
+         *  search in the interval [0, c] where c is determined in the
+         *  first loop
+         *----------------------------------------------------------*/
+              
+        double phi = (1.0 + std::sqrt(5.0)) / 2.0;
+        double resPhi = 2.0 - phi;
+        double tolerance = 1e-4;
+              
+        double a = 0;
+        double E_a = E_old.value();
+        double c = tau + 1.0e-20;
+        double E_c = E_old.value();
+              
+        double E_min = E_old.value();
+              
+        // Find right interval end c
+        while (E_c <= E_min && c <= 100 * tau)
+        {
+          E_c = computeUpdatedCoupledSplineEnergy(
+              points, model, dAxisControlPoints,
+              dThicknessControlPoints,
+              c, kappa, lambda, mu,
+              regularizer, regularizerParameters).value();
+          if (E_c < E_min) E_min = E_c;
+          c += tau;
+        }
+
+        std::cout << " --- Found upper bound = " << c << std::flush;
+              
+        double b = resPhi * (c - a);
+        double E_b = computeUpdatedCoupledSplineEnergy(
+            points, model, dAxisControlPoints, dThicknessControlPoints,
+            b, kappa, lambda, mu,
+            regularizer, regularizerParameters).value();
+              
+        while (true)
+        {
+          // Insert new point x at golden section of bigger interval
+          double x;
+          if (c - b > b - a) x = b + resPhi * (c - b);
+          else x = b - resPhi * (b - a);
+                
+          // Check for convergence
+          if (std::abs(c - a) < tolerance * (std::abs(b) + std::abs(x)))
+              break;
+                
+          // Compute Energy at inserted point
+          double E_x = computeUpdatedCoupledSplineEnergy(
+              points, model, dAxisControlPoints,
+              dThicknessControlPoints,
+              x, kappa, lambda, mu, regularizer,
+              regularizerParameters).value();
+                
+          // Update interval bounds and interior point according to
+          // Energy
+          if (E_x < E_b)
+          {
+            if (c - b > b - a) // Minimum is between b and c
+            {
+              a = b;
+              E_a = E_b;
+              b = x;
+              E_b = E_x;
+            }
+            else               // Minimum is between a and b
+            {
+              c = b;
+              E_c = E_b;
+              b = x;
+              E_b = E_x;
+            }
+          }
+          else
+          {
+            if (c - b > b - a) // Minimum is between a and b
+            {
+              c = x;
+              E_c = E_x;
+            }
+            else               // Minimum is between b and c
+            {
+              a = x;
+              E_a = E_x;
+            }
+          }
+        }
+        tau = (a + c) / 2.0;
+              
+        std::cout << " -- final tau = " << tau << std::endl;
+      }
+
+      model = model_old;
+      for (size_t m = 0; m < model.size(); ++m)
+          updateCoupledSplineModel(
+              model[m], dAxisControlPoints[m], dThicknessControlPoints[m], tau);
+      E = computeCoupledSplineEnergy(
+          points, model, kappa, lambda, mu, regularizer,
+          regularizerParameters);
+          
+      ++iter;
+      std::cout << "          " << std::flush;
+    }
+    std::cout << std::endl;
+
+    model = m_opt;
+    return E_opt;
+    // model = model_old;          
+    // return E_old;          
+  }
+  
+  template<int Dim>
+  Energy fitCoupledSplines(
+      std::vector< blitz::TinyVector<double,Dim> > const &points,
+      std::vector< CoupledBSplineModel<Dim> > &model,
+      double kappa, double lambda, double mu, int nIter, double tau,
+      double regridLength,
+      double (&regularizer)(double, std::vector<double> const &),
+      double (&dRegularizer)(double, std::vector<double> const &),
+      std::vector<double> const &regularizerParameters)
+  {
+
+#ifdef __SAVEINTERMEDIATERESULTS
+    __intermediateResultFileName = "iterations.h5";
+    __intermediateBaseGroup = "/";
+    __outerIterGroup = "outerIteration0";
+#endif
+
+    Energy E = refineModel(
+        points, model, kappa, lambda, mu, nIter, tau,
+        regularizer, dRegularizer, regularizerParameters);
+
+    if (!regrid) return E;
+
+    std::vector< CoupledBSplineModel<Dim> > model_old;
+    Energy E_old(kappa, lambda, mu);
+    E_old.data = std::numeric_limits<double>::infinity();
+
+    int iter = 1;
+    while (E_old.value() / E.value() > 1.0)
+    {
+      std::cout << "\r  Regridding Iteration " << iter << ": "
+                << E << std::endl;
+
+#ifdef __SAVEINTERMEDIATERESULTS
+      {
+        std::stringstream __outerIterGroupStream;
+        __outerIterGroupStream << "outerIteration" << iter;
+        __outerIterGroup = __outerIterGroupStream.str();
+      }
+#endif
+
+      model_old = model;
+      E_old = E;
+
+      for (size_t m = 0; m < model.size(); ++m)
+          regridModel(model[m], regridLength);
+
+      E = refineModel(
+          points, model, kappa, lambda, mu, nIter, tau,
+          regularizer, dRegularizer, regularizerParameters);
+            
+      ++iter;
+    }
+
+    model = model_old;
+    return E_old;
+  }
+  
+}

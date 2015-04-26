@@ -1,0 +1,428 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace iRoCS
+{
+
+  template<typename DataT>
+  atb::Array<double,3>& Features::dataScaled(
+      atb::Array<DataT,3> const &data, std::string const &cacheFileName)
+  {
+    if (_dataScaled.size() != 0) return _dataScaled;
+
+    if (blitz::all(data.elementSizeUm() == _dataScaled.elementSizeUm()))
+    {
+    
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Converting dataset to double")) return _dataScaled;
+
+      _dataScaled.resize(data.shape());
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (atb::BlitzIndexT i = 0; i < data.size(); ++i)
+          _dataScaled.data()[i] = static_cast<double>(data.data()[i]);
+
+      if (cacheFileName == "") return _dataScaled;
+
+      try
+      {
+        if (p_progress != NULL && !p_progress->updateProgressMessage(
+                "Saving '" + cacheFileName + ":/t0/scale_1.0/channel0'"))
+            return _dataScaled;
+        _dataScaled.save(cacheFileName, "/t0/scale_1.0/channel0");
+      }
+      catch (BlitzH5Error &e)
+      {
+        std::cout << "Could not save scaled data: " << e.what() << std::endl;
+      }
+      return _dataScaled;
+    }
+
+    try 
+    {
+      if (cacheFileName == "") throw BlitzH5Error();
+
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Processing '" + cacheFileName + ":/t0/scale_1.0/channel0'"))
+          return _dataScaled;
+      _dataScaled.load(cacheFileName, "/t0/scale_1.0/channel0");
+    }
+    catch (BlitzH5Error &)
+    {
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Scaling dataset")) return _dataScaled;
+
+      blitz::TinyVector<double,3> targetElSize(_dataScaled.elementSizeUm());
+
+      _dataScaled.resize(data.shape());
+      _dataScaled.setElementSizeUm(data.elementSizeUm());
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (atb::BlitzIndexT i = 0; i < data.size(); ++i)
+          _dataScaled.data()[i] = static_cast<double>(data.data()[i]);
+    
+      _dataScaled.rescale(targetElSize);
+
+      if (p_progress != NULL && p_progress->isAborted()) return _dataScaled;
+
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Normalizing dataset")) return _dataScaled;
+
+      atb::normalize(_dataScaled, _dataScaled, atb::MINMAX);
+
+      if (cacheFileName == "") return _dataScaled;
+
+      try 
+      {
+        if (p_progress != NULL && !p_progress->updateProgressMessage(
+                "Saving '" + cacheFileName + ":/t0/scale_1.0/channel0'"))
+            return _dataScaled;
+        _dataScaled.save(cacheFileName, "/t0/scale_1.0/channel0");
+      }
+      catch (BlitzH5Error& e)
+      {
+        std::cout << "Could not save scaled data: " << e.what() << std::endl;
+      }
+    }
+    return _dataScaled;
+  }
+
+  template<typename DataT>
+  atb::Array<double,3>& Features::sdFeature(
+      atb::Array<DataT,3> const &data, atb::SDMagFeatureIndex const &index,
+      const int maxBand, std::string const &cacheFileName)
+  {
+    if (_sdFeatures.find(index) != _sdFeatures.end())
+        return *_sdFeatures[index];
+
+    _sdFeatures[index] = new atb::Array<double,3>(
+        dataScaled(data, cacheFileName).shape(), _dataScaled.elementSizeUm());
+
+    std::string dsName = _featureGroups[0] + sdFeatureName(index);
+    std::cout << "Cache miss for feature '" << dsName << "'. Updating cache..."
+              << std::endl;
+
+    try // to load the feature directly
+    {
+      if (cacheFileName == "") throw BlitzH5Error();
+
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Processing '" + cacheFileName + ":" + dsName + "'"))
+          return *_sdFeatures[index];
+      _sdFeatures[index]->load(cacheFileName, dsName);
+    }
+    catch (BlitzH5Error&) // Fail, needs to be computed
+    {
+      if (index.b == 0)
+      {
+        if (index.l == 0) // New scale
+        {
+          if (p_progress != NULL && !p_progress->updateProgressMessage(
+                  "Smoothing...")) return *_sdFeatures[index];
+          atb::SeparableConvolutionFilter<double,3> filter(atb::RepeatBT);
+          std::vector< blitz::Array<double,1> > kernels(3);
+          for (int d = 0; d < 3; ++d)
+          {
+            kernels[d].resize(2 * (_sdFeatures[index]->extent(d) / 2) + 1);
+            atb::gaussian(
+                kernels[d], blitz::TinyVector<double,1>(index.s),
+                blitz::TinyVector<double,1>(1.0), atb::NORESIZE);
+            filter.setKernelForDim(&kernels[d], d);
+          }
+          filter.apply(dataScaled(data, cacheFileName), *_sdFeatures[index]);
+        }
+        else // Compute laplacian
+        {
+          if (p_progress != NULL && !p_progress->updateProgressMessage(
+                  "Computing Laplacian...")) return *_sdFeatures[index];
+          atb::SDMagFeatureIndex idx2(index.s, index.l - 1, 0);
+          atb::LaplacianFilter<double,3>::apply(
+              sdFeature(data, idx2, maxBand, cacheFileName),
+              blitz::TinyVector<double,3>(1.0), *_sdFeatures[index],
+              atb::LaplacianFilter<double,3>::SecondOrder, atb::RepeatBT);
+        }
+
+        if (cacheFileName == "") return *_sdFeatures[index];
+      
+        try
+        {
+          if (p_progress != NULL && !p_progress->updateProgressMessage(
+                  "Saving '" + cacheFileName + ":" + dsName + "'"))
+              return *_sdFeatures[index];
+          _sdFeatures[index]->save(cacheFileName, dsName);
+        }
+        catch (BlitzH5Error& e) 
+        {
+          std::cout << "Feature could not be saved: " << e.what() << std::endl;
+        }
+      }
+      else // OK, compute the whole feature set
+      {
+        if (p_progress != NULL && !p_progress->updateProgressMessage(
+                "Gauss Laguerre Transform")) return *_sdFeatures[index];
+        atb::SDMagFeatureIndex idx2(index.s, index.l, 0);
+        atb::STderiv(sdFeature(data, idx2, maxBand, cacheFileName),
+                     _sdFeatures, index.s, index.l, maxBand);
+
+        if (cacheFileName == "") return *_sdFeatures[index];
+
+        // Save all computed features
+        try
+        {
+          for (int l = 0; l <= maxBand; ++l)
+          {
+            std::string dsNameBand = _featureGroups[0] +
+                sdFeatureName(atb::SDMagFeatureIndex(index.s, index.l, l));
+            if (p_progress != NULL && !p_progress->updateProgressMessage(
+                    "Saving '" + cacheFileName + ":" + dsNameBand + "'"))
+                return *_sdFeatures[index];
+            _sdFeatures[atb::SDMagFeatureIndex(index.s, index.l, l)]->save(
+                cacheFileName, dsNameBand);
+          }
+        }
+        catch (BlitzH5Error& e) 
+        {
+          std::cout << "Feature could not be saved: " << e.what() << std::endl;
+        }
+      }
+    }
+    return *_sdFeatures[index];
+  }
+
+  template<typename DataT>
+  atb::Array<double,3>& Features::houghFeature(
+      atb::Array<DataT,3> const &data, const int state,
+      std::string const &cacheFileName)
+  {
+    if (_houghFeatures.find(state) != _houghFeatures.end())
+        return *_houghFeatures[state];
+
+    std::string dsName = _featureGroups[1] + houghFeatureName(state);
+
+    std::cout << "Cache miss for feature '" << dsName << "'. Generating..."
+              << std::endl;
+
+    _houghFeatures[state] = new atb::Array<double,3>(
+        _dataScaled.shape(), _dataScaled.elementSizeUm());
+
+    try
+    {
+      if (cacheFileName == "") throw BlitzH5Error();
+
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Processing '" + cacheFileName + ":" + dsName + "'"))
+          return *_houghFeatures[state];
+      _houghFeatures[state]->load(cacheFileName, dsName);
+    }
+    catch (BlitzH5Error&) 
+    {
+      atb::Array<double,3> &d = dataScaled(data, cacheFileName);
+
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+             "Generating '" + dsName + "'")) return *_houghFeatures[state];
+
+      delete _houghFeatures[state];
+      _houghFeatures[state] = NULL;
+
+      std::vector<atb::Array<double,3>*> houghmaps, houghmapsR;
+      atb::computeHoughTransform(d, houghmaps, houghmapsR,
+                                 0.5, 6.0, 0.5, 0.5, 1.0, 0.01);
+
+      _houghFeatures[PositiveMagnitude] = houghmaps[0];
+      _houghFeatures[NegativeMagnitude] = houghmaps[1];
+      _houghFeatures[PositiveRadius] = houghmapsR[0];
+      _houghFeatures[NegativeRadius] = houghmapsR[1];
+
+      if (cacheFileName == "") return *_houghFeatures[state];
+
+      try
+      {
+        for (int i = PositiveMagnitude; i <= NegativeRadius; ++i) 
+        {
+          if (p_progress != NULL && !p_progress->updateProgressMessage(
+                  "Saving '" + cacheFileName + ":" + _featureGroups[1] +
+                  houghFeatureName(i) + "'")) return *_houghFeatures[state];
+          _houghFeatures[i]->save(
+              cacheFileName, _featureGroups[1] + houghFeatureName(i));
+        }
+      }
+      catch (BlitzH5Error& e)
+      {
+        std::cout << "Feature could not be saved: " << e.what() << std::endl;
+      }
+    }
+    return *_houghFeatures[state];
+  }
+
+  template<typename DataT>
+  atb::Array<blitz::TinyVector<double,3>,3>& Features::intrinsicCoordinates(
+      atb::Array<DataT,3> const &data, atb::IRoCS const &rct,
+      std::string const &cacheFileName)
+  {
+    if (_intrinsicCoordinates.size() != 0) return _intrinsicCoordinates;
+
+    try
+    {
+      if (cacheFileName == "") throw BlitzH5Error();
+      atb::Array<double,3> tmp;
+      std::string dsName = _featureGroups[2] + "/qcDistance_um";
+
+      std::cout << "Cache miss for feature '" << dsName << "'. Generating..."
+                << std::endl;
+
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Processing '" + dsName + "'")) return _intrinsicCoordinates;
+
+      tmp.load(cacheFileName, dsName);
+    
+      _intrinsicCoordinates.resize(tmp.shape());
+      _intrinsicCoordinates.setElementSizeUm(tmp.elementSizeUm());
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (atb::BlitzIndexT i = 0; i < tmp.size(); ++i)
+          _intrinsicCoordinates.data()[i](0) = tmp.data()[i];
+
+      dsName = _featureGroups[2] + "/radialDistance_um";
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Processing '" + dsName + "'")) return _intrinsicCoordinates;
+
+      tmp.load(cacheFileName, dsName);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (atb::BlitzIndexT i = 0; i < tmp.size(); ++i)
+          _intrinsicCoordinates.data()[i](1) = tmp.data()[i];
+
+      dsName = _featureGroups[2] + "/phi";
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Processing '" + dsName + "'")) return _intrinsicCoordinates;
+
+      tmp.load(cacheFileName, dsName);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (atb::BlitzIndexT i = 0; i < tmp.size(); ++i)
+          _intrinsicCoordinates.data()[i](2) = tmp.data()[i];
+    }
+    catch (BlitzH5Error &) 
+    {
+      std::string dsName = _featureGroups[2] + "/qcDistance_um";
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Generating '" + dsName + "'")) return _intrinsicCoordinates;
+
+      // Compute intrinsic coordinates and store them as new features
+      blitz::TinyVector<atb::BlitzIndexT,3> feaShape(
+          dataScaled(data, cacheFileName).shape());
+      _intrinsicCoordinates.resize(feaShape);
+      _intrinsicCoordinates.setElementSizeUm(_dataScaled.elementSizeUm());
+      ptrdiff_t nElements = blitz::product(feaShape);
+      ptrdiff_t p = 0;
+      if (p_progress != NULL && !p_progress->updateProgressMessage(
+              "Computing intrinsic coordinates")) return _intrinsicCoordinates;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (atb::BlitzIndexT z = 0; z < feaShape(0); ++z)
+      {
+        if (p_progress != NULL && p_progress->isAborted()) continue;
+        for (atb::BlitzIndexT y = 0; y < feaShape(1); ++y)
+        {
+          if (p_progress != NULL && p_progress->isAborted()) break;
+          for (atb::BlitzIndexT x = 0; x < feaShape(2); ++x)
+          {
+            if (p_progress != NULL && !p_progress->updateProgress(
+                    static_cast<int>(100 * p / nElements))) break;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+            ++p;
+            blitz::TinyVector<double,3> pos(
+                static_cast<double>(z), static_cast<double>(y),
+                static_cast<double>(x));
+            pos *= _dataScaled.elementSizeUm();
+            _intrinsicCoordinates(z, y, x) = rct.getCoordinates(pos);
+          }
+        }
+      }
+
+      if (cacheFileName == "") return _intrinsicCoordinates;
+
+      try
+      {
+        atb::Array<double,3> tmp(
+            _intrinsicCoordinates.shape(),
+            _intrinsicCoordinates.elementSizeUm());
+        if (p_progress != NULL && !p_progress->updateProgressMessage(
+                "Writing Distance to Quiescent Centre (z) to '" +
+                cacheFileName + ":" + _featureGroups[2] + "/qcDistanceUm'"))
+            return _intrinsicCoordinates;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (atb::BlitzIndexT i = 0; i < tmp.size(); ++i)
+            tmp.data()[i] = _intrinsicCoordinates.data()[i](0);
+
+        tmp.save(cacheFileName, _featureGroups[2] + "/qcDistance_um");
+      
+        if (p_progress != NULL && !p_progress->updateProgressMessage(
+                "Writing radial distance from axis (r) to '" + cacheFileName +
+                ":" + _featureGroups[2] + "/radialDistanceUm'"))
+            return _intrinsicCoordinates;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (atb::BlitzIndexT i = 0; i < tmp.size(); ++i)
+            tmp.data()[i] = _intrinsicCoordinates.data()[i](1);
+
+        tmp.save(cacheFileName, _featureGroups[2] + "/radialDistance_um");
+
+        if (p_progress != NULL && !p_progress->updateProgressMessage(
+                "Writing angle around axis (phi) to '" + cacheFileName + ":" +
+                _featureGroups[2] + "/phi'")) return _intrinsicCoordinates;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (atb::BlitzIndexT i = 0; i < tmp.size(); ++i)
+            tmp.data()[i] = _intrinsicCoordinates.data()[i](2);
+
+        tmp.save(cacheFileName, _featureGroups[2] + "/phi");
+      }
+      catch (BlitzH5Error& e)
+      {
+        std::cerr << "Could not save feature: " << e.what() << std::endl;
+      }
+    }
+    return _intrinsicCoordinates;
+  }
+
+}

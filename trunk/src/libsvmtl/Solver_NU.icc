@@ -1,0 +1,267 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**************************************************************************
+ **       Title: 
+ **    $RCSfile$
+ **   $Revision: 509 $$Name$
+ **       $Date: 2004-09-03 13:35:04 +0200 (Fri, 03 Sep 2004) $
+ **   Copyright: LGPL $Author: ronneber $
+ ** Description:
+ **
+ **    
+ **
+ **-------------------------------------------------------------------------
+ **
+ **  $Log$
+ **  Revision 1.2  2004/09/03 11:35:04  ronneber
+ **  - replaced Chi-Jen Lin's own min,max,swap with std::min,
+ **    std::max. std::swap to compile with programs, that "#include
+ **    <algorithm>" and do a "using namespace std;"
+ **
+ **  Revision 1.1  2004/08/26 08:36:59  ronneber
+ **  initital import
+ **
+ **
+ **
+ **************************************************************************/
+
+template< typename FV, typename KF>
+int svt::Solver_NU<FV,KF>::select_working_set(int &out_i, int &out_j)
+{
+  // return i,j which maximize -grad(f)^T d , under constraint
+  // if alpha_i == C, d != +1
+  // if alpha_i == 0, d != -1
+
+  double Gmax1 = -INF;	// max { -grad(f)_i * d | y_i = +1, d = +1 }
+  int Gmax1_idx = -1;
+
+  double Gmax2 = -INF;	// max { -grad(f)_i * d | y_i = +1, d = -1 }
+  int Gmax2_idx = -1;
+
+  double Gmax3 = -INF;	// max { -grad(f)_i * d | y_i = -1, d = +1 }
+  int Gmax3_idx = -1;
+
+  double Gmax4 = -INF;	// max { -grad(f)_i * d | y_i = -1, d = -1 }
+  int Gmax4_idx = -1;
+
+  for(int i=0;i<this->active_size;i++)
+  {
+    if(this->y[i]==+1)	// y == +1
+    {
+      if(!this->is_upper_bound(i))	// d = +1
+      {
+        if(-this->G[i] > Gmax1)
+        {
+          Gmax1 = -this->G[i];
+          Gmax1_idx = i;
+        }
+      }
+      if(!this->is_lower_bound(i))	// d = -1
+      {
+        if(this->G[i] > Gmax2)
+        {
+          Gmax2 = this->G[i];
+          Gmax2_idx = i;
+        }
+      }
+    }
+    else		// y == -1
+    {
+      if(!this->is_upper_bound(i))	// d = +1
+      {
+        if(-this->G[i] > Gmax3)
+        {
+          Gmax3 = -this->G[i];
+          Gmax3_idx = i;
+        }
+      }
+      if(!this->is_lower_bound(i))	// d = -1
+      {
+        if(this->G[i] > Gmax4)
+        {
+          Gmax4 = this->G[i];
+          Gmax4_idx = i;
+        }
+      }
+    }
+  }
+
+  if(std::max(Gmax1+Gmax2,Gmax3+Gmax4) < this->eps)
+      return 1;
+
+  if(Gmax1+Gmax2 > Gmax3+Gmax4)
+  {
+    out_i = Gmax1_idx;
+    out_j = Gmax2_idx;
+  }
+  else
+  {
+    out_i = Gmax3_idx;
+    out_j = Gmax4_idx;
+  }
+  return 0;
+}
+
+template< typename FV, typename KF>
+void svt::Solver_NU<FV,KF>::do_shrinking()
+{
+  double Gmax1 = -INF;	// max { -grad(f)_i * d | y_i = +1, d = +1 }
+  double Gmax2 = -INF;	// max { -grad(f)_i * d | y_i = +1, d = -1 }
+  double Gmax3 = -INF;	// max { -grad(f)_i * d | y_i = -1, d = +1 }
+  double Gmax4 = -INF;	// max { -grad(f)_i * d | y_i = -1, d = -1 }
+
+  int k;
+  for(k=0;k<this->active_size;k++)
+  {
+    if(!this->is_upper_bound(k))
+    {
+      if(this->y[k]==+1)
+      {
+        if(-this->G[k] > Gmax1) Gmax1 = -this->G[k];
+      }
+      else	if(-this->G[k] > Gmax3) Gmax3 = -this->G[k];
+    }
+    if(!this->is_lower_bound(k))
+    {
+      if(this->y[k]==+1)
+      {	
+        if(this->G[k] > Gmax2) Gmax2 = this->G[k];
+      }
+      else	if(this->G[k] > Gmax4) Gmax4 = this->G[k];
+    }
+  }
+
+  double Gm1 = -Gmax2;
+  double Gm2 = -Gmax1;
+  double Gm3 = -Gmax4;
+  double Gm4 = -Gmax3;
+
+  for(k=0;k<this->active_size;k++)
+  {
+    if(this->is_lower_bound(k))
+    {
+      if(this->y[k]==+1)
+      {
+        if(-this->G[k] >= Gm1) continue;
+      }
+      else	if(-this->G[k] >= Gm3) continue;
+    }
+    else if(this->is_upper_bound(k))
+    {
+      if(this->y[k]==+1)
+      {
+        if(this->G[k] >= Gm2) continue;
+      }
+      else	if(this->G[k] >= Gm4) continue;
+    }
+    else continue;
+
+    --this->active_size;
+    this->swap_index(k,this->active_size);
+    --k;	// look at the newcomer
+  }
+
+  // unshrink, check all variables again before final iterations
+
+  if(this->unshrinked || std::max(-(Gm1+Gm2),-(Gm3+Gm4)) > this->eps*10) return;
+	
+  this->unshrinked = true;
+  this->reconstruct_gradient();
+
+  for(k=this->l-1;k>=this->active_size;k--)
+  {
+    if(this->is_lower_bound(k))
+    {
+      if(this->y[k]==+1)
+      {
+        if(-this->G[k] < Gm1) continue;
+      }
+      else	if(-this->G[k] < Gm3) continue;
+    }
+    else if(this->is_upper_bound(k))
+    {
+      if(this->y[k]==+1)
+      {
+        if(this->G[k] < Gm2) continue;
+      }
+      else	if(this->G[k] < Gm4) continue;
+    }
+    else continue;
+
+    this->swap_index(k,this->active_size);
+    this->active_size++;
+    ++k;	// look at the newcomer
+  }
+}
+
+template< typename FV, typename KF>
+double svt::Solver_NU<FV,KF>::calculate_rho()
+{
+  int nr_free1 = 0,nr_free2 = 0;
+  double ub1 = INF, ub2 = INF;
+  double lb1 = -INF, lb2 = -INF;
+  double sum_free1 = 0, sum_free2 = 0;
+
+  for(int i=0;i<this->active_size;i++)
+  {
+    if(this->y[i]==+1)
+    {
+      if(this->is_lower_bound(i))
+          ub1 = std::min(ub1,this->G[i]);
+      else if(this->is_upper_bound(i))
+          lb1 = std::max(lb1,this->G[i]);
+      else
+      {
+        ++nr_free1;
+        sum_free1 += this->G[i];
+      }
+    }
+    else
+    {
+      if(this->is_lower_bound(i))
+          ub2 = std::min(ub2,this->G[i]);
+      else if(this->is_upper_bound(i))
+          lb2 = std::max(lb2,this->G[i]);
+      else
+      {
+        ++nr_free2;
+        sum_free2 += this->G[i];
+      }
+    }
+  }
+
+  double r1,r2;
+  if(nr_free1 > 0)
+      r1 = sum_free1/nr_free1;
+  else
+      r1 = (ub1+lb1)/2;
+	
+  if(nr_free2 > 0)
+      r2 = sum_free2/nr_free2;
+  else
+      r2 = (ub2+lb2)/2;
+	
+  si->r = (r1+r2)/2;
+  return (r1-r2)/2;
+}

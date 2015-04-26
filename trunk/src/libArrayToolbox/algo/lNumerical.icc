@@ -1,0 +1,156 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Kun Liu, Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+template<typename Type, typename dType, int Dim>
+void nCentralFirst(
+    blitz::Array<Type,Dim> const &data,
+    blitz::Array<dType,Dim> &derivative, int dim, int flag)
+{
+  if (flag == 0)
+  {
+    int i;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (i = 0; i < data.extent(dim); i++)
+    {
+      blitz::TinyVector<int, Dim> lb, ub;
+      lb = 0;
+      ub = data.shape() - 1;
+      if (i == 0)
+      {
+        lb(dim) = 0;
+        ub(dim) = 0;
+        blitz::RectDomain<Dim> slice1(lb, ub);
+        lb(dim)++;
+        ub(dim)++;
+        blitz::RectDomain<Dim> slice2(lb, ub);
+        derivative(slice1) = (data(slice2) - data(slice1));
+      }
+      else if (i == (data.extent(dim) - 1))
+      {
+        lb(dim) = i - 1;
+        ub(dim) = i - 1;
+        blitz::RectDomain<Dim> slice1(lb, ub);
+        lb(dim)++;
+        ub(dim)++;
+        blitz::RectDomain<Dim> slice2(lb, ub);
+        derivative(slice2) = (data(slice2) - data(slice1));
+      }
+      else
+      {
+        lb(dim) = i - 1;
+        ub(dim) = i - 1;
+        blitz::RectDomain<Dim> slice1(lb, ub);
+        lb(dim)++;
+        ub(dim)++;
+        blitz::RectDomain<Dim> slice2(lb, ub);
+        lb(dim)++;
+        ub(dim)++;
+        blitz::RectDomain<Dim> slice3(lb, ub);
+        derivative(slice2) = (data(slice3) - data(slice1)) / 2;
+      }
+    }
+  }
+}
+
+template<typename Type, typename dType, int Dim>
+void nCentralFirst(
+    blitz::Array<Type,Dim> const &data,
+    blitz::Array<blitz::TinyVector<dType,Dim>,Dim> &derivative, int flag)
+{
+  for (int dim = 0; dim < Dim; dim++)
+  {
+    blitz::Array<dType,Dim> d(derivative[dim]);
+    nCentralFirst(data, d, dim, flag);
+  }  
+}
+
+template<typename Type, typename dType, int Dim>
+void nCentralSecond(
+    blitz::Array<Type,Dim> const &data,
+    blitz::Array<dType,Dim> &dd, int dim, int flag)
+{
+  if (flag == 0)
+  {
+    int i;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (i = 0; i < data.extent(dim); i++)
+    {
+      blitz::TinyVector<int, Dim> lb, ub;
+      lb = 0;
+      ub = data.shape() - 1;
+      if (i == 0)
+      {
+        lb(dim) = 0;
+        ub(dim) = 0;
+        blitz::RectDomain<Dim> slice1(lb, ub);
+        dd(slice1) = 0;
+      }
+      else if (i == (data.extent(dim) - 1))
+      {
+        lb(dim) = i;
+        ub(dim) = i;
+        blitz::RectDomain<Dim> slice1(lb, ub);
+        dd(slice1) = 0;
+      }
+      else
+      {
+        lb(dim) = i - 1;
+        ub(dim) = i - 1;
+        blitz::RectDomain<Dim> slice1(lb, ub);
+        lb(dim)++;
+        ub(dim)++;
+        blitz::RectDomain<Dim> slice2(lb, ub);
+        lb(dim)++;
+        ub(dim)++;
+        blitz::RectDomain<Dim> slice3(lb, ub);
+        dd(slice2) = data(slice3) - 2 * data(slice2) + data(slice1);
+      }
+    }
+  }
+}
+
+template<typename Type, typename dType, int Dim>
+void nCentralSecond(
+    blitz::Array<Type,Dim> const &data,
+    blitz::Array<blitz::TinyVector<dType,Dim>,Dim> const &derivative,
+    blitz::Array<blitz::TinyVector<dType,(Dim+1)*Dim/2>,Dim>& dd,
+    int flag)
+{
+  for (int dim = 0; dim < Dim; dim++)
+  {
+    blitz::Array<dType, Dim> d(dd[dim]);
+    nCentralSecond(data, d, dim, flag);
+  }
+  for (int dim = 0; dim < Dim - 1; dim++)
+  {
+    for (int dim2 = dim + 1; dim2 < Dim; dim2++)
+    {
+      blitz::Array<dType, Dim> d1(derivative[dim]);
+      blitz::Array<dType, Dim> d2(dd[Dim - 1 + dim + dim2]);
+      nCentralFirst(d1, d2, dim2, flag);
+    }
+  }  
+}

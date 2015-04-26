@@ -1,0 +1,235 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/ 
+
+namespace atb
+{
+  
+  template<typename DataT, int Dim>
+  LaplacianOfGaussianFilter<DataT,Dim>::LaplacianOfGaussianFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : Filter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _standardDeviationUm(1.0), _minimumKernelShapePx(BlitzIndexT(0))
+  {}
+
+  template<typename DataT, int Dim>
+  LaplacianOfGaussianFilter<DataT,Dim>::LaplacianOfGaussianFilter(
+      double standardDeviationUm,
+      blitz::TinyVector<BlitzIndexT,Dim> const &minimumKernelShapePx,
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : Filter<DataT,Dim,ResultT>(btType, boundaryValue),
+            _standardDeviationUm(standardDeviationUm),
+            _minimumKernelShapePx(minimumKernelShapePx)
+            
+  {}
+
+  template<typename DataT, int Dim>
+  LaplacianOfGaussianFilter<DataT,Dim>::~LaplacianOfGaussianFilter()
+  {}
+  
+  template<typename DataT, int Dim>
+  void LaplacianOfGaussianFilter<DataT,Dim>::renderKernel(
+      atb::Array<DataT,Dim> &kernel) const
+  {
+    // Prepare kernels
+    blitz::TinyVector<Array<DataT,1>,Dim> gaussianKernels;
+    blitz::TinyVector<Array<DataT,1>,Dim> laplacianKernels;
+    blitz::TinyVector<BlitzIndexT,Dim> kernelShape(BlitzIndexT(0));
+    for (int d = 0; d < Dim; ++d)
+    {
+      gaussianKernels(d).setElementSizeUm(kernel.elementSizeUm()(d));
+      _gaussian(
+          gaussianKernels(d), _standardDeviationUm,
+          _minimumKernelShapePx(d));
+      laplacianKernels(d).setElementSizeUm(kernel.elementSizeUm()(d));
+      _laplacianOfGaussian(
+          laplacianKernels(d), _standardDeviationUm,
+          _minimumKernelShapePx(d));
+      kernelShape(d) = laplacianKernels(d).size();
+    }
+    kernel.resize(kernelShape);
+    std::memset(kernel.data(), 0, kernel.size() * sizeof(DataT));
+    for (int d = 0; d < Dim; ++d)
+    {
+      for (BlitzIndexT i = 0; i < kernel.size(); ++i)
+      {
+        BlitzIndexT j = i;
+        blitz::TinyVector<BlitzIndexT,Dim> pos;
+        float value = 1.0;
+        int d2 = Dim - 1;
+        for (; d2 >= 0; --d2)
+        {
+          pos(d2) = j % kernelShape(d2);
+          BlitzIndexT rdPos = pos(d2);
+          if (d != d2)
+          {
+            rdPos -= (kernelShape(d2) - gaussianKernels(d2).size()) / 2;
+            if (rdPos < 0 || rdPos >= gaussianKernels(d2).size()) break;
+            value *= gaussianKernels(d2)(rdPos);
+          }
+          else value *= laplacianKernels(d2)(rdPos);
+          j /= kernelShape(d2);
+        }
+        if (d2 < 0) kernel(pos) += value;
+      }
+    }
+  }
+
+  template<typename DataT, int Dim>
+  void LaplacianOfGaussianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    if (_standardDeviationUm <= 0.0)
+        throw RuntimeError(
+            "LaplacianOfGaussianFilter: Gaussian Standard deviation must be "
+            "greater than zero!");
+
+    int progressMin = (pr != NULL) ? pr->taskProgressMin() : 0;
+    int progressMax = (pr != NULL) ? pr->taskProgressMax() : 100;
+
+    SeparableConvolutionFilter<DataT,Dim> filter;
+    filter.setBoundaryTreatment(*this->p_bt);
+
+    // Prepare kernels
+    blitz::TinyVector<Array<DataT,1>,Dim> gaussianKernels;
+    blitz::TinyVector<Array<DataT,1>,Dim> laplacianKernels;
+    for (int d = 0; d < Dim; ++d)
+    {
+      gaussianKernels(d).setElementSizeUm(elementSizeUm(d));
+      _gaussian(
+          gaussianKernels(d), _standardDeviationUm,
+          _minimumKernelShapePx(d));
+      laplacianKernels(d).setElementSizeUm(elementSizeUm(d));
+      _laplacianOfGaussian(
+          laplacianKernels(d), _standardDeviationUm,
+          _minimumKernelShapePx(d));
+    }
+
+    blitz::Array<DataT,Dim> *res = NULL;
+    if (&data == &filtered) res = new blitz::Array<DataT,3>();
+    else res = &filtered;
+    res->resize(data.shape());
+    std::memset(res->data(), 0, res->size() * sizeof(DataT));
+
+    blitz::Array<DataT,Dim> tmp(data.shape());
+
+    // Apply the filters and sum up the result
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) break;
+        pr->setTaskProgressMin(
+            progressMin + d * (progressMax - progressMin) / Dim);
+        pr->setTaskProgressMax(
+            progressMin + (d + 1) * (progressMax - progressMin) / Dim);
+      }
+      for (int d2 = 0; d2 < Dim; ++d2)
+      {
+        if (d == d2) filter.setKernelForDim(&laplacianKernels(d2), d2);
+        else filter.setKernelForDim(&gaussianKernels(d2), d2);
+      }
+      filter.apply(data, elementSizeUm, tmp, pr);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (BlitzIndexT i = 0; i < tmp.size(); ++i)
+          res->data()[i] += tmp.data()[i];
+    }
+
+    // If necessary copy the filtering result to the result Array
+    if (&data == &filtered)
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (BlitzIndexT i = 0; i < filtered.size(); ++i)
+          filtered.data()[i] = res->data()[i];
+      delete res;
+    }
+    if (pr != NULL)
+    {
+      pr->setTaskProgressMin(progressMin);
+      pr->setTaskProgressMax(progressMax);
+      pr->setProgress(progressMax);
+    }
+  }
+
+  template<typename DataT, int Dim>
+  void LaplacianOfGaussianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &filtered,
+      double standardDeviationUm,
+      blitz::TinyVector<BlitzIndexT,Dim> const &minimumKernelShapePx,
+      BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    LaplacianOfGaussianFilter<DataT,Dim> f(
+        standardDeviationUm, minimumKernelShapePx, btType, boundaryValue);
+    f.apply(data, elementSizeUm, filtered, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void LaplacianOfGaussianFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<ResultT,Dim> &filtered,
+      double standardDeviationUm,
+      blitz::TinyVector<BlitzIndexT,Dim> const &minimumKernelShapePx,
+      BoundaryTreatmentType btType,
+      DataT const &boundaryValue, iRoCS::ProgressReporter *pr)
+  {
+    LaplacianOfGaussianFilter<DataT,Dim> f(
+        standardDeviationUm, minimumKernelShapePx, btType, boundaryValue);
+    f.apply(data, filtered, pr);
+  }
+
+  template<typename DataT, int Dim>
+  void LaplacianOfGaussianFilter<DataT,Dim>::_gaussian(
+      Array<DataT,1> &gauss, double sigmaUm, BlitzIndexT minExtent)
+  {
+    if (minExtent % 2 == 0) minExtent++;
+    BlitzIndexT shapePx =
+        std::max(minExtent, 2 * static_cast<BlitzIndexT>(
+                     3.0 * sigmaUm / gauss.elementSizeUm()(0)) + 1);
+    gauss.resize(shapePx);
+    gaussian(gauss, blitz::TinyVector<double,1>(sigmaUm), gauss.elementSizeUm(),
+             NORESIZE | NORMALIZE);
+  }
+
+  template<typename DataT, int Dim>
+  void LaplacianOfGaussianFilter<DataT,Dim>::_laplacianOfGaussian(
+      Array<DataT,1> &laplacian, double sigmaUm, BlitzIndexT minExtent)
+  {
+    if (minExtent % 2 == 0) minExtent++;
+    BlitzIndexT shapePx =
+        std::max(minExtent, 4 * static_cast<BlitzIndexT>(
+                     3.0 * sigmaUm / laplacian.elementSizeUm()(0)) + 1);
+    laplacian.resize(shapePx);
+    gaussianDerivative(
+        laplacian, blitz::TinyVector<double,1>(sigmaUm),
+        laplacian.elementSizeUm(), blitz::TinyVector<int,1>(2),
+        NORESIZE | NORMALIZE);
+  }
+
+}

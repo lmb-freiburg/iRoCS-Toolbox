@@ -1,0 +1,817 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename CoeffT>
+  Polynomial<CoeffT>::Polynomial()
+          : _coeffs(std::vector<CoeffT>(1, traits<CoeffT>::zero)), _degree(0),
+            _degreeCached(true)
+#ifdef PROFILE
+          , __p1(0), __p2(0), __p3(0), __n1(0), __n2(0), __n3(0)
+#endif
+  {}
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT>::Polynomial(const std::vector<CoeffT>& coeffs)
+          : _coeffs(coeffs), _degree(0), _degreeCached(false)
+#ifdef PROFILE
+          , __p1(0), __p2(0), __p3(0), __n1(0), __n2(0), __n3(0)
+#endif
+  {
+    if (_coeffs.size() == 0) _coeffs.push_back(traits<CoeffT>::zero);
+    _trimCoefficients();
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT>::Polynomial(const Polynomial<CoeffT>& p)
+          : _coeffs(p._coeffs), _degree(p._degree),
+            _degreeCached(p._degreeCached)
+#ifdef PROFILE
+          , __p1(0), __p2(0), __p3(0), __n1(0), __n2(0), __n3(0)
+#endif
+  {
+    _trimCoefficients();
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT>::~Polynomial()
+  {}
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT> &Polynomial<CoeffT>::operator=(const Polynomial<CoeffT>& p)
+  {
+    _coeffs = p._coeffs;
+    _degree = p._degree;
+    _degreeCached = p._degreeCached;
+#ifdef PROFILE
+    __p1 = 0;
+    __p2 = 0;
+    __p3 = 0;
+    __n1 = 0;
+    __n2 = 0;
+    __n3 = 0;
+#endif
+    _trimCoefficients();
+    return *this;
+  }
+  
+  template<typename CoeffT>
+  size_t Polynomial<CoeffT>::degree() const
+  {
+    if (!_degreeCached)
+    {
+      _degree = _coeffs.size() - 1;
+      while (_degree > 0 && _coeffs[_degree] == traits<CoeffT>::zero) --_degree;
+      _degreeCached = true;
+    } 
+    return _degree;
+  }
+  
+  template<typename CoeffT>
+  const CoeffT& Polynomial<CoeffT>::coefficient(size_t i) const
+  {
+    if (i > degree()) return _zeroCoeff;
+    return _coeffs[i];
+  }
+  
+  template<typename CoeffT>
+  CoeffT& Polynomial<CoeffT>::coefficient(size_t i)
+  {
+    if (i >= _coeffs.size()) _coeffs.resize(i + 1, traits<CoeffT>::zero);
+    if (i >= _coeffs.size() - 1) _degreeCached = false;
+    return _coeffs[i];
+  }
+  
+  template<typename CoeffT>
+  template<typename DomainT>
+  CoeffT Polynomial<CoeffT>::operator()(DomainT x) const
+  {
+    typename traits<CoeffT>::HighPrecisionT res =
+        traits<typename traits<CoeffT>::HighPrecisionT>::zero;
+    for (size_t i = 0; i <= degree(); ++i)
+        res += static_cast<typename traits<CoeffT>::HighPrecisionT>(
+            coefficient(i)) * std::pow(
+                static_cast<typename traits<DomainT>::HighPrecisionT>(x),
+                static_cast<typename traits<DomainT>::HighPrecisionT>(i));
+    return static_cast<CoeffT>(res);
+  }
+  
+  template<typename CoeffT>
+  std::vector<typename traits<CoeffT>::ComplexT>
+  Polynomial<CoeffT>::roots(bool polish, bool sort)
+  {
+    typedef typename traits<CoeffT>::HighPrecisionT HighPrecisionT;
+    typedef typename traits<CoeffT>::ComplexT ComplexT;
+    typedef typename traits<HighPrecisionT>::ComplexT HPComplexT;
+    typedef typename traits<HighPrecisionT>::BasicT HPBasicT;
+      
+    std::vector<ComplexT> res(degree());
+
+#ifdef PROFILE
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    {
+      ptrdiff_t __t1 = MyDateTime::time_us();
+#endif
+      int m = static_cast<int>(degree());
+      std::vector<HPComplexT> roots(m);
+      const double eps = 1.0e-14;
+      std::vector<HPComplexT> ad(m + 1);
+      for (int j = 0; j <= m; j++)
+          ad[j] = static_cast<HighPrecisionT>(coefficient(j));
+      
+#ifdef PROFILE
+      ptrdiff_t __t2 = MyDateTime::time_us();
+#endif
+      for (int j = m - 1; j >= 0; j--)
+      {
+        std::vector<HPComplexT> ad_v(j + 2);
+        for (int jj = 0; jj < j + 2; jj++) ad_v[jj] = ad[jj];
+        HPComplexT x = traits<HPComplexT>::zero;
+#ifdef PROFILE
+        ptrdiff_t __t3 = MyDateTime::time_us();
+#endif
+        _laguer(ad_v, x);
+#ifdef PROFILE
+        __p3 += MyDateTime::time_us() - __t3;
+        ++__n3;
+#endif
+        if (std::abs(x.imag()) <= 2.0 * eps * std::abs(x.real()))
+            x = HPComplexT(x.real(), traits<HPBasicT>::zero);
+        roots[j] = x;
+        HPComplexT b = ad[j + 1];
+        for (int jj = j; jj >= 0; jj--)
+        {
+          HPComplexT c = ad[jj];
+          ad[jj] = b;
+          b = x * b + c;
+        }
+      }
+#ifdef PROFILE
+      __p2 += MyDateTime::time_us() - __t2;
+      ++__n2;
+#endif
+      
+      if (polish)
+      {
+        for (int j = 0; j <= m; j++)
+            ad[j] = static_cast<HighPrecisionT>(coefficient(j));
+        for (int j = 0; j < m; j++) _laguer(ad, roots[j]);
+      }
+      
+      if (sort)
+      {
+        for (int j = 1; j < m; j++)
+        {
+          HPComplexT x = roots[j];
+          int i;
+          for (i = j - 1; i >= 0; i--)
+          {
+            if (roots[i].real() <= x.real()) break;
+            roots[i + 1] = roots[i];
+          }
+          roots[i + 1] = x;
+        }
+      }
+      
+      for (size_t i = 0; i < roots.size(); ++i)
+          res[i] = static_cast<ComplexT>(roots[i]);
+#ifdef PROFILE
+      __p1 += MyDateTime::time_us() - __t1;
+      ++__n1;
+      std::clog << "\rAverage running time roots() = "
+                << static_cast<double>(__p1) / static_cast<double>(__n1)
+                << " microseconds" << std::flush;
+      std::clog << " - __p2 = "
+                << static_cast<double>(__p2) / static_cast<double>(__n2)
+                << " microseconds" << std::flush;
+      std::clog << " - __p3 = "
+                << static_cast<double>(__p3) / static_cast<double>(__n3)
+                << " microseconds" << std::flush;
+#ifdef _OPENMP
+    }
+#endif
+#endif
+    return res;
+  }
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> Polynomial<CoeffT>::derivative(size_t degree)
+  {
+    if (degree == 0) return *this;
+    if (degree > this->degree()) return Polynomial<CoeffT>();
+    typedef typename traits<CoeffT>::HighPrecisionT HighPrecisionT;
+    typedef typename traits<HighPrecisionT>::BasicT HPBasicT;
+    Polynomial<CoeffT> res(*this);
+    for (size_t ell = 0; ell < degree; ++ell)
+    {
+      for (size_t i = 1; i < res._coeffs.size(); ++i)
+          res._coeffs[i - 1] = static_cast<CoeffT>(
+              static_cast<HPBasicT>(i) *
+              static_cast<HighPrecisionT>(res._coeffs[i]));
+      res._coeffs.pop_back();
+    }
+    return res;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT> Polynomial<CoeffT>::indefiniteIntegral(size_t degree)
+  {
+    if (degree == 0) return *this;
+    typedef typename traits<CoeffT>::HighPrecisionT HighPrecisionT;
+    typedef typename traits<HighPrecisionT>::BasicT HPBasicT;
+    Polynomial<CoeffT> res(*this);
+    for (size_t ell = 0; ell < degree; ++ell)
+    {
+      res._coeffs.push_back(
+          static_cast<CoeffT>(
+              static_cast<HighPrecisionT>(res._coeffs.back()) /
+              (static_cast<HPBasicT>(this->degree()) + traits<HPBasicT>::one)));
+      for (int i = static_cast<int>(res._coeffs.size() - 2); i > 0; --i)
+          res._coeffs[i] = static_cast<CoeffT>(
+              static_cast<HighPrecisionT>(res._coeffs[i - 1]) /
+              static_cast<HPBasicT>(i));
+      res._coeffs[0] = traits<CoeffT>::zero;
+    }
+    return res;
+  }
+
+  template<typename CoeffT>
+  bool Polynomial<CoeffT>::operator==(const Polynomial<CoeffT>& p)
+  {
+    size_t p1Degree = this->degree();
+    size_t p2Degree = p.degree();
+    if (p1Degree != p2Degree) return false;
+    for (size_t i = 0; i <= p1Degree; ++i)
+        if (this->coefficient(i) != p.coefficient(i)) return false;
+    return true;
+  }
+  
+  template<typename CoeffT>
+  bool Polynomial<CoeffT>::operator!=(const Polynomial<CoeffT>& p)
+  {
+    return !(*this == p);
+  }
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> Polynomial<CoeffT>::operator-() const
+  {
+    Polynomial<CoeffT> res(*this);
+    for (size_t i = 0; i <= res.degree(); ++i)
+        res.coefficient(i) = -coefficient(i);
+    return res;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT>& Polynomial<CoeffT>::operator+=(
+      const Polynomial<CoeffT>& p)
+  {
+    for (size_t i = 0; i <= p.degree(); ++i)
+        coefficient(i) += p.coefficient(i);
+    _trimCoefficients();
+    return *this;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT>& Polynomial<CoeffT>::operator-=(
+      const Polynomial<CoeffT>& p)
+  {
+    for (size_t i = 0; i <= p.degree(); ++i)
+        coefficient(i) -= p.coefficient(i);
+    _trimCoefficients();
+    return *this;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT>& Polynomial<CoeffT>::operator*=(
+      const Polynomial<CoeffT>& p)
+  {
+    _trimCoefficients();
+    size_t outDegree = degree() + p.degree();
+    Polynomial<CoeffT> tmp(*this);
+    _coeffs.resize(outDegree + 1, traits<CoeffT>::zero);
+    for (size_t d = 0; d <= tmp.degree(); ++d)
+        coefficient(d) = traits<CoeffT>::zero;
+    for (size_t d1 = 0; d1 <= tmp.degree(); ++d1)
+        for (size_t d2 = 0; d2 <= p.degree(); ++d2)
+            coefficient(d1 + d2) += tmp.coefficient(d1) * p.coefficient(d2);
+    _trimCoefficients();
+    return *this;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT>& Polynomial<CoeffT>::operator*=(const CoeffT& alpha)
+  {
+    _trimCoefficients();
+    for (size_t i = 0; i <= degree(); ++i) coefficient(i) *= alpha;
+    return *this;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT>& Polynomial<CoeffT>::operator/=(const CoeffT& alpha)
+  {
+    _trimCoefficients();
+    for (size_t i = 0; i <= degree(); ++i) coefficient(i) /= alpha;
+    return *this;    
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT> const &Polynomial<CoeffT>::zero()
+  {
+    return _zero;
+  }
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> const &Polynomial<CoeffT>::one()
+  {
+    return _one;
+  }
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> Polynomial<CoeffT>::hermite(int n, double sigma)
+  {
+    if (n < 0) return _zero;
+    if (n == 0) return _one;
+
+    Polynomial<CoeffT> res;
+    res.coefficient(1) = traits<CoeffT>::one;
+
+    res = static_cast<CoeffT>(1.0 / (sigma * sigma)) * res *
+        hermite(n - 1, sigma) -
+        static_cast<CoeffT>(1.0 / (sigma * sigma) * (n - 1)) *
+        hermite(n - 2, sigma);
+
+    return res;
+  }
+
+  template<typename CoeffT>
+  void Polynomial<CoeffT>::_trimCoefficients()
+  {
+    while (_coeffs.size() > 1 && _coeffs.back() == traits<CoeffT>::zero)
+        _coeffs.pop_back();
+    _degree = _coeffs.size() - 1;
+    _degreeCached = true;
+  }
+
+  template<typename CoeffT>
+  std::complex<double>& Polynomial<CoeffT>::_laguer(
+      const std::vector< std::complex<double> >& a,
+      std::complex<double>& x)
+  {
+    static int const MR = 8, MT = 10, nIter = MT * MR;
+    static double const eps = 1.0e-14;
+    static double const frac[MR + 1] =
+        { 0.0, 0.5, 0.25, 0.75, 0.13, 0.38, 0.63, 0.88, 1.0 };
+    int const degree = static_cast<int>(a.size()) - 1;
+    
+    double err, abx, agm, agp;
+    std::complex<double> b, d, f, g, g2, sq, gp, dx, x1;
+
+    for (int iter = 1; iter <= nIter; ++iter)
+    {
+      b = a.back();
+      err = std::abs(b);
+      d = 0.0;
+      f = 0.0;
+      abx = std::abs(x);
+      for (int j = degree - 1; j >= 0; --j)
+      {
+        f = x * f + d;
+        d = x * d + b;
+        b = x * b + a[j];
+        err = std::abs(b) + abx * err;
+      }
+      err *= eps;
+      if (std::abs(b) <= err) return x;
+      g = d / b;
+      g2 = g * g;
+      sq = std::sqrt(
+          static_cast<double>(degree - 1) *
+          (static_cast<double>(degree) * (g2 - 2.0 * f / b) - g2));
+      gp = g + sq;
+      g -= sq;
+      agp = std::abs(gp);
+      agm = std::abs(g);
+      if (agp < agm) gp = g;
+      dx = (agp > 0.0 && agm > 0.0) ?
+          static_cast<double>(degree) / gp :
+          std::polar(1 + abx, static_cast<double>(iter));
+      x1 = x - dx;
+      if (x == x1) return x;
+      if (iter % MT != 0) x = x1;
+      else x -= frac[iter / MT] * dx;
+    }
+    std::cerr << "Error: too many iterations in laguer" << std::endl;
+
+    return x;
+  }
+
+  template<typename CoeffT>
+  CoeffT const Polynomial<CoeffT>::_zeroCoeff = traits<CoeffT>::zero;
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> const Polynomial<CoeffT>::_zero = Polynomial<CoeffT>();
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> const Polynomial<CoeffT>::_one
+  = Polynomial<CoeffT>(std::vector<CoeffT>(1, traits<CoeffT>::one));
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> operator+(
+      const Polynomial<CoeffT>& p1, const Polynomial<CoeffT>& p2)
+  {
+    Polynomial<CoeffT> res(p1);
+    res += p2;
+    return res;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT> operator-(
+      const Polynomial<CoeffT>& p1, const Polynomial<CoeffT>& p2)
+  {
+    Polynomial<CoeffT> res(p1);
+    res -= p2;
+    return res;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT> operator*(
+      const Polynomial<CoeffT>& p1, const Polynomial<CoeffT>& p2)
+  {
+    Polynomial<CoeffT> res(p1);
+    res *= p2;
+    return res;
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT> pow(const Polynomial<CoeffT>& p, int exponential)
+  {
+    if (exponential == 0) return Polynomial<CoeffT>();
+    Polynomial<CoeffT> res(p);
+    for (int i = 1; i < exponential; ++i) res *= p;
+    return res;                               
+  }
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> operator*(
+      const Polynomial<CoeffT>& p, const CoeffT& alpha)
+  {
+    Polynomial<CoeffT> res(p);
+    res *= alpha;
+    return res;    
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT> operator*(
+      const CoeffT& alpha, const Polynomial<CoeffT>& p)
+  {
+    Polynomial<CoeffT> res(p);
+    res *= alpha;
+    return res;    
+  }
+  
+  template<typename CoeffT>
+  Polynomial<CoeffT> operator/(
+      const Polynomial<CoeffT>& p, const CoeffT& alpha)
+  {
+    Polynomial<CoeffT> res(p);
+    res /= alpha;
+    return res;    
+  }
+  
+  template<typename CoeffT>
+  std::ostream& operator<<(std::ostream& os, const Polynomial<CoeffT>& p)
+  {
+    int degree = static_cast<int>(p.degree());
+    std::vector<size_t> nonZero;
+
+    for (int i = degree; i >= 0; --i)
+        if (p.coefficient(i) != traits<CoeffT>::zero) nonZero.push_back(i);
+
+    if (nonZero.size() == 0) return os << "0";
+
+    if (nonZero.size() == 1)
+    {
+      if (nonZero[0] == 0)
+      {
+        if (p.coefficient(0) < traits<CoeffT>::zero)
+            return os << "(" << static_cast<
+                typename traits<CoeffT>::HighPrecisionT>(p.coefficient(0))
+                      << ")";
+        return os << static_cast<
+            typename traits<CoeffT>::HighPrecisionT>(p.coefficient(0));
+      }
+      if (nonZero[0] == 1)
+      {
+        if (p.coefficient(1) == traits<CoeffT>::one) return os << "x";
+        if (p.coefficient(1) == -traits<CoeffT>::one) return os << "(-x)";
+        if (p.coefficient(1) < traits<CoeffT>::zero)
+            return os << "(" << static_cast<
+                typename traits<CoeffT>::HighPrecisionT>(p.coefficient(1))
+                      << "x)";
+        return os << static_cast<
+            typename traits<CoeffT>::HighPrecisionT>(p.coefficient(1))
+                  << "x";
+      }
+      if (p.coefficient(nonZero[0]) == traits<CoeffT>::one)
+          return os << "x^" << degree;
+      if (p.coefficient(nonZero[0]) == -traits<CoeffT>::one)
+          return os << "(-x^" << degree << ")";
+      if (p.coefficient(nonZero[0]) < traits<CoeffT>::zero) 
+          return os << "(" << static_cast<
+              typename traits<CoeffT>::HighPrecisionT>(
+                  p.coefficient(nonZero[0])) << "x^" << degree << ")";
+      return os << static_cast<
+          typename traits<CoeffT>::HighPrecisionT>(
+              p.coefficient(nonZero[0])) << "x^" << degree;
+    }
+    
+    os << "(";
+    if (nonZero[0] == 1)
+    {
+      if (p.coefficient(1) == traits<CoeffT>::one) os << "x";
+      else if (p.coefficient(1) == -traits<CoeffT>::one) os << "-x";
+      else os << static_cast<
+               typename traits<CoeffT>::HighPrecisionT>(p.coefficient(1))
+              << "x";
+    }
+    else
+    {
+      if (p.coefficient(nonZero[0]) == traits<CoeffT>::one)
+          os << "x^" << degree;
+      else if (p.coefficient(nonZero[0]) == -traits<CoeffT>::one)
+          os << "-x^" << degree;
+      else os << static_cast<
+               typename traits<CoeffT>::HighPrecisionT>(
+                   p.coefficient(nonZero[0])) << "x^" << degree;
+    }
+    for (size_t i = 1; i < nonZero.size(); ++i)
+    {
+      if (nonZero[i] == 0)
+      {
+        if (p.coefficient(0) < traits<CoeffT>::zero)
+            os << static_cast<
+                typename traits<CoeffT>::HighPrecisionT>(p.coefficient(0));
+        else os << "+" << static_cast<
+                 typename traits<CoeffT>::HighPrecisionT>(p.coefficient(0));
+      }
+      else if (nonZero[i] == 1)
+      {
+        if (p.coefficient(1) == traits<CoeffT>::one) os << "+x";
+        else if (p.coefficient(1) == -traits<CoeffT>::one) os << "-x";
+        else if (p.coefficient(1) < traits<CoeffT>::zero)
+            os << static_cast<
+                typename traits<CoeffT>::HighPrecisionT>(p.coefficient(1))
+               << "x";
+        else os << "+" << static_cast<
+                 typename traits<CoeffT>::HighPrecisionT>(p.coefficient(1))
+                << "x";
+      }
+      else
+      {
+        if (p.coefficient(nonZero[i]) == traits<CoeffT>::one)
+            os << "+x^" << nonZero[i];
+        else if (p.coefficient(nonZero[i]) == -traits<CoeffT>::one)
+            os << "-x^" << nonZero[i];
+        else if (p.coefficient(nonZero[i]) < traits<CoeffT>::zero) 
+            os << static_cast<
+                typename traits<CoeffT>::HighPrecisionT>(
+                    p.coefficient(nonZero[i])) << "x^" << nonZero[i];
+        else os << "+" << static_cast<
+                 typename traits<CoeffT>::HighPrecisionT>(
+                     p.coefficient(nonZero[i])) << "x^" << nonZero[i];
+      }
+    }
+    os << ")";
+    return os;
+  }
+  
+  template<typename CoeffT>
+  std::ostream& operator<<(
+      std::ostream& os, const Polynomial< std::complex<CoeffT> >& p)
+  {
+    int degree = p.degree();
+    std::vector<size_t> nonZero;
+    
+    for (int i = degree; i >= 0; --i)
+        if (p.coefficient(i) != traits< std::complex<CoeffT> >::zero)
+            nonZero.push_back(i);
+    
+    if (nonZero.size() == 0) return os << "0";
+    
+    if (nonZero.size() == 1)
+    {
+      if (nonZero[0] == 0)
+      {
+        if (std::imag(p.coefficient(0)) == traits<CoeffT>::zero)
+        {
+          if (std::real(p.coefficient(0)) < traits<CoeffT>::zero)
+              return os << "(" << static_cast<
+                  typename traits<CoeffT>::HighPrecisionT>(
+                      std::real(p.coefficient(0))) << ")";
+          return os << static_cast<
+              typename traits<CoeffT>::HighPrecisionT>(
+                  std::real(p.coefficient(0)));
+        }
+        else return os << static_cast<
+                 typename traits< std::complex<CoeffT> >::HighPrecisionT>(
+                     p.coefficient(0));
+      }
+      if (nonZero[0] == 1)
+      {
+        if (p.coefficient(1) == traits< std::complex<CoeffT> >::one)
+            return os << "x";
+        if (p.coefficient(1) == -traits< std::complex<CoeffT> >::one)
+            return os << "(-x)";
+        if (std::imag(p.coefficient(0)) == traits<CoeffT>::zero)
+        {
+          if (std::real(p.coefficient(1)) < traits<CoeffT>::zero)
+              return os << "(" << static_cast<
+                  typename traits<CoeffT>::HighPrecisionT>(
+                      std::real(p.coefficient(1))) << "x)";
+          return os << static_cast<
+              typename traits<CoeffT>::HighPrecisionT>(
+                  std::real(p.coefficient(1))) << "x";
+        }
+        else return os << static_cast<
+                 typename traits< std::complex<CoeffT> >::HighPrecisionT>(
+                     p.coefficient(1)) << "x";
+      }
+      if (p.coefficient(nonZero[0]) == traits< std::complex<CoeffT> >::one)
+          return os << "x^" << degree;
+      if (p.coefficient(nonZero[0]) == -traits< std::complex<CoeffT> >::one)
+          return os << "(-x^" << degree << ")";
+      if (std::imag(p.coefficient(0)) == traits<CoeffT>::zero)
+      {
+        if (std::real(p.coefficient(nonZero[0])) < traits<CoeffT>::zero) 
+            return os << "(" << static_cast<
+                typename traits<CoeffT>::HighPrecisionT>(
+                    std::real(p.coefficient(nonZero[0]))) << "x^" << degree
+                      << ")";
+        return os << static_cast<
+            typename traits<CoeffT>::HighPrecisionT>(
+                std::real(p.coefficient(nonZero[0]))) << "x^" << degree;
+      }
+      else return os << static_cast<
+               typename traits< std::complex<CoeffT> >::HighPrecisionT>(
+                   p.coefficient(nonZero[0])) << "x^" << degree;
+    }
+    
+    os << "(";
+    if (nonZero[0] == 1)
+    {
+      if (p.coefficient(1) == traits< std::complex<CoeffT> >::one)
+          os << "x";
+      else if (p.coefficient(1) == -traits< std::complex<CoeffT> >::one)
+          os << "-x";
+      else
+      {
+        if (std::imag(p.coefficient(1)) == traits<CoeffT>::zero)
+            os << static_cast<
+                typename traits<CoeffT>::HighPrecisionT>(
+                    std::real(p.coefficient(1))) << "x";
+        else
+            os << static_cast<
+                typename traits< std::complex<CoeffT> >::HighPrecisionT>(
+                    p.coefficient(1)) << "x";
+      }
+    }
+    else
+    {
+      if (p.coefficient(nonZero[0]) == traits< std::complex<CoeffT> >::one)
+          os << "x^" << degree;
+      else if (p.coefficient(nonZero[0]) ==
+               -traits< std::complex<CoeffT> >::one)
+          os << "-x^" << degree;
+      else
+      {
+        if (std::imag(p.coefficient(nonZero[0])) == traits<CoeffT>::zero)
+            os << static_cast<
+                typename traits<CoeffT>::HighPrecisionT>(
+                    std::real(p.coefficient(nonZero[0]))) << "x^" << degree;
+        else
+            os << static_cast<
+                typename traits< std::complex<CoeffT> >::HighPrecisionT>(
+                    p.coefficient(nonZero[0])) << "x^" << degree;
+      }
+    }
+    for (size_t i = 1; i < nonZero.size(); ++i)
+    {
+      if (nonZero[i] == 0)
+      {
+        if (std::imag(p.coefficient(0)) == traits<CoeffT>::zero)
+        {
+          if (std::real(p.coefficient(0)) < traits<CoeffT>::zero)
+              os << static_cast<
+                  typename traits<CoeffT>::HighPrecisionT>(
+                      std::real(p.coefficient(0)));
+          else os << "+" << static_cast<
+                   typename traits<CoeffT>::HighPrecisionT>(
+                       std::real(p.coefficient(0)));
+        }
+        else os << "+" << static_cast<
+                 typename traits< std::complex<CoeffT> >::HighPrecisionT>(
+                     p.coefficient(0));
+      }
+      else if (nonZero[i] == 1)
+      {
+        if (p.coefficient(1) == traits< std::complex<CoeffT> >::one)
+            os << "+x";
+        else if (p.coefficient(1) == -traits< std::complex<CoeffT> >::one)
+            os << "-x";
+        else
+        {
+          if (std::imag(p.coefficient(1)) == traits<CoeffT>::zero)
+          {
+            if (std::real(p.coefficient(1)) < traits<CoeffT>::zero)
+                os << static_cast<
+                    typename traits<CoeffT>::HighPrecisionT>(
+                        std::real(p.coefficient(1))) << "x";
+            else os << "+" << static_cast<
+                     typename traits<CoeffT>::HighPrecisionT>(
+                         std::real(p.coefficient(1))) << "x";
+          }
+          else os << "+" << static_cast<
+                 typename traits< std::complex<CoeffT> >::HighPrecisionT>(
+                     p.coefficient(1)) << "x";
+        }
+      }
+      else
+      {
+        if (p.coefficient(nonZero[i]) == traits< std::complex<CoeffT> >::one)
+            os << "+x^" << nonZero[i];
+        else if (p.coefficient(nonZero[i]) ==
+                 -traits< std::complex<CoeffT> >::one)
+            os << "-x^" << nonZero[i];
+        else
+        {
+          if (std::imag(p.coefficient(nonZero[i])) == traits<CoeffT>::zero)
+          {
+            if (std::real(p.coefficient(nonZero[i])) < traits<CoeffT>::zero) 
+                os << static_cast<
+                    typename traits<CoeffT>::HighPrecisionT>(
+                        std::real(p.coefficient(nonZero[i]))) << "x^"
+                   << nonZero[i];
+            else os << "+" << static_cast<
+                     typename traits<CoeffT>::HighPrecisionT>(
+                         std::real(p.coefficient(nonZero[i]))) << "x^"
+                    << nonZero[i];
+          }
+          else os << "+" << static_cast<
+                   typename traits< std::complex<CoeffT> >::HighPrecisionT>(
+                       p.coefficient(nonZero[i])) << "x^" << nonZero[i];
+        }
+      }
+    }
+    os << ")";
+    return os;
+  }
+
+  template<typename CoeffT>
+  struct traits< Polynomial<CoeffT> >
+  {
+    
+    typedef Polynomial< typename traits<CoeffT>::HighPrecisionT >
+    HighPrecisionT;
+    typedef Polynomial< std::complex<CoeffT> > ComplexT;
+    typedef typename traits<CoeffT>::BasicT BasicT;
+    static Polynomial<CoeffT> const zero;
+    static Polynomial<CoeffT> const one;
+    static Polynomial<CoeffT> const saturated;
+    static bool const isComplex = traits<CoeffT>::isComplex;
+    
+  };
+
+  template<typename CoeffT>
+  Polynomial<CoeffT> const traits< Polynomial<CoeffT> >::zero =
+      Polynomial<CoeffT>::zero();
+  template<typename CoeffT>
+  Polynomial<CoeffT> const traits< Polynomial<CoeffT> >::one =
+      Polynomial<CoeffT>::one();
+  template<typename CoeffT>
+  Polynomial<CoeffT> const traits< Polynomial<CoeffT> >::saturated =
+      traits<CoeffT>::saturated * Polynomial<CoeffT>::one();
+
+}

@@ -1,0 +1,104 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<int Dim>
+  void computeTPSParameters(
+      const std::vector< blitz::TinyVector<double,Dim> >& p,
+      const std::vector< blitz::TinyVector<double,Dim> >& q,
+      blitz::Array<double,2>& coeffs)
+  {
+    assert(p.size() == q.size());
+  
+    // Construct the L-Matrix
+    blitz::Array<double,2> L(p.size() + Dim + 1, p.size() + Dim + 1);
+    L = 0;
+    for (BlitzIndexT r = 0; r < static_cast<BlitzIndexT>(p.size()); ++r)
+    {
+      L(r, r) = 0.0;
+      for (BlitzIndexT c = r + 1; c < static_cast<BlitzIndexT>(p.size()); ++c)
+      {
+        L(r, c) = tpsDistance(p[r], p[c]);
+        L(c, r) = L(r, c);
+      }
+    }
+    for (BlitzIndexT r = 0; r < static_cast<BlitzIndexT>(p.size()); ++r)
+    {
+      for (BlitzIndexT c = 0; c < static_cast<BlitzIndexT>(Dim); ++c) 
+      {
+        L(r, static_cast<BlitzIndexT>(p.size()) + c) = p[r](c);
+        L(static_cast<BlitzIndexT>(p.size()) + c, r) =
+            L(r, static_cast<BlitzIndexT>(p.size()) + c);
+      }
+      L(r, static_cast<BlitzIndexT>(p.size() + Dim)) = 1;
+      L(static_cast<BlitzIndexT>(p.size() + Dim), r) = 1;
+    }
+  
+    // Construct the Y matrix containing the destination points
+    blitz::Array<double,2> Y(q.size() + Dim + 1, Dim);
+    Y = 0;
+    for (BlitzIndexT r = 0; r < static_cast<BlitzIndexT>(q.size()); ++r) 
+        for (BlitzIndexT c = 0; c < static_cast<BlitzIndexT>(Dim); ++c)
+            Y(r, c) = q[r](c);
+  
+    blitz::Array<double,2> W(p.size() + Dim + 1, Dim);
+    W = mmMult(invert(L), Y);
+  
+    coeffs.resize(Dim, p.size() + Dim + 1);
+    for (BlitzIndexT r = 0; r < coeffs.extent(0); ++r)
+    {
+      for (BlitzIndexT c = 0; c < coeffs.extent(1); ++c) 
+      {
+        coeffs(r, c) = W(c, r);
+      }
+    }
+  }
+
+
+  template<int Dim>
+  blitz::TinyVector<double,Dim>
+  evaluateTPS(
+      const blitz::TinyVector<double,Dim>& x,
+      const std::vector< blitz::TinyVector<double,Dim> >& controlPoints,
+      const blitz::Array<double,2>& coeffs)
+  {
+    assert(coeffs.extent(1) ==
+           static_cast<BlitzIndexT>(controlPoints.size() + Dim + 1));
+    assert(coeffs.extent(0) == Dim);
+  
+    blitz::Array<double,1> base(controlPoints.size() + Dim + 1);
+    for (size_t i = 0; i < controlPoints.size(); ++i)
+        base(static_cast<BlitzIndexT>(i)) = tpsDistance(controlPoints[i], x);
+    for (int d = 0; d < Dim; ++d)
+        base(static_cast<BlitzIndexT>(controlPoints.size() + d)) =
+            x(static_cast<BlitzIndexT>(d));
+    base(static_cast<BlitzIndexT>(controlPoints.size() + Dim)) = 1;
+    blitz::Array<double,1> resA(Dim);
+    resA = mvMult(coeffs, base);
+    blitz::TinyVector<double,Dim> res;
+    for (int d = 0; d < Dim; ++d) res(d) = resA(d);
+    return res;
+  }
+
+}

@@ -1,0 +1,549 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  /*-----------------------------------------------------------------------
+   *  General boundary treatment interface
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim>::BoundaryTreatment()
+  {}
+  
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim>::BoundaryTreatment(
+      BoundaryTreatment<DataT,Dim> const &)
+  {}
+  
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim>::~BoundaryTreatment()
+  {}
+  
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim>
+  &BoundaryTreatment<DataT,Dim>::operator=(
+      BoundaryTreatment<DataT,Dim> const &)
+  {
+    return *this;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  Value boundary treatment
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT, int Dim>
+  ValueBoundaryTreatment<DataT,Dim>::ValueBoundaryTreatment(DataT const &value)
+          : BoundaryTreatment<DataT,Dim>(), _value(value)
+  {}
+  
+  template<typename DataT, int Dim>
+  ValueBoundaryTreatment<DataT,Dim>::ValueBoundaryTreatment(
+      ValueBoundaryTreatment<DataT,Dim> const &bt)
+          : BoundaryTreatment<DataT,Dim>(bt), _value(bt._value)
+  {}
+  
+  template<typename DataT, int Dim>
+  ValueBoundaryTreatment<DataT,Dim>::~ValueBoundaryTreatment()
+  {}
+  
+  template<typename DataT, int Dim>
+  ValueBoundaryTreatment<DataT,Dim>
+  &ValueBoundaryTreatment<DataT,Dim>::operator=(
+      ValueBoundaryTreatment<DataT,Dim> const &bt)
+  {
+    _value = bt._value;
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim> *ValueBoundaryTreatment<DataT,Dim>::clone() const
+  {
+    return new ValueBoundaryTreatment(*this);
+  }
+
+  template<typename DataT, int Dim>
+  BoundaryTreatmentType ValueBoundaryTreatment<DataT,Dim>::type() const
+  {
+    return ValueBT;
+  }
+
+  template<typename DataT, int Dim>
+  bool ValueBoundaryTreatment<DataT,Dim>::providesIndices() const
+  {
+    return false;
+  }
+  
+  template<typename DataT, int Dim>
+  DataT ValueBoundaryTreatment<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<ptrdiff_t,Dim> pos) const
+  {
+    if (blitz::all(pos >= 0 && pos < data.shape())) return data(pos);
+    return _value;
+  }
+
+  template<typename DataT, int Dim>
+  blitz::TinyVector<ptrdiff_t,Dim> ValueBoundaryTreatment<DataT,Dim>::getIndex(
+      blitz::TinyVector<ptrdiff_t,Dim> pos,
+      blitz::TinyVector<ptrdiff_t,Dim> const &shape) const
+  {
+    if (blitz::all(pos >= 0 && pos < shape)) return pos;
+    throw RuntimeError(
+        "ValueBoundaryTreatment::getIndex(): Invalid out-of-Array access "
+        "using value boundary treatment.");
+  }
+
+  template<typename DataT, int Dim>
+  DataT ValueBoundaryTreatment<DataT,Dim>::get(
+      DataT const *data, ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return data[pos];
+    return _value;
+  }
+
+  template<typename DataT, int Dim>
+  ptrdiff_t ValueBoundaryTreatment<DataT,Dim>::getIndex(
+      ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return pos;
+    throw RuntimeError(
+        "ValueBoundaryTreatment::getIndex(): Invalid out-of-Array access "
+        "using value boundary treatment.");
+  }
+
+  template<typename DataT, int Dim>
+  DataT const &ValueBoundaryTreatment<DataT,Dim>::boundaryValue() const
+  {
+    return _value;
+  }
+
+  template<typename DataT, int Dim>
+  void ValueBoundaryTreatment<DataT,Dim>::setBoundaryValue(
+      DataT const &boundaryValue)
+  {
+    _value = boundaryValue;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Cyclic boundary treatment
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT, int Dim>
+  CyclicBoundaryTreatment<DataT,Dim>::CyclicBoundaryTreatment()
+          : BoundaryTreatment<DataT,Dim>()
+  {}
+  
+  template<typename DataT, int Dim>
+  CyclicBoundaryTreatment<DataT,Dim>::CyclicBoundaryTreatment(
+      CyclicBoundaryTreatment<DataT,Dim> const &bt)
+          : BoundaryTreatment<DataT,Dim>(bt)
+  {}
+  
+  template<typename DataT, int Dim>
+  CyclicBoundaryTreatment<DataT,Dim>::~CyclicBoundaryTreatment()
+  {}
+  
+  template<typename DataT, int Dim>
+  CyclicBoundaryTreatment<DataT,Dim>
+  &CyclicBoundaryTreatment<DataT,Dim>::operator=(
+      CyclicBoundaryTreatment<DataT,Dim> const &bt)
+  {
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim>
+  *CyclicBoundaryTreatment<DataT,Dim>::clone() const
+  {
+    return new CyclicBoundaryTreatment(*this);
+  }
+
+  template<typename DataT, int Dim>
+  BoundaryTreatmentType CyclicBoundaryTreatment<DataT,Dim>::type() const
+  {
+    return CyclicBT;
+  }
+
+  template<typename DataT, int Dim>
+  bool CyclicBoundaryTreatment<DataT,Dim>::providesIndices() const
+  {
+    return true;
+  }
+  
+  template<typename DataT, int Dim>
+  DataT CyclicBoundaryTreatment<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<ptrdiff_t,Dim> pos) const
+  {
+    if (blitz::all(pos >= 0 && pos < data.shape())) return data(pos);
+    for (int d = 0; d < Dim; ++d)
+        pos(d) = ((pos(d) % data.extent(d)) + data.extent(d)) % data.extent(d);
+    return data(pos);
+  }
+
+  template<typename DataT, int Dim>
+  blitz::TinyVector<ptrdiff_t,Dim> CyclicBoundaryTreatment<DataT,Dim>::getIndex(
+      blitz::TinyVector<ptrdiff_t,Dim> pos,
+      blitz::TinyVector<ptrdiff_t,Dim> const &shape) const
+  {
+    if (blitz::all(pos >= 0 && pos < shape)) return pos;
+    for (int d = 0; d < Dim; ++d)
+        pos(d) = ((pos(d) % shape(d)) + shape(d)) % shape(d);
+    return pos;
+  }
+
+  template<typename DataT, int Dim>
+  DataT CyclicBoundaryTreatment<DataT,Dim>::get(
+      DataT const *data, ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return data[pos];
+    return data[((pos % length) + length) % length];
+  }
+
+  template<typename DataT, int Dim>
+  ptrdiff_t CyclicBoundaryTreatment<DataT,Dim>::getIndex(
+      ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return pos;
+    return ((pos % length) + length) % length;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Repeat boundary treatment
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT, int Dim>
+  RepeatBoundaryTreatment<DataT,Dim>::RepeatBoundaryTreatment()
+          : BoundaryTreatment<DataT,Dim>()
+  {}
+  
+  template<typename DataT, int Dim>
+  RepeatBoundaryTreatment<DataT,Dim>::RepeatBoundaryTreatment(
+      RepeatBoundaryTreatment<DataT,Dim> const &bt)
+          : BoundaryTreatment<DataT,Dim>(bt)
+  {}
+  
+  template<typename DataT, int Dim>
+  RepeatBoundaryTreatment<DataT,Dim>::~RepeatBoundaryTreatment()
+  {}
+  
+  template<typename DataT, int Dim>
+  RepeatBoundaryTreatment<DataT,Dim>
+  &RepeatBoundaryTreatment<DataT,Dim>::operator=(
+      RepeatBoundaryTreatment<DataT,Dim> const &bt)
+  {
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim>
+  *RepeatBoundaryTreatment<DataT,Dim>::clone() const
+  {
+    return new RepeatBoundaryTreatment(*this);
+  }
+
+  template<typename DataT, int Dim>
+  BoundaryTreatmentType RepeatBoundaryTreatment<DataT,Dim>::type() const
+  {
+    return RepeatBT;
+  }
+
+  template<typename DataT, int Dim>
+  bool RepeatBoundaryTreatment<DataT,Dim>::providesIndices() const
+  {
+    return true;
+  }
+  
+  template<typename DataT, int Dim>
+  DataT RepeatBoundaryTreatment<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<ptrdiff_t,Dim> pos) const
+  {
+    if (blitz::all(pos >= 0 && pos < data.shape())) return data(pos);
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (pos(d) < 0) pos(d) = 0;
+      if (pos(d) >= data.extent(d)) pos(d) = data.extent(d) - 1;
+    }
+    return data(pos);
+  }
+
+  template<typename DataT, int Dim>
+  blitz::TinyVector<ptrdiff_t,Dim> RepeatBoundaryTreatment<DataT,Dim>::getIndex(
+      blitz::TinyVector<ptrdiff_t,Dim> pos,
+      blitz::TinyVector<ptrdiff_t,Dim> const &shape) const
+  {
+    if (blitz::all(pos >= 0 && pos < shape)) return pos;
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (pos(d) < 0) pos(d) = 0;
+      if (pos(d) >= shape(d)) pos(d) = shape(d) - 1;
+    }
+    return pos;
+  }
+
+  template<typename DataT, int Dim>
+  DataT RepeatBoundaryTreatment<DataT,Dim>::get(
+      DataT const *data, ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return data[pos];
+    if (pos < 0) return *data;
+    return data[length - 1];
+  }
+
+  template<typename DataT, int Dim>
+  ptrdiff_t RepeatBoundaryTreatment<DataT,Dim>::getIndex(
+      ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return pos;
+    if (pos < 0) return 0;
+    return length - 1;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Mirror boundary treatment
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT, int Dim>
+  MirrorBoundaryTreatment<DataT,Dim>::MirrorBoundaryTreatment()
+          : BoundaryTreatment<DataT,Dim>()
+  {}
+  
+  template<typename DataT, int Dim>
+  MirrorBoundaryTreatment<DataT,Dim>::MirrorBoundaryTreatment(
+      MirrorBoundaryTreatment<DataT,Dim> const &bt)
+          : BoundaryTreatment<DataT,Dim>(bt)
+  {}
+  
+  template<typename DataT, int Dim>
+  MirrorBoundaryTreatment<DataT,Dim>::~MirrorBoundaryTreatment()
+  {}
+  
+  template<typename DataT, int Dim>
+  MirrorBoundaryTreatment<DataT,Dim>
+  &MirrorBoundaryTreatment<DataT,Dim>::operator=(
+      MirrorBoundaryTreatment<DataT,Dim> const &bt)
+  {
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim>
+  *MirrorBoundaryTreatment<DataT,Dim>::clone() const
+  {
+    return new MirrorBoundaryTreatment(*this);
+  }
+
+  template<typename DataT, int Dim>
+  BoundaryTreatmentType MirrorBoundaryTreatment<DataT,Dim>::type() const
+  {
+    return MirrorBT;
+  }
+
+  template<typename DataT, int Dim>
+  bool MirrorBoundaryTreatment<DataT,Dim>::providesIndices() const
+  {
+    return true;
+  }
+  
+  template<typename DataT, int Dim>
+  DataT MirrorBoundaryTreatment<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<ptrdiff_t,Dim> pos) const
+  {
+    if (blitz::all(pos >= 0 && pos < data.shape())) return data(pos);
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (pos(d) < 0) pos(d) = -pos(d);
+      ptrdiff_t n = pos(d) / (data.extent(d) - 1);
+      if (n % 2 == 0) pos(d) = pos(d) - n * (data.extent(d) - 1);
+      else pos(d) = (n + 1) * (data.extent(d) - 1) - pos(d);
+    }
+    return data(pos);
+  }
+
+  template<typename DataT, int Dim>
+  blitz::TinyVector<ptrdiff_t,Dim> MirrorBoundaryTreatment<DataT,Dim>::getIndex(
+      blitz::TinyVector<ptrdiff_t,Dim> pos,
+      blitz::TinyVector<ptrdiff_t,Dim> const &shape) const
+  {
+    if (blitz::all(pos >= 0 && pos < shape)) return pos;
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (pos(d) < 0) pos(d) = -pos(d);
+      ptrdiff_t n = pos(d) / (shape(d) - 1);
+      if (n % 2 == 0) pos(d) = pos(d) - n * (shape(d) - 1);
+      else pos(d) = (n + 1) * (shape(d) - 1) - pos(d);
+    }
+    return pos;
+  }
+
+  template<typename DataT, int Dim>
+  DataT MirrorBoundaryTreatment<DataT,Dim>::get(
+      DataT const *data, ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return data[pos];
+    if (pos < 0) pos = -pos;
+    ptrdiff_t n = pos / (length - 1);
+    if (n % 2 == 0) pos = pos - n * (length - 1);
+    else pos = (n + 1) * (length - 1) - pos;
+    return data[pos];
+  }
+
+  template<typename DataT, int Dim>
+  ptrdiff_t MirrorBoundaryTreatment<DataT,Dim>::getIndex(
+      ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return pos;
+    if (pos < 0) pos = -pos;
+    ptrdiff_t n = pos / (length - 1);
+    if (n % 2 == 0) pos = pos - n * (length - 1);
+    else pos = (n + 1) * (length - 1) - pos;
+    return pos;
+  }
+
+  /*-----------------------------------------------------------------------
+   *  Crop boundary treatment
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT, int Dim>
+  CropBoundaryTreatment<DataT,Dim>::CropBoundaryTreatment()
+          : BoundaryTreatment<DataT,Dim>()
+  {}
+  
+  template<typename DataT, int Dim>
+  CropBoundaryTreatment<DataT,Dim>::CropBoundaryTreatment(
+      CropBoundaryTreatment<DataT,Dim> const &bt)
+          : BoundaryTreatment<DataT,Dim>(bt)
+  {}
+  
+  template<typename DataT, int Dim>
+  CropBoundaryTreatment<DataT,Dim>::~CropBoundaryTreatment()
+  {}
+  
+  template<typename DataT, int Dim>
+  CropBoundaryTreatment<DataT,Dim>
+  &CropBoundaryTreatment<DataT,Dim>::operator=(
+      CropBoundaryTreatment<DataT,Dim> const &bt)
+  {
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim>
+  *CropBoundaryTreatment<DataT,Dim>::clone() const
+  {
+    return new CropBoundaryTreatment(*this);
+  }
+
+  template<typename DataT, int Dim>
+  BoundaryTreatmentType CropBoundaryTreatment<DataT,Dim>::type() const
+  {
+    return CropBT;
+  }
+
+  template<typename DataT, int Dim>
+  bool CropBoundaryTreatment<DataT,Dim>::providesIndices() const
+  {
+    return true;
+  }
+  
+  template<typename DataT, int Dim>
+  DataT CropBoundaryTreatment<DataT,Dim>::get(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<ptrdiff_t,Dim> pos) const
+  {
+    if (blitz::all(pos >= 0 && pos < data.shape())) return data(pos);
+    throw RuntimeError(
+        "CropBoundaryTreatment::get(): Invalid out-of-Array access "
+        "using crop boundary treatment.");
+  }
+
+  template<typename DataT, int Dim>
+  blitz::TinyVector<ptrdiff_t,Dim> CropBoundaryTreatment<DataT,Dim>::getIndex(
+      blitz::TinyVector<ptrdiff_t,Dim> pos,
+      blitz::TinyVector<ptrdiff_t,Dim> const &shape) const
+  {
+    if (blitz::all(pos >= 0 && pos < shape)) return pos;
+    throw RuntimeError(
+        "CropBoundaryTreatment::getIndex(): Invalid out-of-Array access "
+        "using crop boundary treatment.");
+  }
+
+  template<typename DataT, int Dim>
+  DataT CropBoundaryTreatment<DataT,Dim>::get(
+      DataT const *data, ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return data[pos];
+    throw RuntimeError(
+        "CropBoundaryTreatment::get(): Invalid out-of-Array access "
+        "using crop boundary treatment.");
+  }
+
+  template<typename DataT, int Dim>
+  ptrdiff_t CropBoundaryTreatment<DataT,Dim>::getIndex(
+      ptrdiff_t pos, ptrdiff_t length) const
+  {
+    if (pos >= 0 && pos < length) return pos;
+    throw RuntimeError(
+        "CropBoundaryTreatment::get(): Invalid out-of-Array access "
+        "using crop boundary treatment.");
+  }
+
+  /*-----------------------------------------------------------------------
+   *  The BoundaryTreatment factory
+   *-----------------------------------------------------------------------*/
+
+  template<typename DataT, int Dim>
+  BoundaryTreatment<DataT,Dim> *BoundaryTreatmentFactory<DataT,Dim>::get(
+      BoundaryTreatmentType type, DataT const &value)
+  {
+    BoundaryTreatment<DataT,Dim> *res = NULL;
+    switch (type)
+    {
+    case ValueBT:
+      res = new ValueBoundaryTreatment<DataT,Dim>(value);
+      break;
+    case CyclicBT:
+      res = new CyclicBoundaryTreatment<DataT,Dim>();
+      break;
+    case RepeatBT:
+      res = new RepeatBoundaryTreatment<DataT,Dim>();
+      break;
+    case MirrorBT:
+      res = new MirrorBoundaryTreatment<DataT,Dim>();
+      break;
+    case CropBT:
+      res = new CropBoundaryTreatment<DataT,Dim>();
+      break;
+    default:
+      std::stringstream errStr;
+      errStr << __FILE__ << ":" << __LINE__ << ": BoundaryTreatmentType "
+             << "not handled in BoundaryTreatmentFactory.";
+      throw RuntimeError(errStr.str().c_str());
+    }
+    return res;
+  }
+
+}

@@ -1,0 +1,58 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<int Dim>
+  blitz::TinyVector<double,Dim>
+  drawRandomVector(const blitz::TinyVector<double,Dim>& mean,
+                   const blitz::TinyMatrix<double,Dim,Dim>& cov)
+  {
+    int i = 0;
+    for (; i < Dim * Dim; ++i) if (cov.data()[i] != 0.0) break;
+    if (i == Dim * Dim) return mean;
+    blitz::TinyMatrix<double,Dim,Dim> A;
+    blitz::TinyVector<double,Dim> lambda;
+    eigenvalueDecompositionRealSymmetric(cov, A, lambda);
+    blitz::TinyMatrix<double,Dim,Dim> L;
+    L = 0.0;
+    for (int d = 0; d < Dim; ++d) L(d, d) = std::sqrt(lambda(d));
+    A = mmMult(A, L);
+    blitz::TinyVector<double,Dim> res;
+    for (int d = 0; d < Dim; ++d)
+        res(d) = gaussRandomNumber(0.0, 1.0);
+    res = mean + mvMult(A, res);
+    return res;
+  }
+
+  template<int Dim>
+  blitz::TinyVector<double,Dim>
+  drawRandomVector(const blitz::TinyVector<double,Dim>& maxValue)
+  {
+    blitz::TinyVector<double,Dim> res;
+    for (int d = 0; d < Dim; ++d)
+        res(d) = maxValue(d) * static_cast<double>(rand()) / RAND_MAX;
+    return res;
+  }
+
+}

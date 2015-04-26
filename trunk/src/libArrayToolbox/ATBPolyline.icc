@@ -1,0 +1,368 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+  
+  template<int Dim>
+  Polyline<Dim>::Polyline()
+          : _points(std::map<double,PointT>())
+  {}
+  
+  template<int Dim>
+  Polyline<Dim>::Polyline(Polyline<Dim> const &polyline)
+          : _points(polyline._points)
+  {}
+  
+  template<int Dim>
+  Polyline<Dim>::~Polyline()
+  {}
+  
+  template<int Dim>
+  Polyline<Dim> &Polyline<Dim>::operator=(Polyline<Dim> const &polyline)
+  {
+    _points = polyline._points;
+  }
+  
+  template<int Dim>
+  typename Polyline<Dim>::PointT Polyline<Dim>::operator()(double u) const
+  {
+    PointConstIteratorT itR(_points.lower_bound(u));
+    PointConstIteratorT itL(itR);
+    --itL;
+    if (itL->first < u) return PointT(0.0);
+    if (itL->first == u) return itL->second;
+    return itL->second + (u - itL->first) / (itR->first - itL->first) *
+        (itR->second - itL->second);
+  }
+  
+  template<int Dim>
+  double Polyline<Dim>::distance(PointT const &point, double &uOpt) const
+  {
+    double minSqDist = std::numeric_limits<double>::infinity();
+    PointConstIteratorT itL(_points.begin());
+    PointConstIteratorT itR(itL);
+    ++itR;
+    for (; itR != _points.end(); ++itL, ++itR)
+    {
+      PointT dC(itR->second - itL->second);
+      PointT dX(point - itL->second);
+      double lambda = blitz::dot(dC, dX) / blitz::dot(dC, dC);
+      if (lambda < 0) lambda = 0;
+      if (lambda > 1) lambda = 1;
+      PointT d(point - (lambda * dC + itL->second));
+      double sqDist = blitz::dot(d, d);
+      if (sqDist < minSqDist)
+      {
+        minSqDist = sqDist;
+        uOpt = itL->first + lambda * (itR->first - itL->first);
+      }
+    }
+    return std::sqrt(minSqDist);
+  }
+  
+  template<int Dim>
+  double Polyline<Dim>::curveIntegral(double uStart, double uEnd) const
+  {
+    // Degenerate case (Polyline not properly initialized)
+    if (_points.size() < 2) return 0.0;
+
+    // Search right end point of starting segment
+    PointConstIteratorT it(_points.begin());
+    PointConstIteratorT itL;
+    while (it != _points.end() && it->first <= uStart) ++it;
+
+    // uStart is beyond Polyline end point
+    if (it == _points.end()) return 0.0;
+
+    if (it == _points.begin())
+    {
+      // uStart is before Polyline starting point
+      // ==> set uStart to Polyline starting point, set segment start
+      //     to first point and segment end to second point
+      uStart = it->first;
+      itL = it;
+      ++it;
+    }
+    else
+    {
+      // uStart is within polyline
+      // ==> set segment start to point before current point
+      itL = it;
+      --itL;
+    }
+
+    // Compute fraction of segment to add to the overall length
+    double lambda = (it->first - uStart) / (it->first - itL->first);
+
+    // initialze length with the fraction of the current segment length
+    double length = lambda * (it->second - itL->second);
+
+    // Add lengths of intermediate segments as long as they are fully
+    // contained in the uStart, uEnd range
+    while (it != _points.end() && it->first <= uEnd)
+    {
+      length += it->second - itL->second;
+      ++it;
+      ++itL;
+    }
+
+    // If current segment end point is the end of the spline return the
+    // length
+    if (it == _points.end()) return length;
+    
+    // Compute the fraction of the last segment to add to the length
+    lambda = 1.0 - (it->first - uEnd) / (it->first - itL->first);
+    length += lambda * (it->first - itL->first);
+
+    return length;
+  }
+  
+  template<int Dim>
+  void Polyline<Dim>::fitToSpline(
+      BSpline<PointT> const &spline, double eps)
+  {
+    _points.clear();
+    
+    // Intialize the fit with the spline's knot positions
+    // and cache the spline polynomials for the segments
+    PointIteratorT insertPos = _points.begin();
+    std::list< blitz::TinyVector<Polynomial<double>,Dim> >
+        splinePolynomials;
+    for (size_t m = spline.degree();
+         m < spline.nKnots() - spline.degree() - 1; ++m)
+    {
+      while (m < spline.nKnots() - spline.degree() - 1 &&
+             spline.knot(m + 1) - spline.knot(m) == 0) ++m;
+      insertPos = _points.insert(
+          insertPos, std::pair<double,PointT>(
+              spline.knot(m), spline(spline.knot(m))));
+      splinePolynomials.push_back(
+          blitz::TinyVector<Polynomial<double>,Dim>(
+              Polynomial<double>::zero()));
+      for (int d = 0; d < Dim; ++d)
+      {
+        for (size_t j = m - spline.degree(); j <= m; ++j)
+        {
+          splinePolynomials.back()(d) += spline.controlPoint(j)(d) *
+              spline.basePolynomial(m, j);
+        }
+      }
+    }
+    insertPos = _points.insert(
+        insertPos, std::pair<double,PointT>(
+            spline.knot(spline.nKnots() - 1),
+            spline(spline.knot(spline.nKnots() - 1))));
+    
+    // Compute the fitting errors for each segment
+    double errSum = 0.0;
+    std::list<double> err(_points.size() - 1, 0.0);
+    PointIteratorT itL(_points.begin());
+    PointIteratorT itR(itL);
+    ++itR;
+    std::list<double>::iterator itE(err.begin());
+    typename std::list< blitz::TinyVector<Polynomial<double>,Dim> >::iterator itP(splinePolynomials.begin());
+    for (; itR != _points.end(); ++itL, ++itR, ++itE, ++itP)
+    {
+      Polynomial<double> poly(Polynomial<double>::zero());
+      for (int d = 0; d < Dim; ++d)
+      {
+        std::vector<double> coeffs(2);
+        coeffs[0] = itL->second(d);
+        coeffs[1] = (itR->second(d) - itL->second(d)) /
+            (itR->first - itL->first);
+        poly += pow((*itP)(d) - Polynomial<double>(coeffs), 2);
+      }
+      poly = poly.indefiniteIntegral();
+      *itE = poly(itR->first) - poly(itL->first);
+      errSum += *itE;
+    }
+    
+    int iter = 1;
+    while (errSum > eps)
+    {
+      // Find segment with maximum error
+      std::list<double>::iterator itErrMax(err.begin());
+      PointIteratorT itErrMaxSegment(_points.begin());
+      typename std::list< blitz::TinyVector<Polynomial<double>,Dim>
+          >::iterator itErrMaxPoly(splinePolynomials.begin());
+      
+      itL = _points.begin();
+      itE = err.begin();
+      itP = splinePolynomials.begin();
+      for (; itE != err.end(); ++itL, ++itE, ++itP)
+      {
+        if (*itE > *itErrMax)
+        {
+          itErrMax = itE;
+          itErrMaxSegment = itL;
+          itErrMaxPoly = itP;
+        }
+      }
+      
+      // Split it
+      itL = itErrMaxSegment;
+      itR = itL;
+      ++itR;
+      itE = itErrMax;
+      itP = itErrMaxPoly;
+      double u = (itL->first + itR->first) / 2.0;
+      itR = _points.insert(
+          itL, std::pair<double,PointT>(u, spline(u)));
+      itP = splinePolynomials.insert(itP, *itP);
+      itE = err.insert(itE, 0.0);
+      
+      // Compute error for new segments and update summed error
+      Polynomial<double> poly(Polynomial<double>::zero());
+      for (int d = 0; d < Dim; ++d)
+      {
+        std::vector<double> coeffs(2);
+        coeffs[1] = (itR->second(d) - itL->second(d)) /
+            (itR->first - itL->first);
+        coeffs[0] = -coeffs[1] * itL->first + itL->second(d);
+        poly += pow((*itP)(d) - Polynomial<double>(coeffs), 2);
+      }
+      poly = poly.indefiniteIntegral();
+      *itE = poly(itR->first) - poly(itL->first);
+      errSum += *itE;
+      
+      ++itE;
+      ++itL;
+      ++itR;
+      errSum -= *itE;
+      
+      poly = Polynomial<double>::zero();
+      for (int d = 0; d < Dim; ++d)
+      {
+        std::vector<double> coeffs(2);
+        coeffs[1] = (itR->second(d) - itL->second(d)) /
+            (itR->first - itL->first);
+        coeffs[0] = -coeffs[1] * itL->first + itL->second(d);
+        poly += pow((*itP)(d) - Polynomial<double>(coeffs), 2);
+      }
+      poly = poly.indefiniteIntegral();
+      *itE = poly(itR->first) - poly(itL->first);
+      errSum += *itE;
+      
+      ++iter;
+    }
+  }
+  
+  template<int Dim>
+  void Polyline<Dim>::save(
+      std::string const &fileName, std::string const &groupName,
+      bool throwExceptions) const
+  {
+    try
+    {
+      BlitzH5File outFile(fileName, BlitzH5File::WriteOrNew);      
+      save(outFile, groupName);
+    }
+    catch (BlitzH5Error &e)
+    {
+      if (throwExceptions) throw e;
+      std::cerr << "Error while writing Polyline: " << e.what() << std::endl;
+      exit(-1);
+    }
+  }
+  
+  template<int Dim>
+  void Polyline<Dim>::load(
+      std::string const &fileName, std::string const &groupName,
+      bool throwExceptions)
+  {
+    try
+    {
+      BlitzH5File inFile(fileName, BlitzH5File::WriteOrNew);      
+      load(inFile, groupName);
+    }
+    catch (BlitzH5Error &e)
+    {
+      if (throwExceptions) throw e;
+      std::cerr << "Error while reading Polyline: " << e.what() << std::endl;
+      exit(-1);
+    }
+  }
+  
+  template<int Dim>
+  void Polyline<Dim>::save(
+      BlitzH5File &outFile, std::string const &groupName) const
+  {
+    if (_points.size() == 0) return;
+    blitz::Array<double,1> u(_points.size() + 1);
+    blitz::Array<PointT,1> points(_points.size());
+    ptrdiff_t i = 0;
+    for (PointIteratorT it = _points.begin(); it != _points.end(); ++it, ++i)
+    {
+      u(i) = it->first;
+      points(i) = it->second;
+    }
+    u(u.size() - 1) = 1.0;
+    outFile.writeAttribute(std::string("BSpline"), "splineType", groupName);
+    outFile.writeAttribute(0, "degree", groupName);
+    outFile.writeDataset(u, groupName + "/knots");
+    outFile.writeDataset(points, groupName + "/controlPoints");
+  }
+  
+  template<int Dim>
+  void Polyline<Dim>::load(
+      BlitzH5File const &inFile, std::string const &groupName)
+  {
+    std::string id;
+    inFile.readAttribute(id, "splineType", groupName);
+    int degree;
+    inFile.readAttribute(degree, "degree", groupName);
+    if (id != "BSpline" || degree != 0)
+    {
+      BlitzH5Error error("No valid Polyline");
+      throw error;
+    }
+    _points.clear();
+    blitz::Array<double,1> u;
+    blitz::Array<PointT,1> points;
+    inFile.readDataset(u, groupName + "/knots");
+    inFile.readDataset(points, groupName + "/controlPoints");
+    _points.resize(points.size());
+    for (ptrdiff_t i = 0; i < points.size(); ++i) _points[u(i)] = points(i);
+  }
+  
+  template<int Dim>
+  std::ostream &operator<<(std::ostream &os, Polyline<Dim> const &polyline)
+  {
+    os << "Polyline {";
+    for (typename Polyline<Dim>::PointConstIteratorT it =
+             polyline._points.begin(); it != polyline._points.end(); ++it)
+        os << "(" << it->first << ", " << it->second << ") ";
+    os << "}";
+    os << std::endl << std::endl << "A = [";
+    size_t i = 0;
+    for (typename Polyline<Dim>::PointConstIteratorT it =
+             polyline._points.begin(); it != polyline._points.end(); ++it, ++i)
+    {
+      for (int d = 0; d < Dim; ++d) os << it->second(d) << " ";
+      if (i < polyline._points.size() - 1) os << "; ";
+    }
+    os << "];";
+    return os;
+  }
+  
+}

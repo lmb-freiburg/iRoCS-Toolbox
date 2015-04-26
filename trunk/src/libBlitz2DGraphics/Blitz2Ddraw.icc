@@ -1,0 +1,313 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2008 Alexandra Teynor
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**********************************************************
+ *                                                          
+ *  Blitz2Ddraw.icc
+ *  Implements the Blitz2Ddraw class
+ *  => for a precise description of the classes see 
+ *  respective header files
+ *                                                       
+ **********************************************************
+ *
+ *
+ *********************************************************/	
+
+#ifndef _BLITZ2DDRAW_ICC
+#define _BLITZ2DDRAW_ICC
+
+template <typename T>
+void Blitz2Ddraw::setPixel(blitz::Array<T,3>& image,  
+                         int y, int x, 
+                         const blitz::TinyVector<T,3>& color) {
+
+    if(x >= 0 && x < image.extent(2) && 
+       y >= 0 && y < image.extent(1)) {
+        image(0,y,x) = color(0);
+        image(1,y,x) = color(1);
+        image(2,y,x) = color(2);
+    }    
+}
+
+template <typename T>
+void Blitz2Ddraw::setPixel(blitz::Array<T,2>& image,  
+                         int y, int x, 
+                         const T& color) {
+
+    if(x >= 0 && x < image.extent(1) && 
+       y >= 0 && y < image.extent(0)) {
+        image(y,x) = color;
+    }    
+}
+
+
+template<typename Type> 
+void Blitz2Ddraw::drawLine(blitz::Array<Type,3>& image, 
+              int y0, int x0, int y1, int x1, 
+              const blitz::TinyVector<Type,3>& color) {
+
+    blitz::Range all = blitz::Range::all();
+    
+    //check if valid image format
+    if (image.extent(0) != 3) {
+        std::cout << "Blitz2Ddraw::drawLine:"
+                  << "Image contains an invalid number of layers: " 
+                  << image.extent(0) << ". Drawing skipped." << std::endl; 
+        return;        
+    }
+    
+    int dy = y1 - y0;
+    int dx = x1 - x0;
+    int stepx, stepy;
+
+    if (dy < 0) { dy = -dy;  stepy = -1; } else { stepy = 1; }
+    if (dx < 0) { dx = -dx;  stepx = -1; } else { stepx = 1; }
+    dy <<= 1;           // dy is now 2*dy
+    dx <<= 1;           // dx is now 2*dx
+
+    setPixel(image,y0,x0,color);    
+    if (dx > dy) {
+        int fraction = dy - (dx >> 1);  // same as 2*dy - dx
+        while (x0 != x1) {
+            if (fraction >= 0) {
+                y0 += stepy;
+                fraction -= dx;         // same as fraction -= 2*dx
+            }
+            x0 += stepx;
+            fraction += dy;             // same as fraction -= 2*dy
+            setPixel(image,y0,x0,color);    
+        }
+    } else {
+        int fraction = dx - (dy >> 1);
+        while (y0 != y1) {
+            if (fraction >= 0) {
+                x0 += stepx;
+                fraction -= dy;
+            }
+            y0 += stepy;
+            fraction += dx;
+            setPixel(image,y0,x0,color);
+        }
+    }
+}
+
+
+
+template<typename Type> 
+void Blitz2Ddraw::drawLine(blitz::Array<Type,2> & image, 
+              int y0, int x0, int y1, int x1, 
+                           const Type& color) {
+
+    blitz::Range all = blitz::Range::all();
+           
+    int dy = y1 - y0;
+    int dx = x1 - x0;
+    int stepx, stepy;
+
+    if (dy < 0) { dy = -dy;  stepy = -1; } else { stepy = 1; }
+    if (dx < 0) { dx = -dx;  stepx = -1; } else { stepx = 1; }
+    dy <<= 1;                           // dy is now 2*dy
+    dx <<= 1;                           // dx is now 2*dx
+
+    setPixel(image,y0,x0,color);
+    if (dx > dy) {
+        int fraction = dy - (dx >> 1);  // same as 2*dy - dx
+        while (x0 != x1) {
+            if (fraction >= 0) {
+                y0 += stepy;
+                fraction -= dx;         // same as fraction -= 2*dx
+            }
+            x0 += stepx;
+            fraction += dy;             // same as fraction -= 2*dy
+            setPixel(image,y0,x0,color);   
+        }
+    } else {
+        int fraction = dx - (dy >> 1);
+        while (y0 != y1) {
+            if (fraction >= 0) {
+                x0 += stepx;
+                fraction -= dy;
+            }
+            y0 += stepy;
+            fraction += dx;
+            setPixel(image,y0,x0,color);
+        }
+    }
+}
+
+
+template<typename Type>
+void Blitz2Ddraw::circlePoints(blitz::Array<Type,2>& image, 
+                  int cx, int cy, int x, int y, 
+                  const Type& color) {
+    
+    if (x == 0) {
+        setPixel(image, cy + y, cx    , color);
+        setPixel(image, cy - y, cx    , color);
+        setPixel(image, cy    , cx + y, color);
+        setPixel(image, cy    , cx - y, color);
+    } else 
+        if (x == y) {
+            setPixel(image, cy + y, cx + x, color);
+            setPixel(image, cy + y, cx - x, color);
+            setPixel(image, cy - y, cx + x, color);
+            setPixel(image, cy - y, cx - x, color);
+        } else 
+            if (x > y) {
+                setPixel(image, cy + y, cx + x, color);
+                setPixel(image, cy + y, cx - x, color);
+                setPixel(image, cy - y, cx + x, color);
+                setPixel(image, cy - y, cx - x, color);
+                setPixel(image, cy + x, cx + y, color);
+                setPixel(image, cy + x, cx - y, color);
+                setPixel(image, cy - x, cx + y, color);
+                setPixel(image, cy - x, cx - y, color);
+            }
+}
+
+
+template<class Type>
+void Blitz2Ddraw::drawCircle(blitz::Array<Type,2>& image, 
+                             int xCenter, int yCenter, int radius,  
+                             const Type& color) {
+    
+    int x = 0;
+    int y = radius;
+    int p = (5 - radius*4)/4;
+    
+    circlePoints(image, yCenter, xCenter, y, x, color);
+
+    while (x < y) {
+        x++;
+        if (p < 0) {
+            p += 2*x+1;
+        } else {
+            y--;
+            p += 2*(x-y)+1;
+        }
+        circlePoints(image, yCenter, xCenter, y, x, color);
+    }
+}
+
+
+template<class Type>
+void Blitz2Ddraw::circlePoints(blitz::Array<Type,3>& image, 
+                  int cx, int cy, int x, int y, 
+                  const blitz::TinyVector<Type,3>& color) {
+    
+    if (x == 0) {
+        setPixel(image, cy + y, cx    , color);
+        setPixel(image, cy - y, cx    , color);
+        setPixel(image, cy    , cx + y, color);
+        setPixel(image, cy    , cx - y, color);
+    } else 
+        if (x == y) {
+            setPixel(image, cy + y, cx + x, color);
+            setPixel(image, cy + y, cx - x, color);
+            setPixel(image, cy - y, cx + x, color);
+            setPixel(image, cy - y, cx - x, color);
+        } else 
+            if (x > y) {
+                setPixel(image, cy + y, cx + x, color);
+                setPixel(image, cy + y, cx - x, color);
+                setPixel(image, cy - y, cx + x, color);
+                setPixel(image, cy - y, cx - x, color);
+                setPixel(image, cy + x, cx + y, color);
+                setPixel(image, cy + x, cx - y, color);
+                setPixel(image, cy - x, cx + y, color);
+                setPixel(image, cy - x, cx - y, color);
+            }
+}
+
+
+
+
+
+template<typename Type>
+void Blitz2Ddraw::drawCircle(blitz::Array<Type,3>& image, 
+                    int xCenter, int yCenter, int radius,  
+                    const blitz::TinyVector<Type,3>& color) {
+    
+
+    //check if valid image format
+    if (image.extent(0) != 3) {
+        std::cout << "Blitz2Ddraw::drawLine:"
+                  << "Image contains an invalid number of layers: " 
+                  << image.extent(0) << ". Drawing skipped." << std::endl; 
+        return;        
+    }
+
+
+    int x = 0;
+    int y = radius;
+    int p = (5 - radius*4)/4;
+    
+    circlePoints(image, yCenter, xCenter, y, x, color);
+
+    while (x < y) {
+        x++;
+        if (p < 0) {
+            p += 2*x+1;
+        } else {
+            y--;
+            p += 2*(x-y)+1;
+        }
+        circlePoints(image, yCenter, xCenter, y, x, color);
+    }
+}
+
+
+
+
+
+template<typename Type> 
+void Blitz2Ddraw::drawRect(blitz::Array<Type,3>& image, 
+                           int y0, int x0, int y1, int x1, 
+                           const blitz::TinyVector<Type,3>& color) {
+    
+    drawLine(image,y0,x0,y1,x0,color);
+    drawLine(image,y1,x0,y1,x1,color);
+    drawLine(image,y1,x1,y0,x1,color);
+    drawLine(image,y0,x1,y0,x0,color);
+        
+};
+
+
+
+template<typename Type> 
+void Blitz2Ddraw::drawRect(blitz::Array<Type,2> & image, 
+                           int y0, int x0, int y1, int x1, 
+                           const Type& color) {
+    
+    drawLine(image,y0,x0,y1,x0,color);
+    drawLine(image,y1,x0,y1,x1,color);
+    drawLine(image,y1,x1,y0,x1,color);
+    drawLine(image,y0,x1,y0,x0,color);
+    
+};
+
+
+
+
+
+
+#endif

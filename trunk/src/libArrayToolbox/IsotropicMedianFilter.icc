@@ -1,0 +1,158 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+  
+  template<typename DataT, int Dim>
+  IsotropicMedianFilter<DataT,Dim>::IsotropicMedianFilter(double radiusUm)
+          : Filter<DataT,Dim,DataT>(), _filterRadiusUm(radiusUm)
+  {}
+    
+  template<typename DataT, int Dim>
+  IsotropicMedianFilter<DataT,Dim>::~IsotropicMedianFilter()
+  {}
+
+  template<typename DataT, int Dim>
+  double IsotropicMedianFilter<DataT,Dim>::filterRadiusUm() const
+  {
+    return _filterRadiusUm;
+  }
+
+  template<typename DataT, int Dim>
+  void IsotropicMedianFilter<DataT,Dim>::setFilterRadiusUm(double radiusUm)
+  {
+    _filterRadiusUm = radiusUm;
+  }
+
+  template<typename DataT, int Dim>
+  void IsotropicMedianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<ResultT,Dim> &result,
+      iRoCS::ProgressReporter *pr) const
+  {
+    blitz::Array<DataT,Dim>* filtered;
+    
+    if (&data == &result) filtered = new blitz::Array<DataT,Dim>(data.shape());
+    else
+    {
+      result.resize(data.shape());
+      filtered = &result;
+    }
+    std::memset(filtered->data(), 0, result.size() * sizeof(DataT));
+
+    // Generate spherical structuring element
+    std::vector< blitz::TinyVector<BlitzIndexT,Dim> > strel;
+    blitz::TinyVector<BlitzIndexT,Dim> kernelShape;
+    size_t nPoints = 1;
+    for (int d = 0; d < Dim; ++d)
+    {
+      kernelShape(d) =
+          2 * static_cast<size_t>(
+              std::ceil(_filterRadiusUm / elementSizeUm(d))) + 1;
+      nPoints *= kernelShape(d);
+    }
+    blitz::TinyVector<BlitzIndexT,Dim> c(kernelShape / 2);
+    for (size_t i = 0; i < nPoints; ++i)
+    {
+      double sqrDistUm = 0.0;
+      blitz::TinyVector<BlitzIndexT,Dim> posPx;
+      size_t tmp = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        posPx(d) = tmp % kernelShape(d) - c(d);
+        sqrDistUm += posPx(d) * elementSizeUm(d) * posPx(d) * elementSizeUm(d);
+        tmp /= kernelShape(d);
+      }
+      if (sqrDistUm <= _filterRadiusUm * _filterRadiusUm)
+          strel.push_back(posPx);
+    }
+
+    // Do the filtering
+    ptrdiff_t currentVoxel = 0;
+    int totalProgress = (pr != NULL) ?
+        (pr->taskProgressMax() - pr->taskProgressMin()) : 1;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (BlitzIndexT i = 0; i < data.size(); ++i)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) continue;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+        {
+          if (currentVoxel % 1000 == 0)
+              pr->updateProgress(
+                  pr->taskProgressMin() + (totalProgress * currentVoxel) /
+                  (data.size() - 1));
+          ++currentVoxel;
+        }
+      }
+      std::vector<DataT> values;
+      blitz::TinyVector<BlitzIndexT,Dim> p;
+      BlitzIndexT tmp = i;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        p(d) = tmp % data.extent(d);
+        tmp /= data.extent(d);
+      }
+      for (size_t j = 0; j < strel.size(); ++j)
+      {
+        blitz::TinyVector<BlitzIndexT,Dim> rdPos(p + strel[j]);
+        if (blitz::all(rdPos >= 0 && rdPos < data.shape()))
+            values.push_back(data(rdPos));
+      }
+      std::sort(values.begin(), values.end());
+      filtered->data()[i] = values[values.size() / 2];
+    }
+    if (pr != NULL)
+    {
+      if (pr->isAborted())
+      {
+        if (&data == &result) delete filtered;
+        return;
+      }
+      pr->setProgress(pr->taskProgressMax());
+    }
+    if (&data == &result) 
+    {
+      std::memcpy(
+          result.data(), filtered->data(), result.size() * sizeof(DataT));
+      delete filtered;
+    }
+  }
+    
+  template<typename DataT, int Dim>
+  void IsotropicMedianFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::Array<ResultT,Dim> &filtered,
+      double radiusUm, iRoCS::ProgressReporter *pr)
+  {
+    IsotropicMedianFilter<DataT,Dim> filter(radiusUm);
+    filter.apply(data, blitz::TinyVector<double,Dim>(1.0), filtered, pr);
+  }
+
+}

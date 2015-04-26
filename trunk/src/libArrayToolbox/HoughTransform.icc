@@ -1,0 +1,386 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename DataT>
+  void computeHoughTransform(
+      const blitz::Array<DataT,3>& data,
+      blitz::TinyVector<double,3> const &elSize,
+      std::vector< blitz::Array<double,3>* >& houghmaps,
+      std::vector< blitz::Array<double,3>* >& houghmapsR,
+      const double rMin, const double rMax,
+      const double rStep, const double preSmoothing,
+      const double postSmoothing, const double minMagnitude) 
+  {
+    blitz::Array<blitz::TinyVector<double,3>,3> ddata(data.shape());
+  
+    if (preSmoothing > 0.0f)
+    {
+      std::vector< blitz::Array<DataT,1> > gaussKernels(3);
+      std::vector< blitz::Array<DataT,1> > derivativeKernels(3);
+      SeparableConvolutionFilter<DataT,3> filter(RepeatBT);
+      for (int d = 0; d < 3; ++d)
+      {
+        gaussian(
+            gaussKernels[d], blitz::TinyVector<double,1>(preSmoothing),
+            blitz::TinyVector<double,1>(elSize(d)));
+        gaussianDerivative(
+            derivativeKernels[d], blitz::TinyVector<double,1>(preSmoothing),
+            blitz::TinyVector<double,1>(elSize(d)),
+            blitz::TinyVector<int,1>(1));
+      }
+      blitz::Array<DataT,3> tmp;
+      for (int d = 0; d < 3; ++d)
+      {
+        for (int d2 = 0; d2 < 3; ++d2)
+            filter.setKernelForDim(
+                (d == d2) ? &derivativeKernels[d2] : &gaussKernels[d2], d2);
+        filter.apply(data, elSize, tmp);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT i = 0; i < data.size(); ++i)
+            ddata.data()[i](d) = tmp.data()[i];
+      }
+    }
+    else
+    {
+      CentralGradientFilter<DataT,3> filter(RepeatBT);
+      filter.apply(data, elSize, ddata);
+    }
+    
+    blitz::Array<double,3> ddataMag;
+    double ddataMagMin = std::numeric_limits<double>::infinity();
+    double ddataMagMax = -std::numeric_limits<double>::infinity();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < ddata.size(); ++i)
+    {
+      ddataMag.data()[i] =
+          std::sqrt(blitz::dot(ddata.data()[i], ddata.data()[i]));
+      if (ddataMag.data()[i] != 0.0) ddata.data()[i] /= ddataMag.data()[i];
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      {
+        if (ddataMag.data()[i] > ddataMagMax) ddataMagMax = ddataMag.data()[i];
+        if (ddataMag.data()[i] < ddataMagMin) ddataMagMin = ddataMag.data()[i];
+      }
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < ddata.size(); ++i)
+    {
+      ddataMag.data()[i] = (ddataMag.data()[i] - ddataMagMin) /
+          (ddataMagMax - ddataMagMin);
+    }
+  
+    if (houghmaps.size() > 2)
+    {
+      for (size_t i = 2; i < houghmaps.size(); ++i) delete houghmaps[i];
+      houghmaps.resize(2);
+    }
+    else houghmaps.resize(2, NULL);
+
+    if (houghmapsR.size() > 2)
+    {
+      for (size_t i = 2; i < houghmapsR.size(); ++i) delete houghmapsR[i];
+      houghmapsR.resize(2);
+    }
+    else houghmapsR.resize(2, NULL);
+
+    for (int i = 0; i < 2; ++i)
+    {
+      if (houghmaps[i] == NULL)
+          houghmaps[i] = new blitz::Array<double,3>(data.shape());
+      else houghmaps[i]->resize(data.shape());
+      if (houghmapsR[i] == NULL)
+          houghmapsR[i] = new blitz::Array<double,3>(data.shape());
+      else houghmapsR[i]->resize(data.shape());
+    
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t j = 0; j < houghmaps[i]->size(); ++j)
+          houghmaps[i]->data()[j] = 0.0;
+
+      blitz::Array<double,3> accu(data.shape());
+      double direction = (i == 0) ? 1.0 : -1.0;
+      for (double r = rMin; r <= rMax; r += rStep) 
+      {
+        std::cout << "Computing hough transform - r = "
+                  << r << " micron        " << std::endl;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t j = 0; j < accu.size(); ++j) accu.data()[j] = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t j = 0; j < data.size(); ++j) 
+        {
+          if (ddataMag.data()[j] < minMagnitude) continue;
+
+          blitz::TinyVector<ptrdiff_t,3> p;
+          ptrdiff_t tmp = j;
+          for (int d = 2; d >= 0; --d)
+          {
+            p(d) = tmp % data.extent(d);
+            tmp /= data.extent(d);
+          }
+          p = blitz::TinyVector<ptrdiff_t,3>(
+              blitz::TinyVector<double,3>(p) + direction * r *
+              ddata.data()[j] / elSize + 0.5);
+
+          if (blitz::all(p >= 0 && p < accu.shape())) 
+          {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            accu(p) += 1.0f;
+          }
+        }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t j = 0; j < data.size(); ++j) 
+        {
+          if (accu.data()[j] > houghmaps[i]->data()[j])
+          {
+            houghmapsR[i]->data()[j] = r;
+            houghmaps[i]->data()[j] = accu.data()[j];
+          }
+        }
+      }
+    }
+  
+    if (postSmoothing != 0.0f) 
+    {
+      SeparableConvolutionFilter<DataT,3> filter(RepeatBT);
+      std::vector< blitz::Array<DataT,1> > gaussKernels(3);
+      for (int d = 0; d < 3; ++d)
+      {
+        gaussian(
+            gaussKernels[d], blitz::TinyVector<double,1>(postSmoothing),
+            blitz::TinyVector<double,1>(elSize(d)));
+        filter.setKernelForDim(&gaussKernels[d], d);
+      }
+      for (int i = 0; i < 2; ++i)
+          filter.apply(*houghmaps[i], elSize, *houghmaps[i]);
+    }
+  }
+
+  template<typename DataT>
+  void computeHoughTransform(
+      const Array<DataT,3>& data,
+      std::vector< Array<double,3>* >& houghmaps,
+      std::vector< Array<double,3>* >& houghmapsR,
+      const double rMin, const double rMax,
+      const double rStep, const double preSmoothing,
+      const double postSmoothing, const double minMagnitude) 
+  {
+    Array<blitz::TinyVector<double,3>,3> ddata(
+        data.shape(), data.elementSizeUm());
+  
+    if (preSmoothing > 0.0f)
+    {
+      std::vector< Array<DataT,1> > gaussKernels(3);
+      std::vector< Array<DataT,1> > derivativeKernels(3);
+      SeparableConvolutionFilter<DataT,3> filter(RepeatBT);
+      for (int d = 0; d < 3; ++d)
+      {
+        gaussKernels[d].setElementSizeUm(
+            blitz::TinyVector<double,1>(data.elementSizeUm()(d)));
+        gaussian(gaussKernels[d], blitz::TinyVector<double,1>(preSmoothing));
+        derivativeKernels[d].setElementSizeUm(
+            blitz::TinyVector<double,1>(data.elementSizeUm()(d)));
+        gaussianDerivative(
+            derivativeKernels[d], blitz::TinyVector<double,1>(preSmoothing),
+            blitz::TinyVector<int,1>(1));
+      }
+      Array<DataT,3> tmp(data.shape(), data.elementSizeUm());
+      for (int d = 0; d < 3; ++d)
+      {
+        for (int d2 = 0; d2 < 3; ++d2)
+            filter.setKernelForDim(
+                (d == d2) ? &derivativeKernels[d2] : &gaussKernels[d2], d2);
+        filter.apply(data, tmp);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT i = 0; i < data.size(); ++i)
+            ddata.data()[i](d) = tmp.data()[i];
+      }
+    }
+    else
+    {
+      CentralGradientFilter<DataT,3> filter(RepeatBT);
+      filter.apply(data, ddata);
+    }
+    
+    Array<double,3> ddataMag(ddata.shape(), data.elementSizeUm());
+    double ddataMagMin = std::numeric_limits<double>::infinity();
+    double ddataMagMax = -std::numeric_limits<double>::infinity();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < ddata.size(); ++i)
+    {
+      ddataMag.data()[i] =
+          std::sqrt(blitz::dot(ddata.data()[i], ddata.data()[i]));
+      if (ddataMag.data()[i] != 0.0) ddata.data()[i] /= ddataMag.data()[i];
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      {
+        if (ddataMag.data()[i] > ddataMagMax) ddataMagMax = ddataMag.data()[i];
+        if (ddataMag.data()[i] < ddataMagMin) ddataMagMin = ddataMag.data()[i];
+      }
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < ddata.size(); ++i)
+    {
+      ddataMag.data()[i] = (ddataMag.data()[i] - ddataMagMin) /
+          (ddataMagMax - ddataMagMin);
+    }
+  
+    if (houghmaps.size() > 2)
+    {
+      for (size_t i = 2; i < houghmaps.size(); ++i) delete houghmaps[i];
+      houghmaps.resize(2);
+    }
+    else houghmaps.resize(2, NULL);
+
+    if (houghmapsR.size() > 2)
+    {
+      for (size_t i = 2; i < houghmapsR.size(); ++i) delete houghmapsR[i];
+      houghmapsR.resize(2);
+    }
+    else houghmapsR.resize(2, NULL);
+
+    for (int i = 0; i < 2; ++i)
+    {
+      if (houghmaps[i] == NULL)
+          houghmaps[i] = new Array<double,3>(
+              data.shape(), data.elementSizeUm());
+      else
+      {
+        houghmaps[i]->resize(data.shape());
+        houghmaps[i]->setElementSizeUm(data.elementSizeUm());
+      }
+      if (houghmapsR[i] == NULL)
+          houghmapsR[i] = new Array<double,3>(
+              data.shape(), data.elementSizeUm());
+      else
+      {
+        houghmapsR[i]->resize(data.shape());
+        houghmapsR[i]->setElementSizeUm(data.elementSizeUm());
+      }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t j = 0; j < houghmaps[i]->size(); ++j)
+          houghmaps[i]->data()[j] = 0.0;
+
+      blitz::Array<double,3> accu(data.shape());
+      double direction = (i == 0) ? 1.0 : -1.0;
+      for (double r = rMin; r <= rMax; r += rStep) 
+      {
+        std::cout << "Computing hough transform - r = "
+                  << r << " micron        " << std::endl;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t j = 0; j < accu.size(); ++j) accu.data()[j] = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t j = 0; j < data.size(); ++j) 
+        {
+          if (ddataMag.data()[j] < minMagnitude) continue;
+
+          blitz::TinyVector<ptrdiff_t,3> p;
+          ptrdiff_t tmp = j;
+          for (int d = 2; d >= 0; --d)
+          {
+            p(d) = tmp % data.extent(d);
+            tmp /= data.extent(d);
+          }
+          p = blitz::TinyVector<ptrdiff_t,3>(
+              blitz::TinyVector<double,3>(p) + direction * r *
+              ddata.data()[j] / data.elementSizeUm() + 0.5);
+
+          if (blitz::all(p >= 0 && p < accu.shape())) 
+          {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            accu(p) += 1.0f;
+          }
+        }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t j = 0; j < data.size(); ++j) 
+        {
+          if (accu.data()[j] > houghmaps[i]->data()[j])
+          {
+            houghmapsR[i]->data()[j] = r;
+            houghmaps[i]->data()[j] = accu.data()[j];
+          }
+        }
+      }
+    }
+  
+    if (postSmoothing != 0.0f) 
+    {
+      SeparableConvolutionFilter<DataT,3> filter(RepeatBT);
+      std::vector< Array<DataT,1> > gaussKernels(3);
+      for (int d = 0; d < 3; ++d)
+      {
+        gaussKernels[d].setElementSizeUm(
+            blitz::TinyVector<double,1>(data.elementSizeUm()(d)));
+        gaussian(
+            gaussKernels[d], blitz::TinyVector<double,1>(postSmoothing));
+        filter.setKernelForDim(&gaussKernels[d], d);
+      }
+      for (int i = 0; i < 2; ++i)
+          filter.apply(*houghmaps[i], *houghmaps[i]);
+    }
+  }  
+
+}

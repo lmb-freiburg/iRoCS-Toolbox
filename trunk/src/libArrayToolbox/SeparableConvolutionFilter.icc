@@ -1,0 +1,146 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/ 
+
+namespace atb
+{
+
+  template<typename DataT, int Dim>
+  SeparableConvolutionFilter<DataT,Dim>::SeparableConvolutionFilter(
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,DataT>(btType, boundaryValue),
+            _filterReal(btType, boundaryValue)
+  {}
+
+  template<typename DataT, int Dim>
+  SeparableConvolutionFilter<DataT,Dim>::SeparableConvolutionFilter(
+      blitz::TinyVector<blitz::Array<DataT,1> *,Dim> const &kernels,
+      BoundaryTreatmentType btType, DataT const &boundaryValue)
+          : SeparableFilter<DataT,Dim,DataT>(btType, boundaryValue),
+            _filterReal(btType, boundaryValue)
+  {
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (kernels(d) == NULL) _filterReal.setKernelForDim(NULL, d);
+      else
+      {
+        blitz::Array<DataT,1> kernelRev(kernels(d)->size());
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < kernels(d)->size(); ++i)
+            kernelRev.data()[i] =
+                kernels(d)->data()[kernels(d)->size() - 1 - i];
+        _filterReal.setKernelForDim(&kernelRev, d);
+      }
+    }
+  }
+
+  template<typename DataT, int Dim>
+  SeparableConvolutionFilter<DataT,Dim>::~SeparableConvolutionFilter()
+  {}
+  
+  template<typename DataT, int Dim>
+  void SeparableConvolutionFilter<DataT,Dim>::setBoundaryTreatment(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+  {
+    Filter<DataT,Dim,ResultT>::setBoundaryTreatment(bt, boundaryValue);
+    _filterReal.setBoundaryTreatment(bt, boundaryValue);
+  }
+
+  template<typename DataT, int Dim>
+  void SeparableConvolutionFilter<DataT,Dim>::setBoundaryTreatment(
+      BoundaryTreatment<DataT,Dim> const &bt)
+  {
+    Filter<DataT,Dim,ResultT>::setBoundaryTreatment(bt);
+    _filterReal.setBoundaryTreatment(bt);
+  }
+
+  template<typename DataT, int Dim>
+  void SeparableConvolutionFilter<DataT,Dim>::setKernelForDim(
+      blitz::Array<DataT,1> const *kernel, int dim)
+  {
+    if (kernel == NULL)
+    {
+      _filterReal.setKernelForDim(kernel, dim);
+      return;
+    }
+    blitz::Array<DataT,1> kernelRev(kernel->size());
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < kernel->size(); ++i)
+        kernelRev.data()[i] = kernel->data()[kernel->size() - 1 - i];
+    _filterReal.setKernelForDim(&kernelRev, dim);
+  }
+  
+  template<typename DataT, int Dim>
+  void SeparableConvolutionFilter<DataT,Dim>::setKernels(
+      blitz::TinyVector<blitz::Array<DataT,1> *,Dim> const &kernels)
+  {
+    for (int d = 0; d < Dim; ++d) setKernelForDim(kernels(d), d);
+  }
+
+  template<typename DataT, int Dim>
+  void SeparableConvolutionFilter<DataT,Dim>::applyAlongDim(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter *pr) const
+  {
+    _filterReal.applyAlongDim(data, elementSizeUm, filtered, dim, pr);
+  }
+
+  template<typename DataT, int Dim>
+  void SeparableConvolutionFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered,
+      iRoCS::ProgressReporter *pr) const
+  {
+    _filterReal.apply(data, elementSizeUm, filtered, pr);
+  }
+
+  template<typename DataT, int Dim>
+  void SeparableConvolutionFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &filtered,
+      blitz::TinyVector<blitz::Array<DataT,1>*,Dim> const &kernels,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter *pr)
+  {
+    SeparableConvolutionFilter<DataT,Dim> f(kernels, btType, boundaryValue);
+    f.apply(data, elementSizeUm, filtered, pr);
+  }
+  
+  template<typename DataT, int Dim>
+  void SeparableConvolutionFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<DataT,Dim> &filtered,
+      blitz::TinyVector<blitz::Array<DataT,1>*,Dim> const &kernels,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter *pr)
+  {
+    SeparableConvolutionFilter<DataT,Dim> f(kernels, btType, boundaryValue);
+    f.apply(data, filtered, pr);
+  }
+
+}

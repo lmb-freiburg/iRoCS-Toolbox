@@ -1,0 +1,1355 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename DataT, int Dim>
+  Array<DataT,Dim>::Array(
+      std::string const &fileName, std::string const &dataset,
+      iRoCS::ProgressReporter *progress)
+          : blitz::Array<DataT,Dim>(),
+            p_interpolator(InterpolatorFactory<DataT,Dim>::get(LinearIP))
+  {
+    load(fileName, dataset, progress);
+  }
+
+  template<typename DataT, int Dim>
+  Array<DataT,Dim>::~Array()
+  {
+    delete p_interpolator;
+  }
+  
+  template<typename DataT, int Dim>
+  Array<DataT,Dim> &Array<DataT,Dim>::operator=(Array<DataT,Dim> const &array)
+  {
+    blitz::Array<DataT,Dim>::operator=(array);
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  Array<DataT,Dim> &Array<DataT,Dim>::operator=(
+      blitz::Array<DataT,Dim> const &array)
+  {
+    blitz::Array<DataT,Dim>::operator=(array);
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  template<typename T_expr>
+  Array<DataT,Dim> &Array<DataT,Dim>::operator=(
+      blitz::ETBase<T_expr> const &expr)
+  {
+    blitz::Array<DataT,Dim>::operator=(expr);
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  Array<DataT,Dim>& Array<DataT,Dim>::filterDeriche(double sigmaUm, int dim)
+  {
+    BoundaryTreatment<DataT,Dim> &bt = p_interpolator->boundaryTreatment();
+    bool valuePad = (bt.type() == ValueBT);
+
+    BlitzIndexT pad = valuePad ? static_cast<BlitzIndexT>(0) :
+        static_cast<BlitzIndexT>(5.0 * sigmaUm / _elementSizeUm(dim) + 2.0);
+    double alpha =
+        5.0 / (2.0 * std::sqrt(M_PI) * sigmaUm / _elementSizeUm(dim));
+
+    double expa = std::exp(-alpha);
+    double exp2a = std::exp(-2.0 * alpha);
+    double preFactor =
+        std::pow((1.0 - expa), 2.0) / (1.0 + 2.0 * alpha * expa - exp2a);
+
+    double boundaryFactor = 
+        (1.0 + expa * (alpha - 1)) / (1.0 + 2.0 * alpha * expa - exp2a);
+
+    typename traits<DataT>::HighPrecisionT boundaryValue =
+        typename traits<DataT>::HighPrecisionT();
+    if (valuePad)
+        boundaryValue = typename traits<DataT>::HighPrecisionT(
+            static_cast<ValueBoundaryTreatment<DataT,Dim>*>(
+                &bt)->boundaryValue());
+
+
+    switch (dim)
+    {
+      // Here special implementation for specific dimensions can be
+      // added to accelerate the smoothing by optimal memory traversal
+      // This should be done for d >= 2, because there the memory hopping
+      // becomes really expensive
+    case 0:
+    {
+      if (Dim == 1)
+      {
+
+        typename traits<DataT>::HighPrecisionT *tmp =
+            new typename traits<DataT>::HighPrecisionT[this->extent(0)];
+        
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT x = 0; x < this->extent(0); ++x)
+            tmp[x] = static_cast<typename traits<DataT>::HighPrecisionT>(
+                this->data()[x]);
+
+        typename traits<DataT>::HighPrecisionT fgL, fgR, fgSwap;
+        BlitzIndexT inL, inR, out;
+        
+        // Forward
+        if (valuePad)
+        {
+          inL = -1;
+          inR = 0;
+          out = 0;
+          fgL = boundaryValue * boundaryFactor;
+          fgR = preFactor * (
+              expa * (alpha - 1.0) * fgL / boundaryFactor +
+              tmp[inR]) + 2.0 * expa * fgL - exp2a * fgL;
+          this->data()[out] = static_cast<DataT>(fgR);
+        }
+        else
+        {
+          inL = bt.getIndex(-pad - 2, this->extent(0));
+          inR = bt.getIndex(-pad - 1, this->extent(0));
+          out = -pad - 1;
+          
+          fgL = tmp[inL] * boundaryFactor;
+          fgR = tmp[inR] * boundaryFactor;
+          
+          for (BlitzIndexT i = -pad; i <= 0; ++i)
+          {
+            inL = bt.getIndex(i - 1, this->extent(0));
+            inR = bt.getIndex(i, this->extent(0));
+            out = i;
+            
+            fgL = preFactor * (
+                expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                2.0 * expa * fgR - exp2a * fgL;
+            
+            fgSwap = fgL;
+            fgL = fgR;
+            fgR = fgSwap;
+            
+            if (i >= 0) this->data()[out] = static_cast<DataT>(fgR);
+          }
+        }
+        
+        for (BlitzIndexT i = 1; i < this->extent(0); ++i)
+        {
+          inL = i - 1;
+          inR = i;
+          out = i;
+          fgL = preFactor * (
+              expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+              2.0 * expa * fgR - exp2a * fgL;
+          fgSwap = fgL;
+          fgL = fgR;
+          fgR = fgSwap;
+          
+          this->data()[out] = static_cast<DataT>(fgR);
+        }
+        
+        // Backward
+        if (valuePad)
+        {
+          out = this->extent(0) - 1;
+          this->data()[out] = this->data()[out] +
+              static_cast<DataT>(boundaryValue * (1.0 - boundaryFactor));
+          
+          inL = this->extent(0) - 1;
+          inR = this->extent(0);
+          out = this->extent(0) - 2;
+          fgR = boundaryValue * (1.0 - boundaryFactor);
+          fgL = preFactor * (
+              expa * (alpha + 1.0) * tmp[inL] -
+              exp2a * fgR / (1.0 - boundaryFactor)) +
+              2.0 * expa * fgR - exp2a * fgR;
+          this->data()[out] = this->data()[out] + static_cast<DataT>(fgL);
+        }
+        else
+        {
+          inL = bt.getIndex(this->extent(0) + pad + 1, this->extent(0));
+          inR = bt.getIndex(this->extent(0) + pad + 2, this->extent(0));
+          out = this->extent(0) + pad;
+          
+          fgL = tmp[inL] * (1.0 - boundaryFactor);
+          fgR = tmp[inR] * (1.0 - boundaryFactor);
+          
+          for (BlitzIndexT i = this->extent(0) + pad - 1;
+               i >= this->extent(0) - 2; --i)
+          {
+            inL = bt.getIndex(i + 1, this->extent(0));
+            inR = bt.getIndex(i + 2, this->extent(0));
+            out = i;
+            
+            fgR = preFactor * (
+                expa * (alpha + 1.0) * tmp[inL] -
+                exp2a * tmp[inR]) + 2.0 * expa * fgL - exp2a * fgR;
+            
+            fgSwap = fgL;
+            fgL = fgR;
+            fgR = fgSwap;
+            
+            if (i < this->extent(0))
+                this->data()[out] = this->data()[out] + static_cast<DataT>(fgL);
+          }
+        }
+        
+        for (BlitzIndexT i = this->extent(0) - 3; i >= 0; --i)
+        {
+          inL = i + 1;
+          inR = i + 2;
+          out = i;
+          fgR = preFactor * (
+              expa * (alpha + 1.0) * tmp[inL] - exp2a * tmp[inR]) +
+              2.0 * expa * fgL - exp2a * fgR;
+          fgSwap = fgL;
+          fgL = fgR;
+          fgR = fgSwap;
+          
+          this->data()[out] = this->data()[out] + static_cast<DataT>(fgL);
+        }
+        delete[] tmp;
+      }
+      else if (Dim == 2)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT x = 0; x < this->extent(1); ++x)
+        {
+          typename traits<DataT>::HighPrecisionT *tmp =
+              new typename traits<DataT>::HighPrecisionT[this->extent(0)];
+          
+          for (BlitzIndexT y = 0; y < this->extent(0); ++y)
+          {
+            tmp[y] = static_cast<typename traits<DataT>::HighPrecisionT>(
+                (*this)(y, x));
+          }
+
+          typename traits<DataT>::HighPrecisionT fgL, fgR, fgSwap;
+          BlitzIndexT inL, inR, out;
+          
+          // Forward
+          if (valuePad)
+          {
+            inL = -1;
+            inR = 0;
+            out = 0;
+            fgL = boundaryValue * boundaryFactor;
+            fgR = preFactor * (
+                expa * (alpha - 1.0) * fgL / boundaryFactor +
+                tmp[inR]) + 2.0 * expa * fgL - exp2a * fgL;
+            (*this)(out, x) = static_cast<DataT>(fgR);
+          }
+          else
+          {
+            inL = bt.getIndex(-pad - 2, this->extent(0));
+            inR = bt.getIndex(-pad - 1, this->extent(0));
+            out = -pad - 1;
+            
+            fgL = tmp[inL] * boundaryFactor;
+            fgR = tmp[inR] * boundaryFactor;
+            
+            for (BlitzIndexT i = -pad; i <= 0; ++i)
+            {
+              inL = bt.getIndex(i - 1, this->extent(1));
+              inR = bt.getIndex(i, this->extent(1));
+              out = i;
+              
+              fgL = preFactor * (
+                  expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                  2.0 * expa * fgR - exp2a * fgL;
+              
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              if (out >= 0) (*this)(out, x) = static_cast<DataT>(fgR);
+            }
+          }
+
+          for (BlitzIndexT i = 1; i < this->extent(0); ++i)
+          {
+            inL = i - 1;
+            inR = i;
+            out = i;
+            fgL = preFactor * (
+                expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                2.0 * expa * fgR - exp2a * fgL;
+            fgSwap = fgL;
+            fgL = fgR;
+            fgR = fgSwap;
+            
+            (*this)(out, x) = static_cast<DataT>(fgR);
+          }
+          
+          // Backward
+          if (valuePad)
+          {
+            out = this->extent(0) - 1;
+            (*this)(out, x) = (*this)(out, x) +
+                static_cast<DataT>(boundaryValue * (1.0 - boundaryFactor));
+            
+            inL = this->extent(0) - 1;
+            inR = this->extent(0);
+            out = this->extent(0) - 2;
+            fgR = boundaryValue * (1.0 - boundaryFactor);
+            fgL = preFactor * (
+                expa * (alpha + 1.0) * tmp[inL] -
+                exp2a * fgR / (1.0 - boundaryFactor)) +
+                2.0 * expa * fgR - exp2a * fgR;
+            (*this)(out, x) = (*this)(out, x) + static_cast<DataT>(fgL);
+          }
+          else
+          {
+            inL = bt.getIndex(this->extent(0) + pad + 1, this->extent(0));
+            inR = bt.getIndex(this->extent(0) + pad + 2, this->extent(0));
+            out = this->extent(0) + pad;
+            
+            fgL = tmp[inL] * (1.0 - boundaryFactor);
+            fgR = tmp[inR] * (1.0 - boundaryFactor);
+
+            for (BlitzIndexT i = this->extent(0) + pad - 1;
+                 i >= this->extent(0) - 2; --i)
+            {
+              inL = bt.getIndex(i + 1, this->extent(0));
+              inR = bt.getIndex(i + 2, this->extent(0));
+              out = i;
+              
+              fgR = preFactor * (
+                  expa * (alpha + 1.0) * tmp[inL] -
+                  exp2a * tmp[inR]) + 2.0 * expa * fgL - exp2a * fgR;
+              
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              if (out < this->extent(0))
+                  (*this)(out, x) = (*this)(out, x) + static_cast<DataT>(fgL);
+            }
+          }
+          
+          for (BlitzIndexT i = this->extent(0) - 3; i >= 0; --i)
+          {
+            inL = i + 1;
+            inR = i + 2;
+            out = i;
+            fgR = preFactor * (
+                expa * (alpha + 1.0) * tmp[inL] - exp2a * tmp[inR]) +
+                2.0 * expa * fgL - exp2a * fgR;
+            fgSwap = fgL;
+            fgL = fgR;
+            fgR = fgSwap;
+            
+            (*this)(out, x) = (*this)(out, x) + static_cast<DataT>(fgL);
+          }
+          delete[] tmp;
+        }
+      }
+      else if (Dim == 3)
+      {
+        BlitzIndexT planeSize = this->extent(1) * this->extent(2);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT i = 0; i < planeSize; ++i)
+        {
+          typename traits<DataT>::HighPrecisionT *tmp =
+              new typename traits<DataT>::HighPrecisionT[this->extent(0)];
+          
+          for (BlitzIndexT z = 0; z < this->extent(0); ++z)
+              tmp[z] = static_cast<typename traits<DataT>::HighPrecisionT>(
+                  this->data()[z * planeSize + i]);
+          
+          typename traits<DataT>::HighPrecisionT fgL, fgR, fgSwap;
+          BlitzIndexT inL, inR, out;
+          
+          // Forward
+          if (valuePad)
+          {
+            inL = -1;
+            inR = 0;
+            out = 0;
+            fgL = boundaryValue * boundaryFactor;
+            fgR = preFactor * (
+                expa * (alpha - 1.0) * fgL / boundaryFactor +
+                tmp[inR]) + 2.0 * expa * fgL - exp2a * fgL;
+            this->data()[out + planeSize + i] = static_cast<DataT>(fgR);
+          }
+          else
+          {
+            inL = bt.getIndex(-pad - 2, this->extent(0));
+            inR = bt.getIndex(-pad - 1, this->extent(0));
+            out = -pad - 1;
+            
+            fgL = tmp[inL] * boundaryFactor;
+            fgR = tmp[inR] * boundaryFactor;
+            
+            for (BlitzIndexT z = -pad; z <= 0; ++z)
+            {
+              inL = bt.getIndex(z - 1, this->extent(0));
+              inR = bt.getIndex(z, this->extent(0));
+              out = z;
+              
+              fgL = preFactor * (
+                  expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                  2.0 * expa * fgR - exp2a * fgL;
+              
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              if (out >= 0)
+                  this->data()[out * planeSize + i] = static_cast<DataT>(fgR);
+            }
+          }
+          
+          for (BlitzIndexT z = 1; z < this->extent(0); ++z)
+          {
+            inL = z - 1;
+            inR = z;
+            out = z;
+            fgL = preFactor * (
+                expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                2.0 * expa * fgR - exp2a * fgL;
+            fgSwap = fgL;
+            fgL = fgR;
+            fgR = fgSwap;
+            
+            this->data()[out * planeSize + i] = static_cast<DataT>(fgR);
+          }
+          
+          // Backward
+          if (valuePad)
+          {
+            out = this->extent(0) - 1;
+            this->data()[out * planeSize + i] =
+                this->data()[out * planeSize + i] +
+                static_cast<DataT>(boundaryValue * (1.0 - boundaryFactor));
+            
+            inL = this->extent(0) - 1;
+            inR = this->extent(0);
+            out = this->extent(0) - 2;
+            fgR = boundaryValue * (1.0 - boundaryFactor);
+            fgL = preFactor * (
+                expa * (alpha + 1.0) * tmp[inL] -
+                exp2a * fgR / (1.0 - boundaryFactor)) +
+                2.0 * expa * fgR - exp2a * fgR;
+            this->data()[out * planeSize + i] =
+                this->data()[out * planeSize + i] + static_cast<DataT>(fgL);
+          }
+          else
+          {
+            inL = bt.getIndex(this->extent(0) + pad + 1, this->extent(0));
+            inR = bt.getIndex(this->extent(0) + pad + 2, this->extent(0));
+            out = this->extent(0) + pad;
+            
+            fgL = tmp[inL] * (1.0 - boundaryFactor);
+            fgR = tmp[inR] * (1.0 - boundaryFactor);
+            
+            for (BlitzIndexT z = this->extent(0) + pad - 1;
+                 z >= this->extent(0) - 2; --z)
+            {
+              inL = bt.getIndex(z + 1, this->extent(0));
+              inR = bt.getIndex(z + 2, this->extent(0));
+              out = z;
+              
+              fgR = preFactor * (
+                  expa * (alpha + 1.0) * tmp[inL] -
+                  exp2a * tmp[inR]) + 2.0 * expa * fgL - exp2a * fgR;
+              
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              if (out < this->extent(0))
+                  this->data()[out * planeSize + i] =
+                      this->data()[out * planeSize + i] +
+                      static_cast<DataT>(fgL);
+            }
+          }
+          
+          for (BlitzIndexT z = this->extent(0) - 3; z >= 0; --z)
+          {
+            inL = z + 1;
+            inR = z + 2;
+            out = z;
+            fgR = preFactor * (
+                expa * (alpha + 1.0) * tmp[inL] - exp2a * tmp[inR]) +
+                2.0 * expa * fgL - exp2a * fgR;
+            fgSwap = fgL;
+            fgL = fgR;
+            fgR = fgSwap;
+            
+            this->data()[out * planeSize + i] =
+                this->data()[out * planeSize + i] + static_cast<DataT>(fgL);
+          }
+          delete[] tmp;
+        }
+      }
+      break;
+    }
+    case 1:
+    {
+      if (Dim == 2)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT y = 0; y < this->extent(0); ++y)
+        {
+          typename traits<DataT>::HighPrecisionT *tmp =
+              new typename traits<DataT>::HighPrecisionT[this->extent(1)];
+          
+          for (BlitzIndexT x = 0; x < this->extent(1); ++x)
+              tmp[x] = static_cast<typename traits<DataT>::HighPrecisionT>(
+                  (*this)(y, x));
+
+          typename traits<DataT>::HighPrecisionT fgL, fgR, fgSwap;
+          BlitzIndexT inL, inR, out;
+          
+          // Forward
+          if (valuePad)
+          {
+            inL = -1;
+            inR = 0;
+            out = 0;
+            fgL = boundaryValue * boundaryFactor;
+            fgR = preFactor * (
+                expa * (alpha - 1.0) * fgL / boundaryFactor +
+                tmp[inR]) + 2.0 * expa * fgL - exp2a * fgL;
+            (*this)(y, out) = static_cast<DataT>(fgR);
+          }
+          else
+          {
+            inL = bt.getIndex(-pad - 2, this->extent(1));
+            inR = bt.getIndex(-pad - 1, this->extent(1));
+            out = -pad - 1;
+            
+            fgL = tmp[inL] * boundaryFactor;
+            fgR = tmp[inR] * boundaryFactor;
+            
+            for (BlitzIndexT i = -pad; i <= 0; ++i)
+            {
+              inL = bt.getIndex(i - 1, this->extent(1));
+              inR = bt.getIndex(i, this->extent(1));
+              out = i;
+              
+              fgL = preFactor * (
+                  expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                  2.0 * expa * fgR - exp2a * fgL;
+              
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              if (i >= 0) (*this)(y, out) = static_cast<DataT>(fgR);
+            }
+          }
+
+          for (BlitzIndexT i = 1; i < this->extent(1); ++i)
+          {
+            inL = i - 1;
+            inR = i;
+            out = i;
+            fgL = preFactor * (
+                expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                2.0 * expa * fgR - exp2a * fgL;
+            fgSwap = fgL;
+            fgL = fgR;
+            fgR = fgSwap;
+            
+            (*this)(y, out) = static_cast<DataT>(fgR);
+          }
+          
+          // Backward
+          if (valuePad)
+          {
+            out = this->extent(1) - 1;
+            (*this)(y, out) = (*this)(y, out) +
+                static_cast<DataT>(boundaryValue * (1.0 - boundaryFactor));
+            
+            inL = this->extent(1) - 1;
+            inR = this->extent(1);
+            out = this->extent(1) - 2;
+            fgR = boundaryValue * (1.0 - boundaryFactor);
+            fgL = preFactor * (
+                expa * (alpha + 1.0) * tmp[inL] -
+                exp2a * fgR / (1.0 - boundaryFactor)) +
+                2.0 * expa * fgR - exp2a * fgR;
+            (*this)(y, out) = (*this)(y, out) + static_cast<DataT>(fgL);
+          }
+          else
+          {
+            inL = bt.getIndex(this->extent(1) + pad + 1, this->extent(1));
+            inR = bt.getIndex(this->extent(1) + pad + 2, this->extent(1));
+            out = this->extent(1) + pad;
+            
+            fgL = tmp[inL] * (1.0 - boundaryFactor);
+            fgR = tmp[inR] * (1.0 - boundaryFactor);
+
+            for (BlitzIndexT i = this->extent(1) + pad - 1;
+                 i >= this->extent(1) - 2; --i)
+            {
+              inL = bt.getIndex(i + 1, this->extent(1));
+              inR = bt.getIndex(i + 2, this->extent(1));
+              out = i;
+              
+              fgR = preFactor * (
+                  expa * (alpha + 1.0) * tmp[inL] -
+                  exp2a * tmp[inR]) + 2.0 * expa * fgL - exp2a * fgR;
+              
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              if (i < this->extent(1))
+                  (*this)(y, out) = (*this)(y, out) + static_cast<DataT>(fgL);
+            }
+          }
+          
+          for (BlitzIndexT i = this->extent(1) - 3; i >= 0; --i)
+          {
+            inL = i + 1;
+            inR = i + 2;
+            out = i;
+            fgR = preFactor * (
+                expa * (alpha + 1.0) * tmp[inL] - exp2a * tmp[inR]) +
+                2.0 * expa * fgL - exp2a * fgR;
+            fgSwap = fgL;
+            fgL = fgR;
+            fgR = fgSwap;
+            
+            (*this)(y, out) = (*this)(y, out) + static_cast<DataT>(fgL);
+          }
+          delete[] tmp;
+        }
+      }
+      else if (Dim == 3)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT z = 0; z < this->extent(0); ++z)
+        {
+          for (BlitzIndexT x = 0; x < this->extent(2); ++x)
+          {
+            typename traits<DataT>::HighPrecisionT *tmp =
+                new typename traits<DataT>::HighPrecisionT[this->extent(1)];
+            
+            for (BlitzIndexT y = 0; y < this->extent(1); ++y)
+                tmp[y] = static_cast<typename traits<DataT>::HighPrecisionT>(
+                    (*this)(z, y, x));
+            
+            typename traits<DataT>::HighPrecisionT fgL, fgR, fgSwap;
+            BlitzIndexT inL, inR, out;
+
+            // Forward
+            if (valuePad)
+            {
+              inL = -1;
+              inR = 0;
+              out = 0;
+              
+              fgL = boundaryValue * boundaryFactor;
+              fgR = preFactor * (
+                  expa * (alpha - 1.0) * fgL / boundaryFactor + tmp[inR]) +
+                  2.0 * expa * fgL - exp2a * fgL;
+              (*this)(z, out, x) = static_cast<DataT>(fgR);
+            }
+            else
+            {
+              inL = bt.getIndex(-pad - 2, this->extent(1));
+              inR = bt.getIndex(-pad - 1, this->extent(1));
+              out = -pad - 1;
+              
+              fgL = tmp[inL] * boundaryFactor;
+              fgR = tmp[inR] * boundaryFactor;
+            
+              for (BlitzIndexT i = -pad; i <= 0; ++i)
+              {
+                inL = bt.getIndex(i - 1, this->extent(1));
+                inR = bt.getIndex(i, this->extent(1));
+                out = i;
+                
+                fgL = preFactor * (
+                    expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                    2.0 * expa * fgR - exp2a * fgL;
+                
+                fgSwap = fgL;
+                fgL = fgR;
+                fgR = fgSwap;
+              
+                if (out >= 0) (*this)(z, out, x) = static_cast<DataT>(fgR);
+              }
+            }
+            
+            for (BlitzIndexT i = 1; i < this->extent(1); ++i)
+            {
+              inL = i - 1;
+              inR = i;
+              out = i;
+              
+              fgL = preFactor * (
+                  expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                  2.0 * expa * fgR - exp2a * fgL;
+            
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              (*this)(z, out, x) = static_cast<DataT>(fgR);
+            }
+          
+            // Backward
+            if (valuePad)
+            {
+              out = this->extent(1) - 1;
+
+              (*this)(z, out, x) = (*this)(z, out, x) +
+                  static_cast<DataT>(boundaryValue * (1.0 - boundaryFactor));
+
+              inL = this->extent(1) - 1;
+              inR = this->extent(1);
+              out = this->extent(1) - 2;
+
+              fgR = boundaryValue * (1.0 - boundaryFactor);
+              fgL = preFactor * (
+                  expa * (alpha + 1.0) * tmp[inL] - exp2a * fgR /
+                  (1.0 - boundaryFactor)) + 2.0 * expa * fgR - exp2a * fgR;
+              (*this)(z, out, x) = (*this)(z, out, x) + static_cast<DataT>(fgL);
+            }
+            else
+            {
+              inL = bt.getIndex(this->extent(1) + pad + 1, this->extent(1));
+              inR = bt.getIndex(this->extent(1) + pad + 2, this->extent(1));
+              out = this->extent(1) + pad;
+
+              fgL = tmp[inL] * (1.0 - boundaryFactor);
+              fgR = tmp[inR] * (1.0 - boundaryFactor);
+
+              for (BlitzIndexT i = this->extent(1) + pad - 1;
+                 i >= this->extent(1) - 2; --i)
+              {
+                inL = bt.getIndex(i + 1, this->extent(1));
+                inR = bt.getIndex(i + 2, this->extent(1));
+                out = i;
+              
+                fgR = preFactor * (
+                    expa * (alpha + 1.0) * tmp[inL] - exp2a * tmp[inR]) +
+                    2.0 * expa * fgL - exp2a * fgR;
+
+                fgSwap = fgL;
+                fgL = fgR;
+                fgR = fgSwap;
+              
+                if (out < this->extent(1))
+                    (*this)(z, out, x) = (*this)(z, out, x) +
+                        static_cast<DataT>(fgL);
+              }
+            }
+
+            for (BlitzIndexT i = this->extent(1) - 3; i >= 0; --i)
+            {
+              inL = i + 1;
+              inR = i + 2;
+              out = i;
+              
+              fgR = preFactor * (
+                  expa * (alpha + 1.0) * tmp[inL] - exp2a * tmp[inR]) +
+                  2.0 * expa * fgL - exp2a * fgR;
+              
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              (*this)(z, out, x) = (*this)(z, out, x) + static_cast<DataT>(fgL);
+            }
+            delete[] tmp;
+          }
+        }
+      }
+      break;
+    }
+    case 2:
+    {
+      if (Dim == 3)
+      {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT z = 0; z < this->extent(0); ++z)
+        {
+          typename traits<DataT>::HighPrecisionT *tmp =
+              new typename traits<DataT>::HighPrecisionT[this->extent(2)];
+
+          for (BlitzIndexT y = 0; y < this->extent(1); ++y)
+          {
+            for (BlitzIndexT j = 0; j < this->extent(2); ++j)
+            {
+              tmp[j] = static_cast<typename traits<DataT>::HighPrecisionT>(
+                  (*this)(z, y, j));
+            }
+
+            typename traits<DataT>::HighPrecisionT fgL, fgR, fgSwap;
+            BlitzIndexT inL, inR, out;
+
+            // Forward
+            if (valuePad)
+            {
+              inL = -1;
+              inR = 0;
+              out = 0;
+              fgL = boundaryValue * boundaryFactor;
+              fgR = preFactor * (
+                  expa * (alpha - 1.0) * fgL / boundaryFactor +
+                  tmp[inR]) + 2.0 * expa * fgL - exp2a * fgL;
+              (*this)(z, y, out) = static_cast<DataT>(fgR);
+            }
+            else
+            {
+              inL = bt.getIndex(-pad - 2, this->extent(2));
+              inR = bt.getIndex(-pad - 1, this->extent(2));
+              out = -pad - 1;
+
+              fgL = tmp[inL] * boundaryFactor;
+              fgR = tmp[inR] * boundaryFactor;
+
+              for (BlitzIndexT i = -pad; i <= 0; ++i)
+              {
+                inL = bt.getIndex(i - 1, this->extent(2));
+                inR = bt.getIndex(i, this->extent(2));
+                out = i;
+                
+                fgL = preFactor * (
+                    expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                    2.0 * expa * fgR - exp2a * fgL;
+                
+                fgSwap = fgL;
+                fgL = fgR;
+                fgR = fgSwap;
+                
+                if (i == 0) (*this)(z, y, out) = static_cast<DataT>(fgR);
+              }
+            }
+
+            for (BlitzIndexT i = 1; i < this->extent(2); ++i)
+            {
+              inL = i - 1;
+              inR = i;
+              out = i;
+              fgL = preFactor * (
+                  expa * (alpha - 1.0) * tmp[inL] + tmp[inR]) +
+                  2.0 * expa * fgR - exp2a * fgL;
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+              
+              (*this)(z, y, out) = static_cast<DataT>(fgR);
+            }
+
+            // Backward
+            if (valuePad)
+            {
+              out = this->extent(2) - 1;
+              (*this)(z, y, out) = (*this)(z, y, out) +
+                  static_cast<DataT>(boundaryValue * (1.0 - boundaryFactor));
+
+              inL = this->extent(2) - 1;
+              inR = this->extent(2);
+              out = this->extent(2) - 2;
+              fgR = boundaryValue * (1.0 - boundaryFactor);
+              fgL = preFactor * (
+                  expa * (alpha + 1.0) * tmp[inL] -
+                  exp2a * fgR / (1.0 - boundaryFactor)) +
+                  2.0 * expa * fgR - exp2a * fgR;
+              (*this)(z, y, out) = (*this)(z, y, out) + static_cast<DataT>(fgL);
+            }
+            else
+            {
+              inL = bt.getIndex(this->extent(2) + pad + 1, this->extent(2));
+              inR = bt.getIndex(this->extent(2) + pad + 2, this->extent(2));
+              out = this->extent(2) + pad;
+
+              fgL = tmp[inL] * (1.0 - boundaryFactor);
+              fgR = tmp[inR] * (1.0 - boundaryFactor);
+
+              for (BlitzIndexT i = this->extent(2) + pad - 1;
+                   i >= this->extent(2) - 2; --i)
+              {
+                inL = bt.getIndex(i + 1, this->extent(2));
+                inR = bt.getIndex(i + 2, this->extent(2));
+                out = i;
+
+                fgR = preFactor * (
+                    expa * (alpha + 1.0) * tmp[inL] -
+                    exp2a * tmp[inR]) + 2.0 * expa * fgL - exp2a * fgR;
+                
+                fgSwap = fgL;
+                fgL = fgR;
+                fgR = fgSwap;
+
+                if (i < this->extent(2))
+                    (*this)(z, y, out) = (*this)(z, y, out) +
+                        static_cast<DataT>(fgL);
+              }
+            }
+            
+            for (BlitzIndexT i = this->extent(2) - 3; i >= 0; --i)
+            {
+              inL = i + 1;
+              inR = i + 2;
+              out = i;
+              fgR = preFactor * (
+                  expa * (alpha + 1.0) * tmp[inL] - exp2a * tmp[inR]) +
+                  2.0 * expa * fgL - exp2a * fgR;
+              fgSwap = fgL;
+              fgL = fgR;
+              fgR = fgSwap;
+
+              (*this)(z, y, out) = (*this)(z, y, out) + static_cast<DataT>(fgL);
+            }
+          }
+          delete[] tmp;
+        }
+        break;
+      }
+    }
+    default:
+    {
+      blitz::TinyVector<BlitzIndexT,Dim> planeShape;
+      for (int d = 0; d < Dim; ++d)
+          planeShape(d) = (d != dim) ?
+              this->extent(d) : static_cast<BlitzIndexT>(1);
+      blitz::Array<typename traits<DataT>::HighPrecisionT,Dim>
+          tmp(this->shape());
+      tmp = blitz::cast<typename traits<DataT>::HighPrecisionT>(*this);
+      blitz::Array<typename traits<DataT>::HighPrecisionT,Dim>* fgL =
+          new blitz::Array<typename traits<DataT>::HighPrecisionT,Dim>(
+              planeShape);
+
+      blitz::Array<typename traits<DataT>::HighPrecisionT,Dim>* fgR =
+          new blitz::Array<typename traits<DataT>::HighPrecisionT,Dim>(
+              planeShape);
+
+      blitz::Array<typename traits<DataT>::HighPrecisionT,Dim>* fgSwap;
+      blitz::TinyVector<BlitzIndexT,Dim> planeLStart(
+          static_cast<BlitzIndexT>(0));
+      blitz::TinyVector<BlitzIndexT,Dim> planeLEnd(tmp.shape() - 1);
+      blitz::TinyVector<BlitzIndexT,Dim> planeRStart(
+          static_cast<BlitzIndexT>(0));
+      blitz::TinyVector<BlitzIndexT,Dim> planeREnd(tmp.shape() - 1);
+      blitz::TinyVector<BlitzIndexT,Dim> planeOutStart(
+          static_cast<BlitzIndexT>(0));
+      blitz::TinyVector<BlitzIndexT,Dim> planeOutEnd(tmp.shape() - 1);
+
+      // Forward
+      if (valuePad)
+      {
+        planeLStart(dim) = planeLEnd(dim) = -1;
+        planeRStart(dim) = planeREnd(dim) = 0;
+        planeOutStart(dim) = planeOutEnd(dim) = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(fgL->size()); ++i)
+            fgL->data()[i] = boundaryValue * boundaryFactor;
+        *fgR = preFactor * (
+            expa * (alpha - 1.0) * *fgL / boundaryFactor +
+            tmp(blitz::RectDomain<Dim>(planeRStart, planeREnd))) +
+            2.0 * expa * *fgL - exp2a * *fgL;
+        (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) =
+            blitz::cast<DataT>(*fgR);
+      }
+      else
+      {
+        planeLStart(dim) = planeLEnd(dim) =
+            bt.getIndex(-pad - 2, this->extent(dim));
+        planeRStart(dim) = planeREnd(dim) =
+            bt.getIndex(-pad - 1, this->extent(dim));
+        planeOutStart(dim) = planeOutEnd(dim) = -pad - 1;
+
+        *fgL = tmp(blitz::RectDomain<Dim>(planeLStart, planeLEnd)) *
+            boundaryFactor;
+        *fgR = tmp(blitz::RectDomain<Dim>(planeRStart, planeREnd)) *
+            boundaryFactor;
+
+        for (BlitzIndexT i = -pad; i <= 0; ++i)
+        {
+          planeLStart(dim) = planeLEnd(dim) =
+              bt.getIndex(i - 1, this->extent(dim));
+          planeRStart(dim) = planeREnd(dim) = 
+              bt.getIndex(i, this->extent(dim));
+          planeOutStart(dim) = planeOutEnd(dim) = i;
+
+          *fgL = preFactor * (
+              expa * (alpha - 1.0) *
+              tmp(blitz::RectDomain<Dim>(planeLStart, planeLEnd)) +
+              tmp(blitz::RectDomain<Dim>(planeRStart, planeREnd))) +
+              2.0 * expa * *fgR - exp2a * *fgL;
+
+          fgSwap = fgL;
+          fgL = fgR;
+          fgR = fgSwap;
+
+          if (i >= 0)
+              (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) =
+                  blitz::cast<DataT>(*fgR);
+        }
+      }
+
+      for (BlitzIndexT i = 1; i < tmp.extent(dim); ++i)
+      {
+        planeLStart(dim) = planeLEnd(dim) = i - 1;
+        planeRStart(dim) = planeREnd(dim) = i;
+        planeOutStart(dim) = planeOutEnd(dim) = i;
+        *fgL = preFactor * (
+            expa * (alpha - 1.0) *
+            tmp(blitz::RectDomain<Dim>(planeLStart, planeLEnd)) +
+            tmp(blitz::RectDomain<Dim>(planeRStart, planeREnd))) +
+            2.0 * expa * *fgR - exp2a * *fgL;
+        fgSwap = fgL;
+        fgL = fgR;
+        fgR = fgSwap;
+
+        (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) =
+            blitz::cast<DataT>(*fgR);
+      }
+
+      // Backward
+      if (valuePad)
+      {
+        planeOutStart(dim) = planeOutEnd(dim) = tmp.extent(dim) - 1;
+        (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) =
+            (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) +
+            DataT(boundaryValue * (1.0 - boundaryFactor));
+
+        planeLStart(dim) = planeLEnd(dim) = tmp.extent(dim) - 1;
+        planeRStart(dim) = planeREnd(dim) = tmp.extent(dim);
+        planeOutStart(dim) = planeOutEnd(dim) = tmp.extent(dim) - 2;
+        *fgR = boundaryValue * (1.0 - boundaryFactor);
+        *fgL = preFactor * (
+            expa * (alpha + 1.0) *
+            tmp(blitz::RectDomain<Dim>(planeLStart, planeLEnd)) -
+            exp2a * *fgR / (1.0 - boundaryFactor)) +
+            2.0 * expa * *fgR - exp2a * *fgR;
+        (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) =
+            (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) +
+            blitz::cast<DataT>(*fgL);
+      }
+      else
+      {
+        planeLStart(dim) = planeLEnd(dim) =
+            bt.getIndex(tmp.extent(dim) + pad + 1, tmp.extent(dim));
+        planeRStart(dim) = planeREnd(dim) =
+            bt.getIndex(tmp.extent(dim) + pad + 2, tmp.extent(dim));
+        planeOutStart(dim) = planeOutEnd(dim) = tmp.extent(dim) + pad;
+
+        *fgL = tmp(blitz::RectDomain<Dim>(planeLStart, planeLEnd)) *
+            (1.0 - boundaryFactor);
+        *fgR = tmp(blitz::RectDomain<Dim>(planeRStart, planeREnd)) *
+            (1.0 - boundaryFactor);
+
+        for (BlitzIndexT i = tmp.extent(dim) + pad - 1;
+             i >= tmp.extent(dim) - 2; --i)
+        {
+          planeLStart(dim) = planeLEnd(dim) = 
+              bt.getIndex(i + 1, tmp.extent(dim));
+          planeRStart(dim) = planeREnd(dim) = 
+              bt.getIndex(i + 2, tmp.extent(dim));
+          planeOutStart(dim) = planeOutEnd(dim) = i;
+
+          *fgR = preFactor * (
+              expa * (alpha + 1.0) *
+              tmp(blitz::RectDomain<Dim>(planeLStart, planeLEnd)) -
+              exp2a * tmp(blitz::RectDomain<Dim>(planeRStart, planeREnd))) +
+              2.0 * expa * *fgL - exp2a * *fgR;
+
+          fgSwap = fgL;
+          fgL = fgR;
+          fgR = fgSwap;
+
+          if (i < tmp.extent(dim))
+              (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) =
+                  (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) +
+                  blitz::cast<DataT>(*fgL);
+        }
+      }
+
+      for (BlitzIndexT i = tmp.extent(dim) - 3; i >= 0; --i)
+      {
+        planeLStart(dim) = planeLEnd(dim) = i + 1;
+        planeRStart(dim) = planeREnd(dim) = i + 2;
+        planeOutStart(dim) = planeOutEnd(dim) = i;
+        *fgR = preFactor * (
+            expa * (alpha + 1.0) *
+            tmp(blitz::RectDomain<Dim>(planeLStart, planeLEnd)) -
+            exp2a * tmp(blitz::RectDomain<Dim>(planeRStart, planeREnd))) +
+            2.0 * expa * *fgL - exp2a * *fgR;
+        fgSwap = fgL;
+        fgL = fgR;
+        fgR = fgSwap;
+
+        (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) =
+            (*this)(blitz::RectDomain<Dim>(planeOutStart, planeOutEnd)) +
+            blitz::cast<DataT>(*fgL);
+      }
+
+      delete fgL;
+      delete fgR;
+    }
+    }
+    return *this;
+  }
+  
+  template<typename DataT, int Dim>
+  Array<DataT,Dim>& Array<DataT,Dim>::rescale(
+      blitz::TinyVector<double,Dim> const &targetElementSizeUm,
+      iRoCS::ProgressReporter *pr)
+  {
+    if (blitz::all(_elementSizeUm == targetElementSizeUm)) return *this;
+
+    int pMin = (pr != NULL) ? pr->taskProgressMin() : 0;
+    int pScale = (pr != NULL) ? pr->taskProgressMax() - pMin : 100;
+
+    // Save this Array for possible undo
+    Array<DataT,Dim> original;
+    if (pr != NULL)
+    {
+      pr->updateProgress(pMin);
+      original.resize(this->shape());
+      original.setElementSizeUm(this->_elementSizeUm);
+      original.setTransformation(this->_transformation);
+      original.setInterpolator(*this->p_interpolator);
+      std::memcpy(original.data(), this->data(), this->size() * sizeof(DataT));
+      if (!pr->updateProgress(static_cast<int>(pMin + 0.02 * pScale)))
+          return *this;
+    }
+
+    Array<DataT,Dim> tmp(
+        this->shape(), this->_elementSizeUm, this->_transformation);
+    tmp.setInterpolator(*this->p_interpolator);
+    std::memcpy(tmp.data(), this->data(), this->size() * sizeof(DataT));
+    if (pr != NULL)
+    {
+      if (!pr->updateProgress(
+              static_cast<int>(pMin + 0.04 * pScale))) return *this;
+      pr->setTaskProgressMin(pMin + 0.04 * pScale);
+      pr->setTaskProgressMax(pMin + 0.64 * pScale);
+    }
+
+    blitz::TinyVector<double,Dim> scales(
+        _elementSizeUm / targetElementSizeUm);
+    for (int d = 0; d < Dim; ++d)
+    {
+      if (pr != NULL && !pr->updateProgress(
+              static_cast<int>(
+                  pr->taskProgressMin() +
+                  static_cast<double>(d) / static_cast<double>(Dim - 1) *
+                  (pr->taskProgressMax() - pr->taskProgressMin()))))
+      {
+        pr->setTaskProgressMin(pMin);
+        pr->setTaskProgressMax(pMin + pScale);
+        return *this;
+      }
+      if (scales(d) < 1.0) tmp.filterDeriche(
+          _elementSizeUm(d) / (2.0 * scales(d)), d);
+    }
+
+    if (pr != NULL)
+    {
+      pr->setTaskProgressMin(pr->progress());
+      pr->setTaskProgressMax(pMin + pScale);
+    }
+    this->resize(
+        blitz::TinyVector<BlitzIndexT,Dim>(
+            scales * blitz::TinyVector<double,Dim>(this->shape())));
+    _elementSizeUm = targetElementSizeUm;
+
+    BlitzIndexT p = 0;
+#ifdef _OPENMP  
+#pragma omp parallel for
+#endif
+    for (BlitzIndexT i = 0; i < this->size(); ++i)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) continue;
+        if (p % (this->size() / 1000) == 0)
+            pr->updateProgress(
+                static_cast<int>(
+                    pr->taskProgressMin() + static_cast<double>(p) /
+                    static_cast<double>(this->size() - 1) *
+                    (pr->taskProgressMax() - pr->taskProgressMin())));
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+        ++p;
+      }
+      BlitzIndexT residual = i;
+      blitz::TinyVector<double,Dim> pos;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        pos(d) = static_cast<double>(residual % this->extent(d)) / scales(d);
+        residual /= this->extent(d);
+      }
+      this->data()[i] = tmp.interpolator().get(tmp, pos);    
+    }
+    if (pr != NULL)
+    {
+      pr->setTaskProgressMin(pMin);
+      pr->setTaskProgressMax(pMin + pScale);
+      pr->updateProgress(pr->taskProgressMax());
+      if (pr->isAborted())
+      {
+        this->resize(original.shape());
+        _elementSizeUm = (original.elementSizeUm());
+        _transformation = original.transformation();
+        std::memcpy(this->data(), original.data(),
+                    this->size() * sizeof(DataT));
+      }
+    }
+    return *this;
+  }
+
+  template<typename DataT, int Dim>
+  void Array<DataT,Dim>::load(
+      std::string const &fileName, std::string const &dataset,
+      iRoCS::ProgressReporter *progress)
+  {
+    HDF5IOWrapper::readDataset(
+        *this, _elementSizeUm, fileName, dataset, true, progress);
+    try
+    {
+      BlitzH5File inFile(fileName);
+      inFile.readAttribute(_transformation, "transformation", dataset);
+    }
+    catch (BlitzH5Error &)
+    {
+      std::cerr << "Warning: Could not read '" << fileName << ":" << dataset
+                << "/transformation'. Assuming identity transformation"
+                << std::endl;
+    }
+  }
+  
+  template<typename DataT, int Dim>
+  void Array<DataT,Dim>::load(
+      BlitzH5File const &inFile, std::string const &dataset,
+      iRoCS::ProgressReporter *progress)
+  {
+    HDF5IOWrapper::readDataset(
+        *this, _elementSizeUm, inFile, dataset, progress);
+    try
+    {
+      inFile.readAttribute(_transformation, "transformation", dataset);
+    }
+    catch (BlitzH5Error &)
+    {
+      std::cerr << "Warning: Could not read '" << inFile.name() << ":"
+                << dataset << "/transformation'. Assuming identity "
+                << "transformation" << std::endl;
+    }
+  }
+  
+  template<typename DataT, int Dim>
+  void Array<DataT,Dim>::save(
+      std::string const &fileName, std::string const &dataset, int compression,
+      iRoCS::ProgressReporter *progress) const
+  {
+    HDF5IOWrapper::writeDataset(
+        *this, _elementSizeUm, fileName, dataset, true, compression, progress);
+    BlitzH5File outFile(fileName, BlitzH5File::Write);
+    outFile.writeAttribute(_transformation, "transformation", dataset);
+  }
+
+  template<typename DataT, int Dim>
+  void Array<DataT,Dim>::save(
+      BlitzH5File &outFile, std::string const &dataset, int compression,
+      iRoCS::ProgressReporter *progress) const
+  {
+    HDF5IOWrapper::writeDataset(
+        *this, _elementSizeUm, outFile, dataset, compression, progress);
+    outFile.writeAttribute(_transformation, "transformation", dataset);
+  }
+
+  template<typename DataT, int Dim>
+  blitz::TinyVector<double,Dim> Array<DataT,Dim>::lowerBoundUm() const
+  {
+    int nCorners = (1 << Dim);
+    blitz::TinyVector<double,Dim> lb(std::numeric_limits<double>::infinity());
+    for (int d = 0; d < nCorners; ++d)
+    {
+      blitz::TinyVector<double,Dim+1> cornerPosUm;
+      int tmp = d;
+      for (int d2 = Dim - 1; d2 >= 0; --d2)
+      {
+        cornerPosUm(d2) = ((tmp % 2) * this->extent(d2)) * _elementSizeUm(d2);
+        tmp /= 2;
+      }
+      cornerPosUm(Dim) = 1.0;
+      cornerPosUm = invert(_transformation) * cornerPosUm;
+      cornerPosUm /= cornerPosUm(Dim);
+      for (int d2 = 0; d2 < Dim; ++d2)
+          if (cornerPosUm(d2) < lb(d2)) lb(d2) = cornerPosUm(d2);
+    }
+    return lb;
+  }
+  
+  template<typename DataT, int Dim>
+  blitz::TinyVector<double,Dim> Array<DataT,Dim>::upperBoundUm() const
+  {
+    int nCorners = (1 << Dim);
+    blitz::TinyVector<double,Dim> ub(-std::numeric_limits<double>::infinity());
+    for (int d = 0; d < nCorners; ++d)
+    {
+      blitz::TinyVector<double,Dim+1> cornerPosUm;
+      int tmp = d;
+      for (int d2 = Dim - 1; d2 >= 0; --d2)
+      {
+        cornerPosUm(d2) = ((tmp % 2) * this->extent(d2)) * _elementSizeUm(d2);
+        tmp /= 2;
+      }
+      cornerPosUm(Dim) = 1.0;
+      cornerPosUm = invert(_transformation) * cornerPosUm;
+      cornerPosUm /= cornerPosUm(Dim);
+      for (int d2 = 0; d2 < Dim; ++d2)
+          if (cornerPosUm(d2) > ub(d2)) ub(d2) = cornerPosUm(d2);
+    }
+    return ub;
+  }
+
+  template<typename DataT, int Dim>
+  DataT Array<DataT,Dim>::valueAt(
+      blitz::TinyVector<double,Dim> const &positionUm) const
+  {
+    blitz::TinyVector<double,Dim+1> pos;
+    for (int d = 0; d < Dim; ++d) pos(d) = positionUm(d);
+    pos(Dim) = 1.0;
+    pos = _transformation * pos;
+    blitz::TinyVector<double,Dim> p;
+    for (int d = 0; d < Dim; ++d) p(d) = pos(d) / pos(Dim) / _elementSizeUm(d);
+    return p_interpolator->get(*this, p);
+  }
+
+}

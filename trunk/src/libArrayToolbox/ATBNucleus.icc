@@ -1,0 +1,437 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/ 
+
+namespace atb
+{
+  
+  template<typename NucleusSequenceT>
+  void Nucleus::saveList(
+      NucleusSequenceT const &nuclei, BlitzH5File &outFile,
+      std::string const &group)
+  {
+    BlitzIndexT maxFeatures = 0, maxCoefficients = 0;
+    for (typename NucleusSequenceT::const_iterator it = nuclei.begin();
+         it != nuclei.end(); ++it)
+    {
+      if (static_cast<BlitzIndexT>(it->features().size()) > maxFeatures)
+          maxFeatures = it->features().size();
+      if (static_cast<BlitzIndexT>(it->shCoefficients().size()) >
+          maxCoefficients) maxCoefficients = it->shCoefficients().size();
+    }
+
+    blitz::Array<blitz::TinyVector<double,3>,1> positions(nuclei.size());
+    blitz::Array<int,1> labels(nuclei.size());
+    blitz::Array<int,1> predictedLabels(nuclei.size());
+    blitz::Array<unsigned char,1> manuals(nuclei.size());
+    blitz::Array<unsigned char,1> needsFeatureUpdates(nuclei.size());
+    blitz::Array<int,1> nFeatures(nuclei.size());
+    blitz::Array<double,2> features(
+        static_cast<BlitzIndexT>(nuclei.size()), maxFeatures);
+    blitz::Array<int,1> plattClasses(nuclei.begin()->probabilityMap().size());
+    BlitzIndexT iP = 0;
+    std::map<int,double>::const_iterator itP =
+        nuclei.begin()->probabilityMap().begin();
+    for ( ; itP != nuclei.begin()->probabilityMap().end(); ++itP, ++iP)
+        plattClasses(iP) = itP->first;
+    blitz::Array<double,2> plattProbabilities(
+        nuclei.size(), nuclei.begin()->probabilityMap().size());
+    blitz::Array<double,1> qcDistances(nuclei.size());
+    blitz::Array<double,1> radialDistances(nuclei.size());
+    blitz::Array<double,1> phis(nuclei.size());
+    blitz::Array<double,1> radii(nuclei.size());
+    blitz::Array<int,1> bandwidths(nuclei.size());
+    blitz::Array<std::complex<double>,2> coefficients(
+        static_cast<BlitzIndexT>(nuclei.size()), maxCoefficients);
+    blitz::Array<double,1> values(nuclei.size());
+    blitz::Array<double,1> confidences(nuclei.size());
+    blitz::Array<double,1> sphases(nuclei.size());
+    blitz::Array<double,1> borderDistances(nuclei.size());
+    blitz::Array<double,1> volumes(nuclei.size());
+    blitz::Array<unsigned char,1> mitotics(nuclei.size());
+    blitz::Array<unsigned char,1> predictedMitotics(nuclei.size());
+    blitz::Array<int,1> subtypes(nuclei.size());
+    blitz::Array<int,1> predictedSubtypes(nuclei.size());
+    blitz::Array<int,1> cellfiles(nuclei.size());
+    blitz::Array<int,1> predictedCellfiles(nuclei.size());
+
+    BlitzIndexT i = 0;
+    for (typename NucleusSequenceT::const_iterator it = nuclei.begin();
+         it != nuclei.end(); ++it, ++i)
+    {
+      positions(i) = it->positionUm();
+      labels(i) = it->label();
+      predictedLabels(i) = it->predictedLabel();
+      manuals(i) = (it->manual()) ? 1 : 0;
+      needsFeatureUpdates(i) = (it->needsFeatureUpdate()) ? 1 : 0;
+      nFeatures(i) = it->features().size();
+      for (BlitzIndexT j = 0;
+           j < static_cast<BlitzIndexT>(it->features().size()); ++j)
+          features(i, j) = it->features()[j];
+      for (BlitzIndexT j = static_cast<BlitzIndexT>(it->features().size());
+               j < features.extent(1); ++j) features(i, j) = 0.0;
+      for (itP = it->probabilityMap().begin(), iP = 0;
+           itP != it->probabilityMap().end(); ++itP, ++iP)
+          plattProbabilities(i, iP) = itP->second;
+      qcDistances(i) = it->qcDistanceUm();
+      radialDistances(i) = it->radialDistanceUm();
+      phis(i) = it->phi();
+      radii(i) = it->radiusUm();
+      bandwidths(i) = static_cast<int>(
+          std::sqrt(static_cast<double>(it->shCoefficients().size())));
+      for (BlitzIndexT j = 0;
+           j < static_cast<BlitzIndexT>(it->shCoefficients().size()); ++j)
+          coefficients(i, j) = it->shCoefficients()(j);
+      for (BlitzIndexT j =
+               static_cast<BlitzIndexT>(it->shCoefficients().size());
+           j < coefficients.extent(1); ++j) coefficients(i, j) = 0.0;
+      values(i) = it->value();
+      confidences(i) = it->confidence();
+      sphases(i) = it->sphase();
+      borderDistances(i) = it->borderDistanceUm();
+      volumes(i) = it->volumeUm3();
+      mitotics(i) = (it->mitotic()) ? 1 : 0;
+      predictedMitotics(i) = (it->predictedMitotic()) ? 1 : 0;
+      subtypes(i) = it->subtype();
+      predictedSubtypes(i) = it->predictedSubtype();
+      cellfiles(i) = it->cellfile();
+      predictedCellfiles(i) = it->predictedCellfile();
+    }
+    outFile.writeDataset(positions, group + "/position_um");
+    outFile.writeDataset(labels, group + "/label");
+    outFile.writeDataset(predictedLabels, group + "/predicted_label");
+    outFile.writeDataset(manuals, group + "/manual");
+    outFile.writeDataset(needsFeatureUpdates, group + "/needsFeatureUpdate");
+    outFile.writeDataset(nFeatures, group + "/nFeatures");
+    if (features.size() != 0)
+        outFile.writeDataset(features, group + "/features");
+    if (plattClasses.size() != 0) 
+    {
+      outFile.writeDataset(plattClasses, group + "/platt_classes");
+      outFile.writeDataset(
+          plattProbabilities, group + "/platt_probabilities");      
+    }
+    outFile.writeDataset(qcDistances, group + "/qcDistance_um");
+    outFile.writeDataset(radialDistances, group + "/radialDistance_um");
+    outFile.writeDataset(phis, group + "/phi");
+    outFile.writeDataset(radii, group + "/radius_um");
+    outFile.writeDataset(bandwidths, group + "/bandwidths");
+    if (coefficients.size() != 0)
+        outFile.writeDataset(coefficients, group + "/coefficients");
+    outFile.writeDataset(values, group + "/value");
+    outFile.writeDataset(confidences, group + "/confidence");
+    outFile.writeDataset(sphases, group + "/sphase");
+    outFile.writeDataset(borderDistances, group + "/borderDistance_um");
+    outFile.writeDataset(volumes, group + "/volume_um3");
+    outFile.writeDataset(mitotics, group + "/mitotic");
+    outFile.writeDataset(predictedMitotics, group + "/predicted_mitotic");
+    outFile.writeDataset(subtypes, group + "/subtype");
+    outFile.writeDataset(predictedSubtypes,
+                         group + "/predicted_subtype");
+    outFile.writeDataset(cellfiles, group + "/continuity");
+    outFile.writeDataset(predictedCellfiles,
+                         group + "/predicted_continuity");
+  }
+
+  template<typename NucleusSequenceT>
+  void Nucleus::saveList(
+      NucleusSequenceT const &nuclei, std::string const &outFileName,
+      std::string const &group)
+  {
+    try
+    {
+      BlitzH5File outFile(outFileName, BlitzH5File::WriteOrNew);
+      Nucleus::saveList(nuclei, outFile, group);
+    }
+    catch (BlitzH5Error &e) 
+    {
+      std::cerr << "Could not save nucleus data to '" << outFileName << ":"
+                << group << "': " << e.what() << std::endl;
+      exit(-1);
+    }
+  }
+
+  template<typename NucleusSequenceT>
+  void Nucleus::loadList(
+      NucleusSequenceT &nuclei, BlitzH5File const &inFile,
+      std::string const &group, bool showWarnings)
+  {
+    size_t initialListSize = nuclei.size();
+
+    blitz::Array<blitz::TinyVector<double,3>,1> positions;
+    inFile.readDataset(positions, group + "/position_um");
+    blitz::Array<int,1> labels(positions.size());
+    _loadFixedSize(labels, inFile, group + "/label", showWarnings);
+    blitz::Array<int,1> predictedLabels(positions.size());
+    _loadFixedSize(
+        predictedLabels, inFile, group + "/predicted_label", showWarnings);
+    blitz::Array<bool,1> manuals(positions.size());
+    _loadFixedSize(manuals, inFile, group + "/manual", showWarnings);
+    blitz::Array<bool,1> needsFeatureUpdates(positions.size());
+    _loadFixedSize(needsFeatureUpdates, inFile, group + "/needsFeatureUpdate",
+                  showWarnings);
+    blitz::Array<double,1> nFeatures(positions.size());
+    _loadFixedSize(nFeatures, inFile, group + "/nFeatures", showWarnings);
+    blitz::Array<double,2> features;
+    try 
+    {
+      inFile.readDataset(features, group + "/features");
+      if (features.extent(0) != positions.extent(0)) 
+      {
+        blitz::Array<double,2> tmp(positions.extent(0), features.extent(1));
+        if (features.extent(0) < positions.extent(0))
+        {
+          tmp = -1;
+          tmp(blitz::Range(0, positions.extent(0) - 1), blitz::Range::all()) =
+              features;
+        }
+        else
+        {
+          tmp = features(blitz::Range(0, tmp.extent(0) - 1),
+                         blitz::Range::all());
+        }
+        features.resize(tmp.extent(0), tmp.extent(1));
+        features = tmp;
+      }
+    }
+    catch (BlitzH5Error&)
+    {
+    }
+    blitz::Array<int,1> classes;
+    blitz::Array<double,2> probabilities;
+    try 
+    {
+      inFile.readDataset(classes, group + "/platt_classes");
+      inFile.readDataset(probabilities, group + "platt_probabilities");
+      assert(classes.extent(0) == probabilities.extent(1));
+      if (probabilities.extent(0) != positions.extent(0)) 
+      {
+        std::cerr << "Warning: 'probabilities' size doesn't match the number "
+                  << "of nuclei. Resizing and filling with -1 if necessary"
+                  << std::endl;
+        blitz::Array<double,2> tmp(positions.extent(0),
+                                   probabilities.extent(1));
+        if (probabilities.extent(0) < positions.extent(0))
+        {
+          tmp = -1;
+          tmp(blitz::Range(0, positions.extent(0) - 1), blitz::Range::all()) =
+              probabilities;
+        }
+        else
+        {
+          tmp = probabilities(blitz::Range(0, tmp.extent(0) - 1),
+                              blitz::Range::all());
+        }
+        probabilities.resize(tmp.shape());
+        probabilities = tmp;
+      }
+    }
+    catch (BlitzH5Error&)
+    {
+    }
+    blitz::Array<double,1> qcDistances(positions.size());
+    _loadFixedSize(qcDistances, inFile, group + "/qcDistance_um", showWarnings);
+    blitz::Array<double,1> radialDistances(positions.size());
+    _loadFixedSize(
+        radialDistances, inFile, group + "/radialDistance_um", showWarnings);
+    blitz::Array<double,1> phis(positions.size());
+    _loadFixedSize(phis, inFile, group + "/phi", showWarnings);
+    blitz::Array<double,1> radii(positions.size());
+    _loadFixedSize(radii, inFile, group + "/radius_um", showWarnings);
+    
+    blitz::Array<int,1> bandwidths(positions.size());
+    _loadFixedSize(bandwidths, inFile, group + "/bandwidths", showWarnings);
+    blitz::Array<std::complex<double>,2> coefficients;
+    try 
+    {
+      inFile.readDataset(coefficients, group + "/coefficients");
+      if (coefficients.extent(0) != positions.extent(0)) 
+      {
+        blitz::Array<std::complex<double>,2> tmp(
+            positions.extent(0), coefficients.extent(1));
+        if (coefficients.extent(0) < positions.extent(0))
+        {
+          tmp = -1;
+          tmp(blitz::Range(0, positions.extent(0) - 1), blitz::Range::all()) =
+              coefficients;
+        }
+        else
+        {
+          tmp = coefficients(blitz::Range(0, tmp.extent(0) - 1),
+                             blitz::Range::all());
+        }
+        coefficients.resize(tmp.extent(0), tmp.extent(1));
+        coefficients = tmp;
+      }
+    }
+    catch (BlitzH5Error&)
+    {
+    }
+    blitz::Array<double,1> values(positions.size());
+    _loadFixedSize(values, inFile, group + "/value", showWarnings);
+    blitz::Array<double,1> confidences(positions.size());
+    _loadFixedSize(confidences, inFile, group + "/confidence", showWarnings);
+    blitz::Array<double,1> sphases(positions.size());
+    _loadFixedSize(sphases, inFile, group + "/sphase", showWarnings);
+    blitz::Array<double,1> borderDistances(positions.size());
+    _loadFixedSize(
+        borderDistances, inFile, group + "/borderDistance_um", showWarnings);
+    blitz::Array<double,1> volumes(positions.size());
+    _loadFixedSize(volumes, inFile, group + "/volume_um3", showWarnings);
+    blitz::Array<bool,1> mitotics(positions.size());
+    _loadFixedSize(mitotics, inFile, group + "/mitotic", showWarnings);
+    blitz::Array<bool,1> predictedMitotics(positions.size());
+    _loadFixedSize(
+        predictedMitotics, inFile, group + "/predicted_mitotic", showWarnings);
+    blitz::Array<int,1> subtypes(positions.size());
+    _loadFixedSize(subtypes, inFile, group + "/subtype", showWarnings);
+    blitz::Array<int,1> predictedSubtypes(positions.size());
+    _loadFixedSize(predictedSubtypes, inFile, group + "/predicted_subtype",
+                  showWarnings);
+    blitz::Array<int,1> cellfiles(positions.size());
+    _loadFixedSize(cellfiles, inFile, group + "/continuity", showWarnings);
+    blitz::Array<int,1> predictedCellfiles(positions.size());
+    _loadFixedSize(predictedCellfiles, inFile, group + "/predicted_continuity",
+                  showWarnings);
+    
+    for (BlitzIndexT i = 0; i < positions.extent(0); ++i) 
+    {
+      Nucleus nc;
+      nuclei.push_back(nc);
+      std::stringstream idStream;
+      idStream.fill('0');
+      idStream << "marker_" << std::setw(8) << i;
+      nuclei.back().setId(idStream.str());
+      nuclei.back().setPositionUm(positions(i));
+      nuclei.back().setLabel(labels(i));
+      nuclei.back().setPredictedLabel(predictedLabels(i));
+      nuclei.back().setManual(manuals(i));
+      nuclei.back().setNeedsFeatureUpdate(needsFeatureUpdates(i));
+      if (features.size() != 0)
+      {
+        if (nFeatures(i) == -1)
+        {
+          nuclei.back().features().resize(features.extent(1));
+          for (BlitzIndexT j = 0; j < features.extent(1); ++j)
+              nuclei.back().features()[j] = features(i, j);
+        }
+        else
+        {
+          nuclei.back().features().resize(nFeatures(i));
+          for (int j = 0; j < nFeatures(i); ++j)
+              nuclei.back().features()[j] = features(i, j);
+        }
+      }
+      if (probabilities.size() != 0)
+      {
+        for (BlitzIndexT j = 0; j < probabilities.extent(1); ++j)
+        {
+          nuclei.back().probabilityMap()[static_cast<int>(classes(j))] =
+              probabilities(i, j);
+        }
+      }
+      nuclei.back().setQcDistanceUm(qcDistances(i));
+      nuclei.back().setRadialDistanceUm(radialDistances(i));
+      nuclei.back().setPhi(phis(i));
+      nuclei.back().setRadiusUm(radii(i));
+      if (coefficients.size() != 0)
+      {
+        if (bandwidths(i) == -1) nuclei.back().shCoefficients().resize(0);
+        else
+        {
+          nuclei.back().shCoefficients().resize(bandwidths(i) * bandwidths(i));
+          for (int j = 0; j < nuclei.back().shCoefficients().size(); ++j)
+              nuclei.back().shCoefficients()(j) = coefficients(i, j);
+        }
+      }
+      nuclei.back().setValue(values(i));
+      nuclei.back().setConfidence(confidences(i));
+      nuclei.back().setSphase(sphases(i));
+      nuclei.back().setBorderDistanceUm(borderDistances(i));
+      nuclei.back().setVolumeUm3(volumes(i));
+      nuclei.back().setMitotic(mitotics(i));
+      nuclei.back().setPredictedMitotic(predictedMitotics(i));
+      nuclei.back().setSubtype(subtypes(i));
+      nuclei.back().setPredictedSubtype(predictedSubtypes(i));
+      nuclei.back().setCellfile(cellfiles(i));
+      nuclei.back().setPredictedCellfile(predictedCellfiles(i));
+    }
+    if (nuclei.size() == initialListSize)
+    {
+      throw RuntimeError(
+          ("No valid nucleus data found in group " + group).c_str());
+    }
+    else 
+    {
+      std::cerr << "  Successfully loaded "
+                << nuclei.size() - initialListSize << " nuclei" << std::endl;
+      return;
+    }
+  }
+
+  template<typename NucleusSequenceT>
+  void Nucleus::loadList(
+      NucleusSequenceT &nuclei, std::string const &inFileName,
+      std::string const &group, bool showWarnings)
+  {
+    try
+    {
+      BlitzH5File inFile(inFileName);
+      Nucleus::loadList(nuclei, inFile, group, showWarnings);
+    }
+    catch (BlitzH5Error &e) 
+    {
+      std::cerr << "Could not load nucleus data from '" << inFileName << ":"
+                << group << "': " << e.what() << std::endl;
+      exit(-1);
+    }
+    catch (RuntimeError &e) 
+    {
+      std::cerr << "Could not load nucleus data from '" << inFileName << ":"
+                << group << "': " << e.what() << std::endl;
+      exit(-1);
+    }
+  }
+
+  template<typename DataT>
+  void Nucleus::_loadFixedSize(
+      blitz::Array<DataT,1> &buf, BlitzH5File const &inFile,
+      std::string const &dsName, bool showWarnings)
+  {
+    BlitzIndexT targetSize = buf.size();
+    try
+    {
+      inFile.readDataset(buf, dsName);
+    }
+    catch (BlitzH5Error &)
+    {
+      buf.resize(0);
+      if (showWarnings)
+          std::cerr << "'" << dsName << "' not found. Setting it to -1"
+                    << std::endl;
+    }
+    BlitzIndexT readSize = buf.size();
+    buf.resizeAndPreserve(targetSize);
+    if (readSize < targetSize)
+        buf(blitz::Range(readSize, targetSize - 1)) = DataT(-1);
+  }
+
+}

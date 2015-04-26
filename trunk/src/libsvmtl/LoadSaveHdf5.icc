@@ -1,0 +1,402 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2004-2015 Olaf Ronneberger, Florian Pigorsch, Jörg Mechnich,
+ *                         Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**************************************************************************
+**       Title: load/save policy for SVMApplication for Hdf5 files
+**    $RCSfile: $
+**   $Revision: $$Name:  $
+**       $Date: $
+**   Copyright: GPL $Author: $
+** Description:
+**
+**    
+**
+**-------------------------------------------------------------------------
+**
+**  $Log: $
+**
+**
+**************************************************************************/
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForLoadFeatureVectors
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline void svt::LoadSaveHdf5Templ<STDATATYPE>::
+getParamInfosForLoadFeatureVectors( std::vector<ParamInfo>& p)
+{
+  p.push_back(
+      ParamInfo( "feature_att", "f", "attname", 
+                 "Hdf5 attribute, that contains the feature vector "
+                 "(default 'fv')"));
+  p.push_back(
+      ParamInfo( "label_att", "l", "attname", 
+                 "Hdf5 attribute, that contains the label "
+                 "(default 'code')"));
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  checkParamsForLoadFeatureVectors
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline void svt::LoadSaveHdf5Templ<STDATATYPE>::
+checkParamsForLoadFeatureVectors(StDataCmdLine& cmdline) const
+{
+  // avoid "unknwon parameter" error
+  std::string dummy;
+  cmdline.getValue( "feature_att", dummy);
+  cmdline.getValue( "label_att", dummy);
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  loadFeatureVectors
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+template< typename FV>
+void svt::LoadSaveHdf5Templ<STDATATYPE>::
+loadFeatureVectors( StDataCmdLine& cmdline, 
+                    std::vector<FV>& featureVectors)
+{
+  std::string fvAttName = "fv";
+  cmdline.getValue( "feature_att", fvAttName);
+  
+  std::string labelAttName = "code";
+  cmdline.getValue( "label_att", labelAttName);
+  
+  int detailLevel = 1;
+  cmdline.getValue( "details", detailLevel);
+  std::cerr << "loading data";
+
+  for( size_t i = 0; i < cmdline.filenames().size(); ++i)
+  {
+    STDATATYPE inFile( cmdline.filenames()[i].c_str());
+    inFile.setExceptionFlag( true);
+    
+    FV fv;
+    fv.resize( inFile.getArraySize( fvAttName));
+    inFile.getArray( fvAttName, fv.begin());
+    double label;
+    if(detailLevel > 0)
+        inFile.getValue( labelAttName, label);
+    else
+        label = 0;
+    fv.setLabel( label);
+    featureVectors.push_back( fv);
+    std::cerr << "." << std::flush;
+  }
+  std::cerr << "\nOk"  << std::endl;
+  adjustUniqueIDs( featureVectors);
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForLoadSubsetLabels
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline void svt::LoadSaveHdf5Templ<STDATATYPE>::
+getParamInfosForLoadSubsetLabels( std::vector<ParamInfo>& p)
+{
+  p.push_back(
+      ParamInfo( "subset_att", "sx", "attname", 
+                 "Hdf5 attribute, that contains the subset label. Use "
+                 "this, if you want to manually specify the subsets for "
+                 "cross validation, e.g. to avoid, that the data from one "
+                 "experiment is distributed over traning and test-set. "
+                 "The attributes type may be any numerical or string value."
+                 ));
+}
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  checkParamsForLoadSubsetLabels
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline bool svt::LoadSaveHdf5Templ<STDATATYPE>::
+checkParamsForLoadSubsetLabels(StDataCmdLine& cmdline) const
+{
+  // avoid "unknwon parameter" error
+  std::string dummy;
+  cmdline.getValue( "subset_att", dummy);
+  return (dummy != "");
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  loadSubsetLabels
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+void svt::LoadSaveHdf5Templ<STDATATYPE>::
+loadSubsetLabels( StDataCmdLine& cmdline, 
+                  std::vector<int>& subsetIndexByUID)
+{
+  std::string subsetLabelAttName;
+  cmdline.getValue( "subset_att", subsetLabelAttName);
+  
+  std::map<std::string, int> labelToIndex;
+  std::vector<std::string> labelsByUID;
+  
+  /*-----------------------------------------------------------------------
+   *  read labels from files
+   *-----------------------------------------------------------------------*/
+  for( size_t i = 0; i < cmdline.filenames().size(); ++i)
+  {
+    STDATATYPE inFile( cmdline.filenames()[i].c_str());
+    inFile.setExceptionFlag( true);
+    std::string label;
+    inFile.getValue( subsetLabelAttName, label);
+    labelsByUID.push_back( label);
+    ++labelToIndex[label];
+  }
+  
+  std::cerr << "found " << labelToIndex.size() 
+            << " different subset labels:\n";
+  
+
+  /*-----------------------------------------------------------------------
+   *  update label to index translation table
+   *-----------------------------------------------------------------------*/
+  int index = 0;
+  for( std::map<std::string, int>::iterator p = labelToIndex.begin();
+       p != labelToIndex.end(); ++p, ++index)
+  {
+    std::cerr << " o " << p->first << " (" << p->second << " samples)\n";
+    p->second = index;
+  }
+  
+  /*-----------------------------------------------------------------------
+   *  fill subsetIndexByUID vector using the translation table
+   *-----------------------------------------------------------------------*/
+  subsetIndexByUID.resize( labelsByUID.size());
+  for( size_t i = 0; i < labelsByUID.size(); ++i)
+  {
+    subsetIndexByUID[i] = labelToIndex[labelsByUID[i]];
+  }
+  
+}
+
+
+
+
+
+
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForSaveModel
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline void svt::LoadSaveHdf5Templ<STDATATYPE>::
+getParamInfosForSaveModel( std::vector<ParamInfo>& p) 
+{
+  p.push_back(
+      ParamInfo( "modelfile", "m", "filename", 
+                 "filename for model file. (default 'svmtl_model.h5')"));
+}
+
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  checkParamsForSaveModel
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline void svt::LoadSaveHdf5Templ<STDATATYPE>::
+checkParamsForSaveModel(StDataCmdLine& cmdline) const
+{
+  // avoid "unknwon parameter" error
+  std::string dummy;
+  cmdline.getValue( "modelfile", dummy);
+  
+}
+
+
+
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  saveModel
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+template< typename FV>
+void svt::LoadSaveHdf5Templ<STDATATYPE>::
+saveModel( StDataCmdLine& cmdline, 
+           BasicSVMAdapter<FV,STDATATYPE>* svm,
+           int detailLevel,
+           std::ostream&) const
+{
+  std::string modelFileName = "svmtl_model.h5";
+  cmdline.getValue( "modelfile", modelFileName);
+  
+  STDATATYPE modelFile( modelFileName.c_str(), 
+                        H5F_ACC_TRUNC); // h5 replace flag
+  svm->saveModel( modelFile);
+  svm->saveParameters( modelFile);
+  svm->saveTrainingInfos(modelFile, detailLevel);
+}
+
+  
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForCreateSVMAndLoadModel
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline void svt::LoadSaveHdf5Templ<STDATATYPE>::
+getParamInfosForCreateSVMAndLoadModel( std::vector<ParamInfo>& p)
+{
+  p.push_back(
+      ParamInfo( "modelfile", "m", "filename", 
+                 "filename for model file. (default 'svmtl_model.h5')"));
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  createSVMAndLoadModel
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+template< typename FV, typename ALGORITHMS> 
+svt::BasicSVMAdapter<FV, STDATATYPE>* 
+svt::LoadSaveHdf5Templ<STDATATYPE>::
+createSVMAndLoadModel( StDataCmdLine& cmdline) const
+{
+  std::string modelFileName = "svmtl_model.h5";
+  cmdline.getValue( "modelfile", modelFileName);
+  
+  STDATATYPE modelFile( modelFileName.c_str());
+  BasicSVMAdapter<FV,STDATATYPE>* svm = svt::BasicSVMFactory<
+      FV, 
+      STDATATYPE, 
+      typename ALGORITHMS::MCLIST, 
+      typename ALGORITHMS::TCLIST, 
+      typename ALGORITHMS::KFLIST>::createFromStData( modelFile);
+  
+  svm->loadParameters( modelFile);
+  svm->loadModel( modelFile);
+  svm->loadParameters( cmdline);
+  return svm;
+}
+
+
+
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  getParamInfosForSaveClassificationResults
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline void svt::LoadSaveHdf5Templ<STDATATYPE>::
+getParamInfosForSaveClassificationResults( std::vector<ParamInfo>& p)
+{
+  p.push_back(
+      ParamInfo( "result_att", "r", "attname", 
+                 "Hdf5 attribute name for classification results. "
+                 "(default 'predicted_code')"));
+  p.push_back(
+      ParamInfo( "detail_att_prefix", "da", "prefix", 
+                 "prefix for Hdf5 attribute names for classification "
+                 "details. (default 'classification_details_')"));
+}
+
+
+ /*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  checkParamsForSaveClassificationResults
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline bool svt::LoadSaveHdf5Templ<STDATATYPE>::
+checkParamsForSaveClassificationResults(StDataCmdLine& cmdline) const
+{
+  // avoid "unknwon parameter" error
+  std::string dummy1;
+  cmdline.getValue( "result_att", dummy1);
+  std::string dummy2;
+  cmdline.getValue( "detail_att_prefix", dummy2);
+  return (dummy1 != "" || dummy2 != "");
+  
+}
+
+
+/*=========================================================================
+ *  DESCRIPTION OF FUNCTION:  saveClassificationResults
+ *  ==> see headerfile
+ *=======================================================================*/
+template<typename STDATATYPE>
+inline void svt::LoadSaveHdf5Templ<STDATATYPE>::
+saveClassificationResults( StDataCmdLine& cmdline,
+                           const std::vector<double>& results,
+                           const std::vector< StDataASCII>& details,
+                           bool saveDetails,
+                           std::ostream&) const
+{
+  std::string resultAttName = "predicted_code";
+  cmdline.getValue( "result_att", resultAttName);
+  
+  std::string detailAttName = "classification_details_";
+  cmdline.getValue( "detail_att_prefix", detailAttName);
+  
+  for( size_t i = 0; i < cmdline.filenames().size(); ++i)
+  {
+    try
+    {
+      STDATATYPE outFile( cmdline.filenames()[i].c_str(),
+                          H5F_ACC_RDWR); // h5 write flag
+      outFile.setExceptionFlag( true);
+      
+      outFile.setValue( resultAttName, results[i]);
+      
+      if( saveDetails)
+      {
+        for( std::map<std::string, std::string>::const_iterator p =
+                 details[i].begin(); p != details[i].end(); ++p)
+        {
+          // convert alphas and labels to double attribute
+          if( p->first == "labels" || p->first == "dec_values")
+          {
+            size_t size = details[i].getArraySize( p->first);
+            std::vector<double> vec( size);
+            details[i].getArray( p->first, vec.begin());
+            outFile.setArray( detailAttName + p->first, vec.begin(), vec.size());
+            
+          }
+          else
+          {
+            outFile.setValue( detailAttName + p->first, p->second);
+          }
+          
+        }
+        
+      }
+    }
+    catch( std::exception& err)
+    {
+      std::cerr << "ERROR while writing results to '"
+                <<  cmdline.filenames()[i] << "': " << err.what() << std::endl;
+    }
+  }
+}
+
+ 
+  

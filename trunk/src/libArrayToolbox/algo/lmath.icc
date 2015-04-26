@@ -1,0 +1,71 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Kun Liu, Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+template<typename DataT, int Dim>
+void eig3DSym(
+    blitz::Array<blitz::TinyVector<DataT,6>,3> &hessianMatrix,
+    blitz::Array<blitz::TinyVector<DataT,Dim>,Dim> &hessianEigValues,
+    blitz::Array<blitz::TinyVector<DataT,Dim>,Dim> &v1,
+    blitz::Array<blitz::TinyVector<DataT,Dim>,Dim> &v2,
+    blitz::Array<blitz::TinyVector<DataT,Dim>,Dim> &v3, int sortMode)
+{
+  blitz::TinyVector<int, Dim> size = hessianEigValues.shape();
+  blitz::Range all = blitz::Range::all();
+  int i;
+
+  double A[3][3];
+  double V[3][3];
+  double d[3];
+
+#ifdef _OPENMP
+#pragma omp parallel for private(A, V, d)
+#endif
+  for (i = 0; i < size(0); i++)
+  {
+    blitz::Array<blitz::TinyVector<DataT,Dim>,2> evl(
+        hessianEigValues(i, all, all));
+    blitz::Array<blitz::TinyVector<DataT, Dim>, 2> Ev1(v1(i, all, all));
+    blitz::Array<blitz::TinyVector<DataT, Dim>, 2> Ev2(v2(i, all, all));
+    blitz::Array<blitz::TinyVector<DataT, Dim>, 2> Ev3(v3(i, all, all));
+    for (int j = 0; j < size(1); j++)
+    {
+      for (int k = 0; k < size(2); k++)
+      {
+        blitz::TinyVector<DataT, 6> localM(hessianMatrix(i, j, k));
+        A[0][0] = localM(0);
+        A[0][1] = localM(3);
+        A[0][2] = localM(4);
+        A[1][0] = localM(3);
+        A[1][1] = localM(1);
+        A[1][2] = localM(5);
+        A[2][0] = localM(4);
+        A[2][1] = localM(5);
+        A[2][2] = localM(2);
+        eigen_decomposition(A, V, d, sortMode);
+        evl(j, k) = blitz::TinyVector<DataT, Dim>(d[0], d[1], d[2]);
+        Ev1(j, k) = blitz::TinyVector<DataT, Dim>(V[0][0], V[1][0], V[2][0]);
+        Ev2(j, k) = blitz::TinyVector<DataT, Dim>(V[0][1], V[1][1], V[2][1]);
+        Ev3(j, k) = blitz::TinyVector<DataT, Dim>(V[0][2], V[1][2], V[2][2]);
+      }
+    }
+  }
+}

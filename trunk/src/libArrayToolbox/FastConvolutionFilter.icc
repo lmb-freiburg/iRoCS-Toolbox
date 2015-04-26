@@ -1,0 +1,168 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb
+{
+
+  template<typename DataT, int Dim>
+  FastConvolutionFilter<DataT,Dim>::FastConvolutionFilter(
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Filter<DataT,Dim,DataT>(bt, boundaryValue), p_kernel(NULL),
+            _kernelFFTCache()
+  {}
+
+  template<typename DataT, int Dim>
+  FastConvolutionFilter<DataT,Dim>::FastConvolutionFilter(
+      blitz::Array<DataT,Dim> const &kernel,
+      BoundaryTreatmentType bt, DataT const &boundaryValue)
+          : Filter<DataT,Dim,DataT>(bt, boundaryValue), p_kernel(&kernel),
+            _kernelFFTCache()
+  {}
+
+  template<typename DataT, int Dim>
+  FastConvolutionFilter<DataT,Dim>::~FastConvolutionFilter()
+  {}
+
+  template<typename DataT, int Dim>
+  void FastConvolutionFilter<DataT,Dim>::setKernel(
+      blitz::Array<DataT,Dim> const &kernel)
+  {
+    p_kernel = &kernel;
+    _kernelFFTCache.free();
+  }
+
+  template<typename DataT, int Dim>
+  blitz::Array<DataT,Dim> const
+  &FastConvolutionFilter<DataT,Dim>::kernel() const
+  {
+    return *p_kernel;
+  }
+
+  template<typename DataT, int Dim>
+  void FastConvolutionFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &,
+      blitz::Array<DataT,Dim> &result,
+      iRoCS::ProgressReporter */*pr*/) const
+  {
+    BlitzFFTW<DataT>* fft = BlitzFFTW<DataT>::instance();
+    
+    blitz::TinyVector<ptrdiff_t,Dim> paddedShape;
+    paddedShape = data.shape() + p_kernel->shape() - 1;
+    paddedShape = fft->getPaddedShape(paddedShape);
+
+    blitz::TinyVector<ptrdiff_t,Dim> fftShape(paddedShape);
+    fftShape(Dim - 1) = fftShape(Dim - 1) / 2 + 1;
+
+    blitz::Array<DataT,Dim> dataPadded(paddedShape);
+    blitz::Array<std::complex<DataT>,Dim> dataFFT(fftShape);
+    
+    blitz::Array<DataT,Dim> *kernelFFT = &_kernelFFTCache;
+    if (blitz::any(_kernelFFTCache.shape() != fftShape))
+    {
+      fft->plan_forward(dataPadded, dataFFT, BlitzFFTW<DataT>::OVERWRITE);
+      fft->plan_backward(dataFFT, dataPadded, BlitzFFTW<DataT>::OVERWRITE);
+      blitz::Array<DataT,Dim> kernelPadded(paddedShape);
+      blitz::TinyVector<ptrdiff_t,Dim> lbK, ubK;
+      fft->pad(*p_kernel, kernelPadded, lbK, ubK, paddedShape);
+      fft->unShuffle(kernelPadded, kernelPadded);
+      if (omp_in_parallel())
+      {
+        std::cerr << "Warning cache miss during parallel execution of fast "
+                  << "convolution... Transforming without cache"
+                  << std::endl;
+        kernelFFT = new blitz::Array<DataT,Dim>(fftShape);
+      }
+      else kernelFFT->resize(fftShape);
+      fft->forward(kernelPadded, *kernelFFT);
+    }
+    
+    blitz::TinyVector<ptrdiff_t,Dim> lb, ub;
+    switch (this->p_bt->type())
+    {
+    case ValueBT:
+      fft->pad(data, dataPadded, lb, ub, paddedShape,
+               BlitzFFTW<DataT>::VALUE,
+               reinterpret_cast<ValueBoundaryTreatment<DataT,Dim>*>(
+                   this->p_bt)->boundaryValue());
+      break;
+    case RepeatBT:
+      fft->pad(data, dataPadded, lb, ub, paddedShape,
+               BlitzFFTW<DataT>::REPEATBORDER);
+      break;
+    case MirrorBT:
+      fft->pad(data, dataPadded, lb, ub, paddedShape,
+               BlitzFFTW<DataT>::MIRRORBORDER);
+      break;
+    case CyclicBT:
+      fft->pad(data, dataPadded, lb, ub, paddedShape,
+               BlitzFFTW<DataT>::CYCLICBORDER);
+      break;
+    default:
+      throw RuntimeError(
+          "FastConvolutionFilter<DataT,Dim>::apply(): Invalid Boundary "
+          "treatment mode, choose one of ValueBT, CyclicBT, RepeatBT or "
+          "MirrorBT.");
+    }
+
+    fft->forward(dataPadded, dataFFT);
+
+    dataFFT *= *kernelFFT;
+
+    if (kernelFFT != &_kernelFFTCache) delete kernelFFT;
+
+    fft->backward(dataFFT, dataPadded, BlitzFFTW<DataT>::OVERWRITE);    
+    dataFFT.free();
+
+    if (&data != &result) result.resize(data.shape());
+    
+    blitz::RectDomain<Dim> dest(lb, ub);
+    result = dataPadded(dest) / dataPadded.size();
+
+    fft->saveWisdom();
+  }
+
+  template<typename DataT, int Dim>
+  void FastConvolutionFilter<DataT,Dim>::apply(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::Array<DataT,Dim> &result,
+      blitz::Array<DataT,Dim> const &kernel,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter *pr)
+  {
+    FastConvolutionFilter<DataT,Dim> f(kernel, btType, boundaryValue);
+    f.apply(data, elementSizeUm, result, pr);
+  }
+
+  template<typename DataT, int Dim>
+  void FastConvolutionFilter<DataT,Dim>::apply(
+      Array<DataT,Dim> const &data, Array<DataT,Dim> &result,
+      blitz::Array<DataT,Dim> const &kernel,
+      BoundaryTreatmentType btType, DataT const &boundaryValue,
+      iRoCS::ProgressReporter *pr)
+  {
+    FastConvolutionFilter<DataT,Dim> f(kernel, btType, boundaryValue);
+    f.apply(data, result, pr);    
+  }
+
+}

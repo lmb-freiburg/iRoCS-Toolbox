@@ -1,0 +1,130 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2008 Alexandra Teynor
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+/**********************************************************
+ *                                                          
+ *  Blitz2Dgeometry.icc
+ *  Implements the Blitz2Dgeometry class
+ *  => for a precise description of the classes see 
+ *  respective header files
+ *                                                       
+ **********************************************************
+ *
+ *
+ *********************************************************/	
+
+#ifndef _BLITZ2DGEOMETRY_ICC
+#define _BLITZ2DGEOMETRY_ICC
+
+template <typename T>
+void Blitz2Dgeometry::scale(const blitz::Array<T,2>& origImage, 
+                            blitz::Array<T,2>& scaledImage, 
+                            float facY, float facX, 
+                            scaleType type=BILINEAR) {
+
+    if (facX <=0 || facY <=0) {
+        std::cout << "Not a valid scaling factor!" << std::endl;
+        return;        
+    }
+
+    // get old dimensions
+    int sizeX = origImage.extent(1);
+    int sizeY = origImage.extent(0);
+
+    // get new dimensions
+    int newSizeX = static_cast<int>(round(sizeX * facX));
+    int newSizeY = static_cast<int>(round(sizeY * facY));
+    
+    // resize storage
+    scaledImage.resize(newSizeY,newSizeX);
+
+
+    if (type == BILINEAR) {
+        
+        float oX,oY;
+        int fullX, fullY;
+        float fracX, fracY;
+        
+        
+        //go through the dest image, interpolate values from the target image
+        for (int i=0; i<newSizeY; ++i) {
+            
+            //y-coord (in orig img)
+            oY = (float)i/facY;
+            fullY = static_cast<int>(floor(oY));
+
+            if (fullY >= sizeY-1) {
+                fullY = sizeY-1;                
+                fracY  = 0;                
+            } else {
+                fracY = oY - (float)fullY;
+            }
+            
+            for (int j=0; j<newSizeX; ++j) {
+                
+                //x-coord (in orig img)
+                oX = (float)j/facX;
+                fullX = static_cast<int>(floor(oX));            
+            
+                if (fullX >= sizeX-1) {
+                    fullX = sizeX-1;                
+                    fracX = 0;                
+                } else {
+                    fracX = oX - (float)fullX;
+                }
+                
+                //for layers rgb
+                for (int k=0; k<3;++k) {
+                                        
+                    scaledImage(i,j)[k] = 
+                        
+                        (1.0-fracY)*(1.0-fracX) * 
+                        origImage(fullY  ,fullX)[k]   + 
+                        
+                        fracY      *(1.0-fracX) * 
+                        origImage(fullY+1,fullX)[k]   + 
+                        
+                        fracY      * fracX      * 
+                        origImage(fullY+1,fullX+1)[k] + 
+                        
+                        (1.0-fracY)* fracX      * 
+                        origImage(fullY  ,fullX+1)[k];
+                }
+                
+            }   
+            
+        }
+
+    } else if (type == BICUBIC) {
+        
+        std::cout << "Not Implemented yet."  << std::endl;
+
+    } else {        
+        std::cout << "scale type unknown / not supported!"  << std::endl; 
+    }
+    
+   
+}
+
+
+
+#endif

@@ -1,0 +1,237 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Kun Liu, Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+template<typename Type, int Dim>
+void pClear(blitz::Array<Type,Dim> &a)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    a(slice) = 0;
+  }
+}
+
+template<typename Type, int Dim>
+void pClip(blitz::Array<Type,Dim> &a, Type L, Type H)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    a(slice) = where(a(slice) > H, H, a(slice));
+    a(slice) = where(a(slice) < L, L, a(slice));
+  }
+}
+
+template<typename Typea, typename Typeb, int Dim>
+void pCopy(blitz::Array<Typea,Dim> const &a, blitz::Array<Typeb,Dim> &b)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    b(slice) = a(slice);
+  }
+}
+
+template<typename Typea, typename Typeb, typename Typec, int Dim>
+void pMul(
+    blitz::Array<Typea,Dim> const &a, blitz::Array<Typeb,Dim> const &b,
+    blitz::Array<Typec,Dim> &c)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    c(slice) = a(slice) * b(slice);
+  }
+}
+
+template<typename Typea, typename Typeb, int Dim>
+void
+pScale(blitz::Array<Typea,Dim> &a, Typeb b)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(a.size()); ++i)
+      a.data()[i] *= b;
+}
+
+template<typename Typea, typename Typeb, int Dim>
+void pMul(blitz::Array<Typea,Dim> &a, blitz::Array<Typeb,Dim> const &b)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    a(slice) *= b(slice);
+  }
+}
+
+template<typename Typea, typename Typeb, int Dim>
+void pABS(blitz::Array<Typea,Dim> const &a, blitz::Array<Typeb,Dim> &b)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    b(slice) = blitz::abs(a(slice));
+  }
+}
+
+template<typename Typea, int Dim>
+void pExp(blitz::Array<Typea,Dim> &a, double c)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    a(slice) = blitz::exp(c * a(slice));
+  }
+}
+
+template<typename Typea, int Dim>
+void pEigBack(
+    blitz::Array<blitz::TinyVector<Typea,Dim>,Dim> const &e,
+    blitz::Array<blitz::TinyVector<Typea,Dim>,Dim> const &v1,
+    blitz::Array<blitz::TinyVector<Typea,Dim>,Dim> const &v2,
+    blitz::Array<blitz::TinyVector<Typea,Dim>,Dim> const &v3,
+    blitz::Array<Typea,Dim> &a, blitz::Array<Typea,Dim> &workspace,
+    int d1, int d2)
+{
+  pClear(a);
+  pMul(v1[d1], v1[d2], a);
+  pMul(a, e[0]);
+
+  pMul(v2[d1], v2[d2], workspace);
+  pMul(workspace, e[1]);
+  pAdd(a, workspace);
+
+  pMul(v3[d1], v3[d2], workspace);
+  pMul(workspace, e[2]);
+  pAdd(a, workspace);
+}
+
+template<typename Typea, typename Typeb, int Dim>
+void pPow(blitz::Array<Typea,Dim> &a, Typeb b)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    a(slice) = blitz::pow(a(slice), b);
+  }
+}
+
+template<typename Typea, int Dim>
+void pSquare(blitz::Array<Typea,Dim> &a)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    a(slice) *= a(slice);
+  }
+}
+
+template<typename Typea, typename Typeb, int Dim>
+void pAdd(blitz::Array<Typea,Dim> &a, blitz::Array<Typeb,Dim> const &b)
+{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (atb::BlitzIndexT i = 0; i < a.extent(0); i++)
+  {
+    blitz::TinyVector<int, Dim> lb, ub;
+    lb = 0;
+    ub = a.shape() - 1;
+    lb(0) = i;
+    ub(0) = i;
+    blitz::RectDomain<Dim> slice(lb, ub);
+    a(slice) += b(slice);
+  }
+}

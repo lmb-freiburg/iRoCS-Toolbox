@@ -1,0 +1,380 @@
+/**************************************************************************
+ *
+ * Copyright (C) 2015 Kun Liu, Thorsten Falk
+ *
+ *        Image Analysis Lab, University of Freiburg, Germany
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+template<typename DT, typename PT>
+orderedPrioritizedNode<DT,PT>::orderedPrioritizedNode(
+    DT value, PT priority, long int order)
+        : m_value(value), m_priority(priority), m_order(order)
+{}
+
+//Operator overloading for priority comparison
+template<typename DT, typename PT>
+bool orderedPrioritizedNode<DT,PT>::operator<(
+    orderedPrioritizedNode const &opN) const
+{
+  if (m_priority == opN.m_priority)
+      return (m_order > opN.m_order);
+  else
+      return (m_priority < opN.m_priority);
+}
+
+
+template<typename VoxelT, int Dim>
+void morphDilate(blitz::Array<VoxelT,Dim> &data, int size)
+{
+  blitz::Array<VoxelT, Dim> marker1(data.shape());
+  blitz::Array<VoxelT, Dim> marker2(data.shape());
+  //    blitz::Array<VoxelT, Dim> buffer(data.shape());
+  blitz::Array<VoxelT, Dim>* out[2];
+  
+  out[0] = &marker1;
+  out[1] = &marker2;
+  
+  blitz::TinyVector<int, Dim> dSize = data.shape();
+  int idx = 0; // Index of current temporary to work on
+  *out[idx] = data;
+  for (int iter = 1; iter <= size; iter++)
+  {
+    *out[1 - idx] = *out[idx];
+    std::cerr << "Iteration " << iter << std::endl;
+    for (int d = Dim - 1; d >= 0; --d)
+    {
+      blitz::TinyVector<ptrdiff_t, Dim> lb, ub;
+      lb = ptrdiff_t(0);
+      ub = data.shape() - 1;
+      ub(d) = ub(d) - 1;
+      blitz::RectDomain < Dim > lowRange(lb, ub);
+      lb(d) = lb(d) + 1;
+      ub(d) = ub(d) + 1;
+      blitz::RectDomain < Dim > highRange(lb, ub);
+      (*out[1 - idx])(lowRange) =
+          blitz::where((*out[1 - idx])(lowRange) > (*out[idx])(highRange),
+                       (*out[1 - idx])(lowRange),
+                       (*out[idx])(highRange));
+      (*out[1 - idx])(highRange) =
+          blitz::where((*out[idx])(lowRange) > (*out[1 - idx])(highRange),
+                       (*out[idx])(lowRange), (*out[1 - idx])(highRange));
+    }
+    idx = 1 - idx; // Swap indices for next round
+  }
+  data = *out[idx];
+}
+
+template<typename VoxelT, int Dim>
+void morphClose(blitz::Array<VoxelT,Dim> &data, int size)
+{
+  morphDilate(data, size);
+  data = -data;
+  morphDilate(data, size);
+  data = -data;
+}
+
+/*
+ * two pass standard algorithm
+ */
+template<typename MarkerT, typename LabelT, int Dim>
+void morphConnectedComponentLabelling(
+    blitz::Array<MarkerT,Dim> &marker, blitz::Array<LabelT,Dim> &label,
+    int conn)
+{
+  label = 0;
+  DisjointSets dset(1);
+  Scanner3D scanner(label.shape(), conn);
+  typedef blitz::TinyVector<int,Dim> PosT;
+  bool found;
+  typename blitz::Array<MarkerT,Dim>::iterator it = marker.begin();
+  typename blitz::Array<LabelT,Dim>::iterator it2 = label.begin();
+  //first pass
+  for (; it != marker.end(); it++, it2++)
+  {
+    if (*it)
+    {
+      // use Scanner struct to walk through the leading 3D neighbors to
+      // check if there are a labeled pixel
+      PosT q;
+      scanner.setLocation(it.position());
+      found = false;
+      while (scanner.getNextNeighbor(q))
+      {
+        if (marker(q))
+        {
+          found = true;
+          *it2 = label(q);
+          break;
+        }
+      }
+      // if current pixel is the only foreground pixel (the pixel with interest)
+      if (!found)
+      {
+        *it2 = dset.NumElements();
+        dset.AddElements(1);
+      }
+      // otherwise, we need to check if there are different labels connected
+      // by current pixel and "union" them in DisjointSet
+      else
+      {
+        while (scanner.getNextNeighbor(q))
+        {
+          if ((label(q) != 0) && (label(q) != *it2))
+          {
+            dset.Union(dset.FindSet(label(q)), dset.FindSet(*it2));
+          }
+        }
+      }
+    }
+
+  }
+  // renumber the labels of sets
+  dset.ReNum();
+
+  //second pass
+  for (it2 = label.begin(); it2 != label.end(); it2++)
+  {
+    if (*it2 != 0)
+    {
+      *it2 = dset.FindSet(*it2);
+    }
+  }
+}
+
+template<typename VoxelT, typename MarkerT, typename LabelT, int Dim>
+void morphWatershed(
+    blitz::Array<VoxelT,Dim> &I, blitz::Array<MarkerT,Dim> &marker,
+    blitz::Array<LabelT,Dim> &label, int conn)
+{
+  //label the local minimums.
+  morphConnectedComponentLabelling(marker, label, conn);
+
+  typedef blitz::TinyVector<int, Dim> PosT;
+  typedef orderedPrioritizedNode<PosT, double> Node;
+
+  std::priority_queue<Node> pqueue;
+
+  //S is the sign of processed.
+  blitz::Array<bool, Dim> S(label.shape());
+  S = where(label != 0, true, false);
+
+  LabelT WSHED = 0.0;
+  long int count = 0;
+
+  typename blitz::Array<LabelT, Dim>::iterator it = label.begin();
+  Walker3D walker(label.shape(), conn);
+
+  //build the queue starting from neighbors of local minimums
+  for (; it != label.end(); it++)
+  {
+    if (*it != WSHED)
+    {
+      PosT q;
+      walker.setLocation(it.position());
+      while (walker.getNextNeighbor(q))
+      {
+        if (label(q) == WSHED && !S(q))
+        {
+          S(q) = true;
+          pqueue.push(Node(q, -I(q), count++));
+        }
+      }
+    }
+  }
+
+  while (!pqueue.empty())
+  {
+    PosT q;
+    Node top = pqueue.top();
+    PosT p = top.m_value;
+    VoxelT v = top.m_priority;
+    pqueue.pop();
+
+    LabelT ll = WSHED;
+    bool isWatershed = false;
+
+    walker.setLocation(p);
+
+    // decide if the current position is the watershed
+    while (walker.getNextNeighbor(q))
+    {
+      if ((label(q) != WSHED) && !isWatershed)
+      {
+        if ((ll != WSHED) && (label(q) != ll))
+        {
+          isWatershed = true;
+        }
+        else
+        {
+          ll = label(q);
+        }
+      }
+    }
+
+    // put the non-visited neighbors of the point into queue.
+    if (!isWatershed)
+    {
+      label(p) = ll;
+      walker.setLocation(p);
+      while (walker.getNextNeighbor(q))
+      {
+        if (!S(q))
+        {
+          S(q) = true;
+          pqueue.push(Node(q, std::min(-I(q), v), count++));
+        }
+      }
+    }
+
+  }
+}
+
+template<typename VoxelT, typename LabelT, int Dim>
+void morphWatershed(
+    blitz::Array<VoxelT,Dim> &I, blitz::Array<LabelT,Dim> &label, int conn)
+{
+  typedef blitz::TinyVector<int, Dim> PosT;
+  typedef orderedPrioritizedNode<PosT, double> Node;
+
+  std::priority_queue<Node> pqueue;
+
+  //S is the sign of processed.
+  blitz::Array<bool, Dim> S(label.shape());
+  S = where(label != 0, true, false);
+
+  LabelT WSHED = 0.0;
+  long int count = 0;
+
+  typename blitz::Array<LabelT, Dim>::iterator it = label.begin();
+  Walker3D walker(label.shape(), conn);
+
+  //build the queue starting from neighbors of local minimums
+  for (; it != label.end(); it++)
+  {
+    if (*it != WSHED)
+    {
+      VoxelT v = -I(it.position());
+      PosT q;
+      walker.setLocation(it.position());
+      while (walker.getNextNeighbor(q))
+      {
+        if (label(q) == WSHED && !S(q))
+        {
+          S(q) = true;
+          pqueue.push(Node(q, std::min(-I(q), v), count++));
+        }
+      }
+    }
+  }
+
+  while (!pqueue.empty())
+  {
+    PosT q;
+    Node top = pqueue.top();
+    PosT p = top.m_value;
+    VoxelT v = top.m_priority;
+    pqueue.pop();
+
+    LabelT ll = WSHED;
+    bool isWatershed = false;
+
+    walker.setLocation(p);
+
+    // decide if the current position is the watershed
+    while (walker.getNextNeighbor(q))
+    {
+      if ((label(q) != WSHED) && !isWatershed)
+      {
+        if ((ll != WSHED) && (label(q) != ll))
+        {
+          isWatershed = true;
+        }
+        else
+        {
+          ll = label(q);
+        }
+      }
+    }
+
+    // put the non-visited neighbors of the point into queue.
+    if (!isWatershed)
+    {
+      label(p) = ll;
+      walker.setLocation(p);
+      while (walker.getNextNeighbor(q))
+      {
+        if (!S(q))
+        {
+          S(q) = true;
+          pqueue.push(Node(q, std::min(-I(q), v), count++));
+        }
+      }
+    }
+  }
+}
+
+template<typename Type, typename bType, int Dim>
+void morphBoundaryDetection(
+    blitz::Array<Type,Dim> &phi, Type thresh, blitz::Array<bType,Dim> &border)
+{
+  border.resize(phi.shape());
+  assert(border.isStorageContiguous());
+  border = 0;
+  blitz::Array<int, Dim> binary(border.shape());
+
+  binary = phi >= thresh;
+
+  int lvls = border.extent(0);
+  int cols = border.extent(1);
+  int rows = border.extent(2);
+
+  int rStride = border.stride(2);
+  int cStride = border.stride(1);
+  int lStride = border.stride(0);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (int i = 1; i < lvls - 1; i++)
+  {
+    int* pBaseL = binary.data() + i * lStride;
+    bType* pBaseL2 = border.data() + i * lStride;
+    int* p;
+    bType* p2;
+    for (int j = 1; j < cols - 1; j++)
+    {
+      p = pBaseL + j * cStride;
+      p2 = pBaseL2 + j * cStride;
+      for (int k = 1; k < rows - 1; k++)
+      {
+        if (*p)
+        {
+          if (!*(p + rStride) || !*(p - rStride) || !*(p + cStride)
+              || !*(p - cStride) || !*(p + lStride)
+              || !*(p - lStride))
+          {
+            *p2 = 1;
+          }
+        }
+        p++;
+        p2++;
+      }
+    }
+  }
+}
+
