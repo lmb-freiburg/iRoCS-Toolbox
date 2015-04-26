@@ -55,6 +55,12 @@ void segfault_handler(int)
 }
 #endif
 
+/// Version Error. Is thrown when the --version CmdArg is parsed.
+class CmdLineVersionError: public CmdLineError {};
+
+/// License Error. Is thrown when the --license CmdArg is parsed.
+class CmdLineLicenseError: public CmdLineError {};
+
 int main(int argc, char **argv )
 {
 #if !defined(_WIN32) && !defined(_WIN64)
@@ -66,6 +72,11 @@ int main(int argc, char **argv )
   /*---------------------------------------------------------------------
    *  Specify command line arguments and descriptions
    *---------------------------------------------------------------------*/
+  CmdArgThrow<CmdLineVersionError> versionArg(
+      0, "version", "Display version information.");
+  CmdArgThrow<CmdLineLicenseError> licenseArg(
+      0, "license", "Display licensing information.");
+
   CmdArgType<std::string> memoryLimit(
       'm', "memory-limit", "[0-9]*[kKmMgG]", 
       "Set the maximum memory usage of labelling plugins");
@@ -80,12 +91,14 @@ int main(int argc, char **argv )
       'i', "interactive", "Disregard any project information contained in the "
       "input file and let the user select chennels using an import channel "
       "dialog.");
-  
+
   CmdLine cmd(argv[0], "Annotate 3D volumes from hdf5 datasets in an "
               "orthographic view");
 
   try
   {
+    cmd.append(&versionArg);
+    cmd.append(&licenseArg);
     cmd.append(&memoryLimit);
     cmd.append(&inFileName);
     cmd.append(&forceImport);
@@ -170,6 +183,43 @@ int main(int argc, char **argv )
   catch (CmdLineUsageError e)
   {
     cmd.usage();
+    exit(0);
+  }
+  catch (CmdLineVersionError e)
+  {
+    std::cout << PACKAGE_STRING << std::endl;
+    exit(0);
+  }
+  catch (CmdLineLicenseError e)
+  {
+    std::cout << PACKAGE_STRING << std::endl << std::endl
+              << "URL: " << PACKAGE_URL << std::endl << std::endl
+              << "Copyright (C) 2012-2015 Thorsten Falk (" << PACKAGE_BUGREPORT
+              << ")" << std::endl << std::endl
+              << "Address:" << std::endl
+              << "   Image Analysis Lab" << std::endl
+              << "   Albert-Ludwigs-Universitaet" << std::endl
+              << "   Georges-Koehler-Allee Geb. 52" << std::endl
+              << "   79110 Freiburg" << std::endl
+              << "   Germany" << std::endl << std::endl
+              << "This program is free software: you can redistribute it and/or"
+              << std::endl
+              << "modify it under the terms of the GNU General Public License"
+              << std::endl
+              << "Version 3 as published by the Free Software Foundation."
+              << std::endl << std::endl
+              << "This program is distributed in the hope that it will be "
+              << "useful," << std::endl
+              << "but WITHOUT ANY WARRANTY; without even the implied warranty "
+              << "of " << std::endl
+              << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
+              << std::endl
+              << "GNU General Public License for more details."
+              << std::endl << std::endl
+              << "You should have received a copy of the GNU General Public "
+              << "License" << std::endl
+              << "along with this program. If not, see " << std::endl
+              << "<http://www.gnu.org/licenses/>." << std::endl;
     exit(0);
   }
   catch (CmdLineUsageHTMLError e)

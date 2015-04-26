@@ -24,6 +24,8 @@
 
 #include "LabellingMainWidget.hh"
 
+#include <config.hh>
+
 #include <QtGui/QDockWidget>
 #include <QtGui/QTextEdit>
 #include <QtCore/QCoreApplication>
@@ -62,12 +64,12 @@
 
 #ifdef DEBUG
 std::string const LabellingMainWidget::__labellingVersionString =
-    std::string("iRoCS Toolbox rev. " + std::string(VERSIONSTRING) +
-                " debug last build: ") + __DATE__ + " " + __TIME__;
+    std::string(PACKAGE_STRING " debug last build: ") +
+    __DATE__ + " " + __TIME__;
 #else
 std::string const LabellingMainWidget::__labellingVersionString =
-    std::string("iRoCS Toolbox rev. " + std::string(VERSIONSTRING) +
-                " last build: ") + __DATE__ + " " + __TIME__;
+    std::string(PACKAGE_STRING " last build: ") +
+    __DATE__ + " " + __TIME__;
 #endif
 
 LabellingMainWidget::LabellingMainWidget(
@@ -612,15 +614,16 @@ void LabellingMainWidget::about()
 {
   QMessageBox::about(
       this, tr("About iRoCS Toolbox..."),
-      tr("This is ") + __labellingVersionString.c_str() + "\n\n" +
-      tr("Copyright (C) 2012 Thorsten Schmidt (tschmidt@cs.uni-freiburg.de)\n\n"
+      tr("This is %1\n\n"
+         "URL: %2\n\n"
+         "Copyright (C) 2012-2015 Thorsten Falk (%3)\n\n"
          "Address:\n"
          "   Image Analysis Lab\n"
          "   Albert-Ludwigs-Universitaet\n"  
          "   Georges-Koehler-Allee Geb. 52\n"
          "   79110 Freiburg\n"
-         "   Germany\n\n") +
-      tr("This program is free software: you can redistribute it and/or\n"
+         "   Germany\n\n"
+         "This program is free software: you can redistribute it and/or\n"
          "modify it under the terms of the GNU General Public License\n"
          "Version 3 as published by the Free Software Foundation.\n\n"
          "This program is distributed in the hope that it will be useful,\n"
@@ -629,7 +632,9 @@ void LabellingMainWidget::about()
          "GNU General Public License for more details.\n\n"
          "You should have received a copy of the GNU General Public License\n"
          "along with this program.  If not, see\n"
-         "<http://www.gnu.org/licenses/>."));
+         "<http://www.gnu.org/licenses/>.").arg(
+             __labellingVersionString.c_str()).arg(
+                 PACKAGE_URL).arg(PACKAGE_BUGREPORT));
 }
 
 void LabellingMainWidget::setUserInteractionEnabled(bool enable)

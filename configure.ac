@@ -1,6 +1,6 @@
 AC_INIT(
-  [iRoCS-Toolbox], [1.1.1],
-  [tschmidt@cs.uni-freiburg.de],
+  [iRoCS Toolbox], [1.1.1],
+  [falk@cs.uni-freiburg.de],
   [irocs-toolbox],
   [http://lmb.informatik.uni-freiburg.de/lmbsoft/iRoCS])
 AC_CONFIG_HEADERS([src/config.hh])
@@ -499,7 +499,7 @@ fi
 
 AC_MSG_RESULT([
 -------------------------------------------------
-iRoCS-Toolbox $lt_major.$lt_revision.$lt_age configured.
+iRoCS-Toolbox $PACKAGE_VERSION configured.
 
 Command line tools link type: $toollinktype
 

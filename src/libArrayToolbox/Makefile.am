@@ -6,6 +6,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -version-info 2:0:1
 
+# Version bump to 2:1:1 pending (code changed, interface unaltered)
+
 arraytoolboxalgoinclude_HEADERS = \
 	algo/DisjointSets.hh \
 	algo/RootCoordinateTransform.hh \

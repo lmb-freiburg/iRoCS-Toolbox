@@ -6,8 +6,10 @@ MOC = @QT4_MOC@
 RCC = @QT4_RCC@
 
 AM_CXXFLAGS = -Wno-long-long
-AM_CPPFLAGS = -DVERSIONSTRING="\"1.1.0"\" -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_LDFLAGS = -version-info 1:2:0
+
+# Version bump to 2:0:1 pending (interface extension)
 
 lbldata_DATA = liblabelling_qt4.rcc
 

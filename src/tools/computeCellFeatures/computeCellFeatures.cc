@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- * Copyright (C) 2015 Kun Liu, Thorsten Falk
+ * Copyright (C) 2014 Kun Liu, Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
  * 
@@ -20,16 +20,6 @@
  *
  **************************************************************************/
 
-//============================================================================
-// Name        : computeCellFeatures.cc
-// Author      : Kun Liu / Thorsten Schmidt
-// Version     : 1.0
-// Copyright   : (C) 2014 University of Freiburg
-// Description : Compute cell shape features of a cellular Arabidopsis root
-//               segmentation with attached iRoCS Shell coordinate transform
-// License     : GNU General Public License (GPL) version 3
-//============================================================================
-
 #include <libcmdline/CmdLine.hh>
 #include <libcmdline/ArgvIter.hh>
 
@@ -39,11 +29,19 @@
 
 #include <libIRoCS/ComputeCellFeaturesWorker.hh>
 
+class CmdLineVersionError: public CmdLineError {};
+class CmdLineLicenseError: public CmdLineError {};
+
 int main(int argc, char *argv[])
 {
   /*---------------------------------------------------------------------
    *  Specify command line arguments and descriptions
    *---------------------------------------------------------------------*/
+
+  CmdArgThrow<CmdLineVersionError> versionArg(
+      0, "version", "Display version information.");
+  CmdArgThrow<CmdLineLicenseError> licenseArg(
+      0, "license", "Display licensing information.");
 
   CmdArgType<std::string> inFileName(
       "<infile>", "input file (HDF5) containing the segmentation dataset and "
@@ -88,6 +86,9 @@ int main(int argc, char *argv[])
 
   try
   {
+    cmd.append(&versionArg);
+    cmd.append(&licenseArg);
+
     cmd.append(&inFileName);
     cmd.append(&datasetName);
     cmd.append(&sctGroupName);
@@ -161,6 +162,43 @@ int main(int argc, char *argv[])
   catch (CmdLineUsageError& e)
   {
     cmd.usage();
+    exit(0);
+  }
+  catch (CmdLineVersionError e)
+  {
+    std::cout << PACKAGE_STRING << std::endl;
+    exit(0);
+  }
+  catch (CmdLineLicenseError e)
+  {
+    std::cout << PACKAGE_STRING << std::endl << std::endl
+              << "URL: " << PACKAGE_URL << std::endl << std::endl
+              << "Copyright (C) 2012-2015 Kun Liu, Thorsten Falk ("
+              << PACKAGE_BUGREPORT << ")" << std::endl << std::endl
+              << "Address:" << std::endl
+              << "   Image Analysis Lab" << std::endl
+              << "   Albert-Ludwigs-Universitaet" << std::endl
+              << "   Georges-Koehler-Allee Geb. 52" << std::endl
+              << "   79110 Freiburg" << std::endl
+              << "   Germany" << std::endl << std::endl
+              << "This program is free software: you can redistribute it and/or"
+              << std::endl
+              << "modify it under the terms of the GNU General Public License"
+              << std::endl
+              << "Version 3 as published by the Free Software Foundation."
+              << std::endl << std::endl
+              << "This program is distributed in the hope that it will be "
+              << "useful," << std::endl
+              << "but WITHOUT ANY WARRANTY; without even the implied warranty "
+              << "of " << std::endl
+              << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
+              << std::endl
+              << "GNU General Public License for more details."
+              << std::endl << std::endl
+              << "You should have received a copy of the GNU General Public "
+              << "License" << std::endl
+              << "along with this program. If not, see " << std::endl
+              << "<http://www.gnu.org/licenses/>." << std::endl;
     exit(0);
   }
   catch (CmdLineUsageHTMLError& e)
