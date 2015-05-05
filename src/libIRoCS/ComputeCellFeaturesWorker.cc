@@ -25,6 +25,7 @@
 #include <iostream>
 
 #include <libArrayToolbox/ATBLinAlg.hh>
+#include <libArrayToolbox/Neighborhood.hh>
 #include <libArrayToolbox/algo/lrootShapeAnalysis.hh>
 
 #include <libArrayToolbox/ATBTiming.hh>
@@ -253,10 +254,11 @@ namespace iRoCS
     if (pr != NULL && !pr->updateProgressMessage(
             "Computing local shape features")) return;
     blitz::Array<blitz::TinyVector<double,26>,1> RD(centers.shape());
-    blitz::Array<double,1> blockSize(centers.shape()); // bounding box size
+    blitz::Array<blitz::TinyVector<double,3>,1> blockSize(
+        centers.shape()); // lengths of cells' main axes
     blitz::Array<double,1> volumeOverBlock(centers.shape());
     blitz::Array<double,1> convexity(centers.shape());
-    double prScale = 0.79 / static_cast<double>(centers.size() - 1);
+    double prScale = 0.7 / static_cast<double>(centers.size() - 1);
     for (atb::BlitzIndexT i = 0; i < centers.extent(0); ++i)
     {
       if (pr != NULL && i % (centers.extent(0) / 100) == 0 &&
@@ -266,11 +268,87 @@ namespace iRoCS
       if (validFlag(i) == 1)
       {
         extractRD(L, i + 1, centers(i), localAxes(i), rd);
-        blockSize(i) = (rd(4) + rd(21)) * (rd(10) + rd(15)) * (rd(12) + rd(13));
+        blockSize(i) = rd(12) + rd(13), rd(10) + rd(15), rd(4) + rd(21);
         convexity(i) = computeConvexity(L, voxelSets(i));
-        volumeOverBlock(i) = volumes(i) / std::max(1.0, blockSize(i));
+        volumeOverBlock(i) = volumes(i) / std::max(
+            1.0, blitz::product(blockSize(i)));
       }
-      else rd = 0.0;
+      else
+      {
+        rd = 0.0;
+        blockSize(i) = 0.0;
+        convexity(i) = 0.0;
+        volumeOverBlock = 0.0;
+      }
+    }
+
+    // Find neighboring cells
+    if (pr != NULL)
+    {
+      pr->updateProgress(static_cast<int>(pMin + pScale * 0.9));
+      if (!pr->updateProgressMessage("Analyzing cell neighborhood")) return;
+      pr->setTaskProgressMin(static_cast<int>(pMin + pScale * 0.9));
+      pr->setTaskProgressMax(static_cast<int>(pMin + pScale * 0.99));      
+    }
+    blitz::Array<std::set<int>,1> nbSets(centers.shape());
+    atb::Neighborhood<3> nh(atb::Neighborhood<3>::Complex);
+    prScale = 0.09 / static_cast<double>(L.size() - 1);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(L.size()); ++i)
+    {
+      if (pr != NULL && i % (L.size() / 100) == 0 &&
+          !pr->updateProgress(
+              static_cast<int>(pMin + pScale * (0.9 + prScale * i)))) continue;
+      blitz::TinyVector<atb::BlitzIndexT,3> posPx;
+      ptrdiff_t tmp = i;
+      for (int d = 2; d >= 0; --d)
+      {
+        posPx(d) = tmp % L.extent(d);
+        tmp /= L.extent(d);
+      }
+      if (L.dataFirst()[i] == 0) // On boundary
+      {
+        std::set<int> s;
+        for (atb::Neighborhood<3>::const_iterator it = nh.begin();
+             it != nh.end(); ++it)
+        {
+          blitz::TinyVector<atb::BlitzIndexT,3> nbPos(posPx + *it);
+          if (blitz::all(nbPos >= 0 && nbPos < L.shape()) &&
+              L(nbPos) > 0 && L(nbPos) != backgroundLabel &&
+              validFlag(L(nbPos)) == 1) s.insert(L(nbPos));
+        }
+        if (s.size() > 1)
+        {
+          for (std::set<int>::const_iterator it = s.begin();
+               it != s.end(); ++it)
+          {
+            std::set<int>::const_iterator it2 = it;
+            ++it2;
+            for (; it2 != s.end(); ++it2)
+            {
+              nbSets(*it).insert(*it2);
+              nbSets(*it2).insert(*it);
+            }
+          }
+        }
+      }
+    }
+    if (pr != NULL && pr->isAborted()) return;
+
+    size_t maxNeighbors = 0;
+    for (size_t i = 0; i < nbSets.size(); ++i)
+        if (nbSets(i).size() > maxNeighbors) maxNeighbors = nbSets(i).size();
+    blitz::Array<int,2> neighbors(
+        static_cast<atb::BlitzIndexT>(centers.size()),
+        static_cast<atb::BlitzIndexT>(maxNeighbors + 1));
+    neighbors = -1;
+    for (int i = 0; i < static_cast<int>(nbSets.size()); ++i)
+    {
+      int j = 0;
+      for (std::set<int>::const_iterator it = nbSets(i).begin();
+           it != nbSets(i).end(); ++it, ++j) neighbors(i, j) = *it;
     }
 
     if (pr != NULL && !pr->updateProgressMessage(
@@ -291,6 +369,7 @@ namespace iRoCS
       outFile.writeDataset(
           volumeOverBlock, featureGroup + "/volumeOverBlock", 3);
       outFile.writeDataset(convexity, featureGroup + "/convexity", 3);
+      outFile.writeDataset(neighbors, featureGroup + "/neighbor", 3);
     }
     catch (BlitzH5Error& e)
     {

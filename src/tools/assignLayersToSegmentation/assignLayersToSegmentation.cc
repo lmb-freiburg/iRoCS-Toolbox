@@ -168,7 +168,7 @@ int main(int argc, char **argv)
     std::cout << "outfile = " << ofName << std::endl;
     std::cout << "labelDataset = " << labelDsName.value() << std::endl;
     std::cout << "model = " << modelFileName.value() << std::endl;
-    std::cout << "featureFile = " << featureFileName.value() << std::endl;
+    std::cout << "featureFile = " << feaName << std::endl;
     std::cout << "featureGroup = " << featureGroup.value() << std::endl;
     if (computeFeaturesOnTheFly.given()) 
     {
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
     assignLayersToSegmentation(
         L, sct, thresholdOnVolume.value(), modelFileName.value(),
-        featureFileName.value(), featureGroup.value(), featureDsNames,
+        feaName.value(), featureGroup.value(), featureDsNames,
         ofName, labelDsName.value(), backgroundLabel.value(), &pr);
   }
   catch (CmdLineUsageError &e)

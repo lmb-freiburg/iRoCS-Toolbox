@@ -69,6 +69,26 @@ namespace iRoCS
       blitz::Array<std::vector< blitz::TinyVector<atb::BlitzIndexT,3> >,1>
       &voxelSets, int backgroundLabel, ProgressReporter *pr = NULL);
 
+/*======================================================================*/
+/*! 
+ *   Compute a convexity measure for a segment based on sample points.
+ *
+ *   From the given set of segment points, nRandomPairs random pairs are
+ *   drawn. If the center point of their connecting line is in the
+ *   segment the convexity test returns true and increments the
+ *   positive count, otherwise it fails leaving the convexity test count at
+ *   its current value. In the end the number of positive test results is
+ *   divided by the number of tests to get a value in [0, 1].
+ *
+ *   \param L The segmentation as integer array containing unique labels
+ *     for each segment
+ *   \param voxelSet A (sub-)set of voxels stemming from the segment
+ *   \param nRandomPairs The number of random point pairs to use for the
+ *     convexity test
+ *
+ *   \return Percentage of positive convexity tests
+ */
+/*======================================================================*/
   double computeConvexity(
       atb::Array<int,3> const &L,
       std::vector< blitz::TinyVector<atb::BlitzIndexT,3> > const &voxelSet,
@@ -84,15 +104,18 @@ namespace iRoCS
  *                           coordinates. They are normalized so that the outer
  *                           root boundary has a radius value of 1 \n
  *     RD             (26) - The cell shape profile.
- *                           RD(4) + RD(21) = cell extent in axial direction
+ *                           RD(12) + RD(13) = cell extent in axial direction
  *                           RD(10) + RD(15) = cell extent in radial direction
- *                           RD(12) + RD(13) = cell extent in angular
+ *                           RD(4) + RD(21) = cell extent in angular
  *                           direction \n
- *     blockSize       (1) - The volume of the cuboid spanned by the cells main
- *                           axes \n
- *     volumeOverBlock (1) - The volume - blockSize ratio \n
+ *     blockSize       (3) - The lengths of the cells' main axes axes \n
+ *     volumeOverBlock (1) - The segment - cuboid spanned by blockSize volume
+ *                           ratio \n
  *     convexity       (1) - An estimate of the segment's convexity using
  *                           a Montecarlo estimator. \n
+ *     neighbor        (n) - The indices of the first n neighboring segments
+ *                           If the segment has less than n neighbors, residual
+ *                           entries will be -1
  *   Additional information stored per segment: \n
  *     validFlag           - Only if this flag is set, the features are valid
  *     borderFlag          - Is set for segments that touch any volume boundary

@@ -7,6 +7,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -version-info 1:1:0
 
+# Version bump to 2:0:0 pending
+
 irocsinclude_HEADERS = \
 	iRoCSFeatures.hh iRoCSFeatures.icc \
 	DetectNucleiWorker.hh \
