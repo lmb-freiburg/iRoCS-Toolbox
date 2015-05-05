@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
     assignLayersToSegmentation(
         L, sct, thresholdOnVolume.value(), modelFileName.value(),
-        feaName.value(), featureGroup.value(), featureDsNames,
+        feaName, featureGroup.value(), featureDsNames,
         ofName, labelDsName.value(), backgroundLabel.value(), &pr);
   }
   catch (CmdLineUsageError &e)
