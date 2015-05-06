@@ -41,7 +41,7 @@
 #include <config.hh>
 #endif
 
-#ifdef HAVE_JPEG
+#ifdef HAVE_LIBJPEG
 namespace JPEGLIB {
 // jpeg library  
 extern "C" {
@@ -94,7 +94,7 @@ public:
   static void writePPM(const ImageAccessWrapper &data,
                        const std::string& fileName, int format = 3);
 
-#ifdef HAVE_JPEG
+#ifdef HAVE_LIBJPEG
 
   /*======================================================================*/
   /*! 

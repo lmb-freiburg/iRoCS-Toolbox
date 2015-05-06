@@ -44,7 +44,7 @@
  * in case somethings goes wrong, return -1
  */
 
-#ifdef HAVE_JPEG
+#ifdef HAVE_LIBJPEG
 
 using namespace JPEGLIB;
 
@@ -596,7 +596,7 @@ int BlitzImageReader::readPNM(
   return 0;
 }
 
-#ifdef HAVE_TIFF
+#ifdef HAVE_LIBTIFF
 
 int BlitzImageReader::readTIFF(blitz::Array<unsigned char,3> &data, 
                                const std::string &fileName)
@@ -642,9 +642,9 @@ int BlitzImageReader::readTIFF(ImageAccessWrapper &data,
   
   data.resize(fcols, frows);
 
-  for (ssize_t r = 0; r < static_cast<ssize_t>(frows); ++r)
+  for (int r = 0; r < static_cast<int>(frows); ++r)
   {
-    for (ssize_t c = 0; c < static_cast<ssize_t>(fcols); ++c) 
+    for (int c = 0; c < static_cast<int>(fcols); ++c) 
     {
       data.setPixel(static_cast<int>(c), static_cast<int>(r),
                     imageData(c, r)(0), imageData(c, r)(1), imageData(c, r)(2));

@@ -44,16 +44,16 @@
 #include <cstddef>
 #include <cstdio>
 
-#ifdef HAVE_JPEG
+#ifdef HAVE_LIBJPEG
 namespace JPEGLIB {
 // jpeg library  
-extern "C" {
+  extern "C" {
 #include <jpeglib.h>
- }
-};
+  }
+}
 #endif
 
-#ifdef HAVE_TIFF
+#ifdef HAVE_LIBTIFF
 // TIFF lib
 #include <tiffio.h>
 #endif
@@ -71,7 +71,7 @@ class BlitzImageReader {
 
 public:
 
-#ifdef HAVE_JPEG
+#ifdef HAVE_LIBJPEG
 
   /*======================================================================*/
   /*! 
@@ -252,7 +252,7 @@ public:
   static int readPNM(ImageAccessWrapper &data, 
                      const std::string& fileName);
 
-#ifdef HAVE_TIFF
+#ifdef HAVE_LIBTIFF
 
   /*======================================================================*/
   /*! 

@@ -32,7 +32,7 @@
 #include <fstream>
 #include "BlitzImageWriter.hh"
 
-#ifdef HAVE_JPEG
+#ifdef HAVE_LIBJPEG
 
 using namespace JPEGLIB;
 

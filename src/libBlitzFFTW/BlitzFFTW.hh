@@ -635,7 +635,7 @@ private:
   };
   friend class BlitzFFTWDestructor;
 
-  static const size_t maxPrepareFFTSize = 4096;
+  static const size_t maxPrepareFFTSize = 65535;
   static void prepareFFTSizes();
   static std::set<size_t> _bestFFTSizes;
   static BlitzFFTW* p_instance;
