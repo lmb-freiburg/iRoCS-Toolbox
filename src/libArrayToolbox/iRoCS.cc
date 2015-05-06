@@ -136,7 +136,8 @@ namespace atb
     // Enumerate the regions
     if (p_progress != NULL && !p_progress->updateProgressMessage(
             "Labelling remaining regions")) return;
-    Array<BlitzIndexT,3> bwL(bw.shape(), bw.elementSizeUm());
+    Array<BlitzIndexT,3> bwL(
+        blitz::TinyVector<BlitzIndexT,3>(bw.shape()), bw.elementSizeUm());
     connectedComponentLabelling(shell, bwL);
     
     // And get their volumes
