@@ -92,7 +92,9 @@ namespace atb
     // Create foreground mask
     if (p_progress != NULL && !p_progress->updateProgressMessage(
             "Computing foreground mask")) return;
-    Array<float,3> bw(segmentation.shape(), segmentation.elementSizeUm());
+    Array<float,3> bw(
+        blitz::TinyVector<BlitzIndexT,3>(segmentation.shape()),
+        segmentation.elementSizeUm());
     bw = blitz::where(segmentation > 1, 1.0f, 0.0f);
 
     // Down-sample foreground mask by factor 4
