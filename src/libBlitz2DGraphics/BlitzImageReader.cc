@@ -630,7 +630,7 @@ int BlitzImageReader::readTIFF(ImageAccessWrapper &data,
   uint32 frows;
   TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &frows);
   
-  blitz::Array<blitz::TinyVector<unsigned char,4>,2> imageData(fcols, frows);
+  blitz::Array<blitz::TinyVector<unsigned char,4>,2> imageData(frows, fcols);
   int result = TIFFReadRGBAImageOriented(
       tif, fcols, frows, reinterpret_cast<uint32*>(imageData.data()),
       ORIENTATION_TOPLEFT, 0);
@@ -640,14 +640,14 @@ int BlitzImageReader::readTIFF(ImageAccessWrapper &data,
     return -1;
   }
   
-  data.resize(fcols, frows);
+  data.resize(frows, fcols);
 
   for (int r = 0; r < static_cast<int>(frows); ++r)
   {
     for (int c = 0; c < static_cast<int>(fcols); ++c) 
     {
-      data.setPixel(static_cast<int>(c), static_cast<int>(r),
-                    imageData(c, r)(0), imageData(c, r)(1), imageData(c, r)(2));
+      data.setPixel(static_cast<int>(r), static_cast<int>(c),
+                    imageData(r, c)(0), imageData(r, c)(1), imageData(r, c)(2));
     }
   }
 

@@ -5,6 +5,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -version-info 1:0:0
 
+# Version bump to 1:1:0 pending due to bugfix
+
 blitz2dgraphicsinclude_HEADERS = \
 	Blitz2DGraphics.hh \
         ImageAccessWrapper.hh \
