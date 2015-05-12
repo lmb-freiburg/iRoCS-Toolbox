@@ -165,6 +165,19 @@ namespace iRoCS
     if (pr != NULL && !pr->updateProgressMessage(
             "Computing segment centers and volumes")) return;
     centerAndVolume(L, centers, volumes, -1, L.elementSizeUm());
+    std::cout << "  Processing " << centers.size() << " segments" << std::endl;
+    int LMin = blitz::min(L);
+    int LMax = blitz::max(L);
+    if (LMin < 0 || LMax != static_cast<int>(centers.size()))
+    {
+      std::cerr << "Labels are not positive and contiguous... that's "
+                << "currently not supported" << std::endl;
+      std::cerr << "  Smallest label = " << LMin << ", Largest label = "
+                << LMax << std::endl;
+      std::cerr << "  nSegments = " << centers.size() << std::endl;
+      if (pr != NULL) pr->abort();
+      return;
+    }
 
     if (pr != NULL && !pr->updateProgress(
             static_cast<int>(pMin + pScale * 0.01))) return;
@@ -194,7 +207,7 @@ namespace iRoCS
     // remove all the cells which are cut off by image border
     if (pr != NULL && !pr->updateProgressMessage(
             "Removing cells cut by boundary")) return;
-    blitz::Array<unsigned char, 1> borderFlag(validFlag.shape());
+    blitz::Array<unsigned char, 1> borderFlag(centers.shape());
     borderFlag = true;
     labelOnBorder(L, borderFlag);
 
@@ -258,24 +271,26 @@ namespace iRoCS
         centers.shape()); // lengths of cells' main axes
     blitz::Array<double,1> volumeOverBlock(centers.shape());
     blitz::Array<double,1> convexity(centers.shape());
-    double prScale = 0.7 / static_cast<double>(centers.size() - 1);
+    double prScale = 0.5 / static_cast<double>(centers.size() - 1);
     for (atb::BlitzIndexT i = 0; i < centers.extent(0); ++i)
     {
       if (pr != NULL && i % (centers.extent(0) / 100) == 0 &&
           !pr->updateProgress(
               static_cast<int>(pMin + pScale * (0.2 + prScale * i)))) return;
-      blitz::TinyVector<double,26> &rd = RD(i);
       if (validFlag(i) == 1)
       {
-        extractRD(L, i + 1, centers(i), localAxes(i), rd);
-        blockSize(i) = rd(12) + rd(13), rd(10) + rd(15), rd(4) + rd(21);
+        extractRD(L, i + 1, centers(i), localAxes(i), RD(i));
+        blockSize(i) =
+            RD(i)(12) + RD(i)(13),
+            RD(i)(10) + RD(i)(15),
+            RD(i)(4) + RD(i)(21);
         convexity(i) = computeConvexity(L, voxelSets(i));
         volumeOverBlock(i) = volumes(i) / std::max(
             1.0, blitz::product(blockSize(i)));
       }
       else
       {
-        rd = 0.0;
+        RD(i) = 0.0;
         blockSize(i) = 0.0;
         convexity(i) = 0.0;
         volumeOverBlock = 0.0;
@@ -285,22 +300,22 @@ namespace iRoCS
     // Find neighboring cells
     if (pr != NULL)
     {
-      pr->updateProgress(static_cast<int>(pMin + pScale * 0.9));
+      pr->updateProgress(static_cast<int>(pMin + pScale * 0.7));
       if (!pr->updateProgressMessage("Analyzing cell neighborhood")) return;
-      pr->setTaskProgressMin(static_cast<int>(pMin + pScale * 0.9));
-      pr->setTaskProgressMax(static_cast<int>(pMin + pScale * 0.99));      
     }
     blitz::Array<std::set<int>,1> nbSets(centers.shape());
     atb::Neighborhood<3> nh(atb::Neighborhood<3>::Complex);
-    prScale = 0.09 / static_cast<double>(L.size() - 1);
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+    prScale = 0.29 / static_cast<double>(L.size() - 1);
     for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(L.size()); ++i)
     {
       if (pr != NULL && i % (L.size() / 100) == 0 &&
           !pr->updateProgress(
-              static_cast<int>(pMin + pScale * (0.9 + prScale * i)))) continue;
+              static_cast<int>(pMin + pScale * (0.7 + prScale * i))))
+          continue;
+
+      // If not on boundary => nothing to do
+      if (L.dataFirst()[i] != 0) continue;
+
       blitz::TinyVector<atb::BlitzIndexT,3> posPx;
       ptrdiff_t tmp = i;
       for (int d = 2; d >= 0; --d)
@@ -308,41 +323,42 @@ namespace iRoCS
         posPx(d) = tmp % L.extent(d);
         tmp /= L.extent(d);
       }
-      if (L.dataFirst()[i] == 0) // On boundary
+      std::set<int> s;
+      for (atb::Neighborhood<3>::const_iterator it = nh.begin();
+           it != nh.end(); ++it)
       {
-        std::set<int> s;
-        for (atb::Neighborhood<3>::const_iterator it = nh.begin();
-             it != nh.end(); ++it)
+        blitz::TinyVector<atb::BlitzIndexT,3> nbPos(posPx + *it);
+        if (blitz::all(nbPos >= 0 && nbPos < L.shape()) &&
+            L(nbPos) > 0) s.insert(L(nbPos));
+      }
+      if (s.size() > 1)
+      {
+        for (std::set<int>::const_iterator it = s.begin();
+             it != s.end(); ++it)
         {
-          blitz::TinyVector<atb::BlitzIndexT,3> nbPos(posPx + *it);
-          if (blitz::all(nbPos >= 0 && nbPos < L.shape()) &&
-              L(nbPos) > 0 && L(nbPos) != backgroundLabel &&
-              validFlag(L(nbPos)) == 1) s.insert(L(nbPos));
-        }
-        if (s.size() > 1)
-        {
-          for (std::set<int>::const_iterator it = s.begin();
-               it != s.end(); ++it)
+          std::set<int>::const_iterator it2 = it;
+          ++it2;
+          for (; it2 != s.end(); ++it2)
           {
-            std::set<int>::const_iterator it2 = it;
-            ++it2;
-            for (; it2 != s.end(); ++it2)
-            {
-              nbSets(*it).insert(*it2);
-              nbSets(*it2).insert(*it);
-            }
+            nbSets(*it - 1).insert(*it2);
+            nbSets(*it2 - 1).insert(*it);
           }
         }
       }
     }
-    if (pr != NULL && pr->isAborted()) return;
-
+    if (pr != NULL)
+    {
+      if (pr->isAborted()) return;
+      pr->updateProgressMessage("Searching largest neighborhood");
+    }
     size_t maxNeighbors = 0;
     for (size_t i = 0; i < nbSets.size(); ++i)
         if (nbSets(i).size() > maxNeighbors) maxNeighbors = nbSets(i).size();
+    std::cout << "  Segment with largest neighborhood has " << maxNeighbors
+              << " neighbors." << std::endl;
     blitz::Array<int,2> neighbors(
         static_cast<atb::BlitzIndexT>(centers.size()),
-        static_cast<atb::BlitzIndexT>(maxNeighbors + 1));
+        static_cast<atb::BlitzIndexT>(maxNeighbors));
     neighbors = -1;
     for (int i = 0; i < static_cast<int>(nbSets.size()); ++i)
     {
