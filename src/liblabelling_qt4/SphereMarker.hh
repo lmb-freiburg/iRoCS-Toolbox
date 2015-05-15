@@ -87,7 +87,8 @@ class SphereMarker : public PointMarker
 
 public:
   
-  SphereMarker(const blitz::TinyVector<double,3>& position = 0.0,
+  SphereMarker(AnnotationChannelSpecs* channel = NULL);
+  SphereMarker(const blitz::TinyVector<double,3>& position,
                const double radius = 5.0,
                AnnotationChannelSpecs* channel = NULL);
   SphereMarker(const SphereMarker& marker);

@@ -106,11 +106,73 @@ namespace atb
     
 /*======================================================================*/
 /*! 
+ * Copy constructor. Creates a new Nucleus object identical to the given
+ * one.
+ */
+/*======================================================================*/
+    Nucleus(Nucleus const &nc)
+            : _id(nc._id), _positionUm(nc._positionUm), _label(nc._label),
+              _predictedLabel(nc._predictedLabel), _manual(nc._manual),
+              _needsFeatureUpdate(nc._needsFeatureUpdate),
+              _features(nc._features), _probabilityMap(nc._probabilityMap),
+              _qcDistanceUm(nc._qcDistanceUm),
+              _radialDistanceUm(nc._radialDistanceUm), _phi(nc._phi),
+              _radiusUm(nc._radiusUm), _coefficients(nc._coefficients.shape()),
+        _value(nc._value), _confidence(nc._confidence),
+        _sphase(nc._sphase), _borderDistanceUm(nc._borderDistanceUm),
+        _volumeUm3(nc._volumeUm3), _mitotic(nc._mitotic),
+        _predictedMitotic(nc._predictedMitotic), _subtype(nc._subtype),
+        _predictedSubtype(nc._predictedSubtype), _cellfile(nc._cellfile),
+        _predictedCellfile(nc._predictedCellfile)
+          {
+            _coefficients = nc._coefficients;
+          }
+    
+/*======================================================================*/
+/*! 
  *   Destructor.
  */
 /*======================================================================*/
     ~Nucleus()
           {}
+    
+/*======================================================================*/
+/*! 
+ * Copy assignment operator. Copies the attributes of the given Nucleus
+ * object into this object.
+ *
+ *   \param nc The nucleus to copy
+ */
+/*======================================================================*/
+    Nucleus &operator=(Nucleus const &nc)
+          {
+            _id = nc._id;
+            _positionUm = nc._positionUm;
+            _label = nc._label;
+            _predictedLabel = nc._predictedLabel;
+            _manual = nc._manual;
+            _needsFeatureUpdate = nc._needsFeatureUpdate;
+            _features = nc._features;
+            _probabilityMap = nc._probabilityMap;
+            _qcDistanceUm = nc._qcDistanceUm;
+            _radialDistanceUm = nc._radialDistanceUm;
+            _phi = nc._phi;
+            _radiusUm = nc._radiusUm;
+            _coefficients.resize(nc._coefficients.shape());
+            _coefficients = nc._coefficients;
+            _value = nc._value;
+            _confidence = nc._confidence;
+            _sphase = nc._sphase;
+            _borderDistanceUm = nc._borderDistanceUm;
+            _volumeUm3 = nc._volumeUm3;
+            _mitotic = nc._mitotic;
+            _predictedMitotic = nc._predictedMitotic;
+            _subtype = nc._subtype;
+            _predictedSubtype = nc._predictedSubtype;
+            _cellfile = nc._cellfile;
+            _predictedCellfile = nc._predictedCellfile;
+            return *this;
+          }
     
 /*======================================================================*/
 /*! 

@@ -52,6 +52,10 @@ PointMarkerControlWidget::~PointMarkerControlWidget()
 {}
 
 
+PointMarker::PointMarker(AnnotationChannelSpecs* channel)
+        : Marker(channel)
+{}
+  
 PointMarker::PointMarker(const blitz::TinyVector<double,3>& position,
                          AnnotationChannelSpecs* channel)
         : Marker(position, channel)

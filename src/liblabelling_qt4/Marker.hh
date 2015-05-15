@@ -122,6 +122,20 @@ public:
 
 /*======================================================================*/
 /*! 
+ *   Constructor. Creates a new marker at the origin and sets
+ *   its parent (AnnotationChannelSpecs) to the channel given. If you create
+ *   a marker in a currently displayed channel it might be a good idea to
+ *   first create it without parent, set all its properties and then add it
+ *   to the Channel using setChannel() to avoid view update cycles.
+ *
+ *   \param channel    The annotation channel to add this marker to. You
+ *     can set this later using setChannel().
+ */
+/*======================================================================*/
+  Marker(AnnotationChannelSpecs *channel = NULL);
+
+/*======================================================================*/
+/*! 
  *   Constructor. Creates a new marker at the specified position and sets
  *   its parent (AnnotationChannelSpecs) to the channel given. If you create
  *   a marker in a currently displayed channel it might be a good idea to
@@ -133,7 +147,7 @@ public:
  *     can set this later using setChannel().
  */
 /*======================================================================*/
-  Marker(blitz::TinyVector<double,3> const &positionUm = 0.0,
+  Marker(blitz::TinyVector<double,3> const &positionUm,
          AnnotationChannelSpecs *channel = NULL);
 
 /*======================================================================*/

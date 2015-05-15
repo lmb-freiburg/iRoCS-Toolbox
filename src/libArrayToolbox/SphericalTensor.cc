@@ -30,6 +30,13 @@
 namespace atb
 {
   
+  std::ostream &operator<<(std::ostream &os, SDMagFeatureIndex const &index)
+  {
+    os << "SDMagFeatureIndex(" << index.s << ", " << index.l << ", "
+       << index.b << ")";
+    return os;
+  }
+
   void STderivReal(double *in, BlitzIndexT sz[], BlitzIndexT L,
                    double *out, double factor)
   {

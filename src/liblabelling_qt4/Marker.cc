@@ -93,6 +93,21 @@ QString Marker::markerTypeToString(MarkerType m)
   }
 }
 
+Marker::Marker(AnnotationChannelSpecs* channel)
+        : QObject(), p_channel(channel), _id("noId"),
+          _positionUm(0.0), _label(-1), _predictedLabel(-1),
+          _manual(false), _needsFeatureUpdate(true),
+          _features(std::vector<double>()),
+          _probabilityMap(std::map<int,double>()), _qcDistance(-1),
+          _radialDistance(-1), _phi(-1), 
+          _randomColor(ColorMap::generateRandomColor()),
+          _boundingBoxUpToDate(false),
+          _boundingBoxLowerBoundUm(-1.0), _boundingBoxUpperBoundUm(-1.0),
+          _updatesEnabled(true)
+{
+  if (p_channel != NULL) _updatesEnabled = p_channel->updatesEnabled();
+}
+
 Marker::Marker(const blitz::TinyVector<double,3>& positionUm,
                AnnotationChannelSpecs* channel)
         : QObject(), p_channel(channel), _id("noId"),
@@ -161,7 +176,6 @@ void Marker::setChannel(AnnotationChannelSpecs* channel)
   if (p_channel == channel) return;
   p_channel = channel;
   if (p_channel != NULL) setUpdatesEnabled(p_channel->updatesEnabled());
-  _needsFeatureUpdate = true;
 }
 
 AnnotationChannelSpecs* Marker::channel() const
@@ -864,17 +878,16 @@ void Marker::copyFromATBNucleus(atb::Nucleus const &nc)
 {
   _id = nc.id();
   _positionUm = nc.positionUm();
-  _positionUm = atb::homogeneousToEuclidean(
-      atb::mvMult(
-          p_channel->transformation(),
-          atb::euclideanToHomogeneous(_positionUm)));
+  if (p_channel != NULL)
+    _positionUm = atb::homogeneousToEuclidean(
+        atb::mvMult(
+            p_channel->transformation(),
+            atb::euclideanToHomogeneous(_positionUm)));
   _manual = nc.manual();
   _needsFeatureUpdate = nc.needsFeatureUpdate();
   _label = nc.label();
   _predictedLabel = nc.predictedLabel();
-  size_t featureLength = _features.size();
   _features = nc.features();
-  _features.resize(featureLength);
   _probabilityMap = nc.probabilityMap();
   _qcDistance = nc.qcDistanceUm();
   _radialDistance = nc.radialDistanceUm();

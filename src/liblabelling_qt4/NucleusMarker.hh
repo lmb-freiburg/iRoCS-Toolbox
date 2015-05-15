@@ -110,7 +110,8 @@ class NucleusMarker : public SHSurfaceMarker
 
 public:
   
-  NucleusMarker(const blitz::TinyVector<double,3>& position = 0.0,
+  NucleusMarker(AnnotationChannelSpecs* channel = NULL);
+  NucleusMarker(const blitz::TinyVector<double,3>& position,
                 double radius = 5.0,
                 segmentation::FrequencyArray const &coefficients =
                 segmentation::FrequencyArray(),

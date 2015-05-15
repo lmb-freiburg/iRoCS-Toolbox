@@ -24,6 +24,7 @@
 
 #include "ChannelSpecs.hh"
 
+#include <QtCore/QCoreApplication>
 #include <QtGui/QVBoxLayout>
 
 #include "StringControlElement.hh"
@@ -34,8 +35,6 @@
 #include "ViewWidget.hh"
 #include "ChannelSpecsRenderer.hh"
 #include "MultiChannelModel.hh"
-
-// #include <blitz/tinyvec-et.h>
 
 ChannelSpecs::ChannelTypes const ChannelSpecs::Any =
     ChannelSpecs::Data | ChannelSpecs::Visualization |
@@ -51,11 +50,11 @@ ChannelSpecs::ChannelSpecs(MultiChannelModel *model)
           _originalTransformation(
               atb::traits< blitz::TinyMatrix<double,4,4> >::one),
           _transformation(atb::traits< blitz::TinyMatrix<double,4,4> >::one),
-          _updatesEnabled(true)
+    _updatesEnabled(true)
 {
   p_channelControlLayout = new QVBoxLayout;
   p_channelControlLayout->setContentsMargins(0, 0, 0, 0);
-
+    
   p_alphaControl = new DoubleControlElement(tr("Alpha:"), 1.0);
   p_alphaControl->setRange(0.0, 1.0);
   p_alphaControl->setSingleStep(0.01);
@@ -63,15 +62,16 @@ ChannelSpecs::ChannelSpecs(MultiChannelModel *model)
   p_alphaControl->setToolTip(tr("Set the selected channel's transparency"));
   connect(p_alphaControl, SIGNAL(valueChanged()), SLOT(emitUpdateRequest()));
   p_channelControlLayout->addWidget(p_alphaControl);
-
+    
   p_visibleControl = new BoolControlElement(tr("Visible:"), true);
   p_visibleControl->setToolTip(tr("Show/Hide the selected channel"));
-  connect(p_visibleControl, SIGNAL(valueChanged()), SLOT(emitUpdateRequest()));
+  connect(
+      p_visibleControl, SIGNAL(valueChanged()), SLOT(emitUpdateRequest()));
   p_channelControlLayout->addWidget(p_visibleControl);
-
+    
   p_channelControlWidget = new QWidget;
   p_channelControlWidget->setLayout(p_channelControlLayout);
-
+    
   p_toggleAdvancedButton = new QToolButton;
   p_toggleAdvancedButton->setFixedHeight(15);
   p_toggleAdvancedButton->setArrowType(Qt::DownArrow);
@@ -82,17 +82,17 @@ ChannelSpecs::ChannelSpecs(MultiChannelModel *model)
   connect(p_toggleAdvancedButton, SIGNAL(toggled(bool)),
           SLOT(toggleAdvanced(bool)));
   p_channelControlLayout->addWidget(p_toggleAdvancedButton);
-
+    
   p_advancedControlWidget = new QWidget;
   p_advancedControlWidget->setContentsMargins(0, 0, 0, 0);
   p_advancedControlWidget->setSizePolicy(
       QSizePolicy::Expanding, QSizePolicy::Expanding);
   p_advancedControlWidget->setVisible(false);
-
+    
   p_advancedControlLayout = new QVBoxLayout;
   p_advancedControlLayout->setContentsMargins(0, 0, 0, 0);
   p_advancedControlWidget->setLayout(p_advancedControlLayout);
-
+    
   p_transformationControl = new Double4x4ControlElement(
       "Transform:", _transformation);
   p_transformationControl->setSwitchable(true);
@@ -100,9 +100,8 @@ ChannelSpecs::ChannelSpecs(MultiChannelModel *model)
   connect(p_transformationControl, SIGNAL(valueChanged()),
           SLOT(setTransformationFromControl()));
   p_advancedControlLayout->addWidget(p_transformationControl);
-
+    
   p_channelControlLayout->addWidget(p_advancedControlWidget);
-
   _icon = QIcon();
 }
 

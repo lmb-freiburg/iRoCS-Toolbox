@@ -39,6 +39,8 @@
 
 #include <libsvmtl/BasicFV.hh>
 
+#define DEBUG_MEMORY
+
 namespace iRoCS
 {
 
@@ -47,6 +49,15 @@ namespace iRoCS
 
   public:
   
+#ifdef DEBUG_MEMORY
+  struct __Memblock
+  {
+    std::string allocCodeLine;
+    std::string command;
+  };
+  std::map<void*,__Memblock> __allocatedMemblocks;
+#endif
+
     enum NormalizationType
     {
         None = 0x0000,

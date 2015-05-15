@@ -83,6 +83,10 @@ void SHSurfaceMarkerControlWidget::toggleReadOnly()
 }
 
 
+SHSurfaceMarker::SHSurfaceMarker(AnnotationChannelSpecs* channel)
+        : SphereMarker(channel), _coefficients(), _surface()
+{}
+  
 SHSurfaceMarker::SHSurfaceMarker(
     blitz::TinyVector<double,3> const& position,
     double radius, segmentation::FrequencyArray const &coefficients,
@@ -388,13 +392,32 @@ bool SHSurfaceMarker::occupiesPositionUm(
 void SHSurfaceMarker::copyToATBNucleus(atb::Nucleus &nc) const
 {
   SphereMarker::copyToATBNucleus(nc);
+  nc.shCoefficients().resize(_coefficients.size());
   nc.shCoefficients() = _coefficients;
 }
 
 void SHSurfaceMarker::copyFromATBNucleus(atb::Nucleus const &nc)
 {
   SphereMarker::copyFromATBNucleus(nc);
-  _coefficients = nc.shCoefficients();
+  bool coeffsChanged =
+      (_coefficients.size() != nc.shCoefficients().size());
+  if (coeffsChanged)
+  {
+    _coefficients.resize(nc.shCoefficients().size());
+    _coefficients = nc.shCoefficients();
+  }
+  else
+  {
+    for (size_t i = 0; i < _coefficients.size(); ++i)
+    {
+      if (_coefficients(i) != nc.shCoefficients()(i))
+      {
+        _coefficients(i) = nc.shCoefficients()(i);
+        coeffsChanged = true;
+      }
+    }
+  }
+  if (coeffsChanged) _updateTriangles();
 }
 
 void SHSurfaceMarker::_updateTriangles() const

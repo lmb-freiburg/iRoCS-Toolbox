@@ -99,34 +99,35 @@ namespace atb
           (ddataMagMax - ddataMagMin);
     }
   
-    if (houghmaps.size() > 2)
+    if (houghmaps.size() != 2)
     {
       for (size_t i = 2; i < houghmaps.size(); ++i) delete houghmaps[i];
-      houghmaps.resize(2);
+      houghmaps.resize(2, NULL);
     }
-    else houghmaps.resize(2, NULL);
 
-    if (houghmapsR.size() > 2)
+    if (houghmapsR.size() != 2)
     {
       for (size_t i = 2; i < houghmapsR.size(); ++i) delete houghmapsR[i];
-      houghmapsR.resize(2);
+      houghmapsR.resize(2, NULL);
     }
-    else houghmapsR.resize(2, NULL);
 
     for (int i = 0; i < 2; ++i)
     {
       if (houghmaps[i] == NULL)
-          houghmaps[i] = new blitz::Array<double,3>(data.shape());
+      {
+        std::cerr << "Allocating houghmaps[" << i << "]" << std::endl;
+        houghmaps[i] = new blitz::Array<double,3>(data.shape());
+      }
       else houghmaps[i]->resize(data.shape());
       if (houghmapsR[i] == NULL)
-          houghmapsR[i] = new blitz::Array<double,3>(data.shape());
+      {
+        std::cerr << "Allocating houghmapsR[" << i << "]" << std::endl;
+        houghmapsR[i] = new blitz::Array<double,3>(data.shape());
+      }
       else houghmapsR[i]->resize(data.shape());
     
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-      for (ptrdiff_t j = 0; j < houghmaps[i]->size(); ++j)
-          houghmaps[i]->data()[j] = 0.0;
+      std::memset(
+          houghmaps[i]->dataFirst(), 0, houghmaps[i]->size() * sizeof(double));
 
       blitz::Array<double,3> accu(data.shape());
       double direction = (i == 0) ? 1.0 : -1.0;
@@ -135,10 +136,7 @@ namespace atb
         std::cout << "Computing hough transform - r = "
                   << r << " micron        " << std::endl;
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-      for (ptrdiff_t j = 0; j < accu.size(); ++j) accu.data()[j] = 0;
+        std::memset(accu.dataFirst(), 0, accu.size() * sizeof(double));
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -274,44 +272,45 @@ namespace atb
           (ddataMagMax - ddataMagMin);
     }
   
-    if (houghmaps.size() > 2)
+    if (houghmaps.size() != 2)
     {
       for (size_t i = 2; i < houghmaps.size(); ++i) delete houghmaps[i];
-      houghmaps.resize(2);
+      houghmaps.resize(2, NULL);
     }
-    else houghmaps.resize(2, NULL);
 
-    if (houghmapsR.size() > 2)
+    if (houghmapsR.size() != 2)
     {
       for (size_t i = 2; i < houghmapsR.size(); ++i) delete houghmapsR[i];
-      houghmapsR.resize(2);
+      houghmapsR.resize(2, NULL);
     }
-    else houghmapsR.resize(2, NULL);
 
     for (int i = 0; i < 2; ++i)
     {
       if (houghmaps[i] == NULL)
-          houghmaps[i] = new Array<double,3>(
-              data.shape(), data.elementSizeUm());
+      {
+        std::cerr << "Allocating houghmaps[" << i << "]" << std::endl;
+        houghmaps[i] = new Array<double,3>(
+            data.shape(), data.elementSizeUm());
+      }
       else
       {
         houghmaps[i]->resize(data.shape());
         houghmaps[i]->setElementSizeUm(data.elementSizeUm());
       }
       if (houghmapsR[i] == NULL)
-          houghmapsR[i] = new Array<double,3>(
-              data.shape(), data.elementSizeUm());
+      {
+        std::cerr << "Allocating houghmapsR[" << i << "]" << std::endl;
+        houghmapsR[i] = new Array<double,3>(
+            data.shape(), data.elementSizeUm());
+      }
       else
       {
         houghmapsR[i]->resize(data.shape());
         houghmapsR[i]->setElementSizeUm(data.elementSizeUm());
       }
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-      for (ptrdiff_t j = 0; j < houghmaps[i]->size(); ++j)
-          houghmaps[i]->data()[j] = 0.0;
+      std::memset(
+          houghmaps[i]->dataFirst(), 0, houghmaps[i]->size() * sizeof(double));
 
       blitz::Array<double,3> accu(data.shape());
       double direction = (i == 0) ? 1.0 : -1.0;
@@ -320,10 +319,7 @@ namespace atb
         std::cout << "Computing hough transform - r = "
                   << r << " micron        " << std::endl;
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-      for (ptrdiff_t j = 0; j < accu.size(); ++j) accu.data()[j] = 0;
+        std::memset(accu.dataFirst(), 0, accu.size() * sizeof(double));
 
 #ifdef _OPENMP
 #pragma omp parallel for

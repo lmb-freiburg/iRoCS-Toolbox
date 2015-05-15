@@ -9,6 +9,8 @@ AM_CXXFLAGS = -Wno-long-long
 AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_LDFLAGS = -version-info 2:0:1
 
+# version bump to 3:0:2 pending (interface extension)
+
 lbldata_DATA = liblabelling_qt4.rcc
 
 labelling_qt4include_HEADERS = \

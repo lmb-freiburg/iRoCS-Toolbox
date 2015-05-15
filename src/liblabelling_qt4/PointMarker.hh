@@ -68,7 +68,8 @@ class PointMarker : public Marker
 
 public:
   
-  PointMarker(const blitz::TinyVector<double,3>& position = 0.0,
+  PointMarker(AnnotationChannelSpecs* channel = NULL);
+  PointMarker(const blitz::TinyVector<double,3>& position,
               AnnotationChannelSpecs* channel = NULL);
   PointMarker(const PointMarker& marker);
   virtual ~PointMarker();

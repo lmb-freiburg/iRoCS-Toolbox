@@ -70,13 +70,21 @@ void DetectNucleiThread::run()
       data, nuclei, _parameters.modelFileName(),
       _parameters.memoryLimit(), _parameters.cacheFileName(), p_progress);
   
-  if (p_progress != NULL && !p_progress->updateProgressMessage(
-          tr("Populating annotation channel").toStdString())) return;
-  for (size_t i = 0; i < nuclei.size(); ++i)
+  if (nuclei.size() > 0)
   {
-    NucleusMarker* m =
-        new NucleusMarker(nuclei[i].positionUm(), nuclei[i].radiusUm());
-    m->setValue(nuclei[i].value());
-    _markerChannel.addMarker(m);
+    if (p_progress != NULL && !p_progress->updateProgressMessage(
+            tr("Populating annotation channel").toStdString())) return;
+    _markerChannel.resizeFeatures(nuclei[0].features().size());
+    for (size_t i = 0; i < nuclei.size(); ++i)
+    {
+      NucleusMarker* m = new NucleusMarker();
+      m->copyFromATBNucleus(nuclei[i]);
+      _markerChannel.addMarker(m);
+    }
+  }
+  else
+  {
+    if (p_progress != NULL && !p_progress->updateProgressMessage(
+            tr("No nuclei detected...").toStdString())) return;
   }
 }

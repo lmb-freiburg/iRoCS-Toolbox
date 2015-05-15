@@ -81,8 +81,9 @@ class SHSurfaceMarker : public SphereMarker
 
 public:
   
+  SHSurfaceMarker(AnnotationChannelSpecs *channel = NULL);
   SHSurfaceMarker(
-      blitz::TinyVector<double,3> const& position = 0.0,
+      blitz::TinyVector<double,3> const& position,
       double radius = 5.0,
       segmentation::FrequencyArray const &coefficients =
       segmentation::FrequencyArray(),

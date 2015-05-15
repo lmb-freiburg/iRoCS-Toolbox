@@ -8,4 +8,5 @@ SUBDIRS = \
 	libBlitzFFTW \
 	libBlitz2DGraphics \
 	lmbs2kit \
-	libArrayToolbox
+	libArrayToolbox \
+	liblabelling_qt4

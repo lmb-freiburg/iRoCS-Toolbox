@@ -38,8 +38,6 @@
 
 #include "DoubleControlElement.hh"
 
-// #include <blitz/tinyvec-et.h>
-
 SphereMarkerPresetWidget::SphereMarkerPresetWidget(
     AnnotationChannelSpecs* channel, QWidget* parent)
         : PointMarkerPresetWidget(channel, parent)
@@ -115,6 +113,10 @@ void SphereMarkerControlWidget::setValues(const Marker* marker)
   connect(p_radiusControl, SIGNAL(valueChanged()), SIGNAL(contentsChanged()));
 }
 
+
+SphereMarker::SphereMarker(AnnotationChannelSpecs* channel)
+        : PointMarker(channel), _radiusUm(5.0)
+{}
 
 SphereMarker::SphereMarker(const blitz::TinyVector<double,3>& position,
                            const double radius, AnnotationChannelSpecs* channel)

@@ -107,7 +107,10 @@ namespace atb
             if (s == rhs.s && l == rhs.l && b < rhs.b) return true;
             return false;
           }
+
   };
+
+  std::ostream &operator<<(std::ostream &os, SDMagFeatureIndex const &index);
 
 /*======================================================================*/
 /*! 

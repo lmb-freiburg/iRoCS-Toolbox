@@ -137,6 +137,9 @@ void PluginLayerAssignment::run()
     qApp->processEvents();
   }
   delete workerThread;
+  if (!p_progress->isAborted() &&
+      p_dialog->annotationChannel()->model() != NULL)
+      p_dialog->annotationChannel()->model()->setModified(true);
   p_progress->reset();
   p_progress->setVisible(false);
   p_mainWidget->setUserInteractionEnabled(true);

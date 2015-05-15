@@ -496,7 +496,7 @@ void AnnotationChannelSpecs::resizeFeatures(size_t newSize)
   for (iterator it = _markers.begin(); it != _markers.end(); ++it)
   {
     if ((*it)->_features.size() == newSize) continue;
-    (*it)->_features.resize(newSize);
+    (*it)->_features.resize(newSize, 0.0);
     anyFeatureResized = true;
   }
   if (!anyFeatureResized) return;

@@ -119,6 +119,21 @@ namespace iRoCS
 
     _sdFeatures[index] = new atb::Array<double,3>(
         dataScaled(data, cacheFileName).shape(), _dataScaled.elementSizeUm());
+#ifdef DEBUG_MEMORY
+      {
+        std::stringstream __allocCodeLineStream;
+        __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
+        __Memblock __memblock;
+        __memblock.allocCodeLine = __allocCodeLineStream.str();
+        std::stringstream __commandStream;
+        __commandStream
+            << "_sdFeatures[" << index << "] = new atb::Array<double,3>("
+            << dataScaled(data, cacheFileName).shape() << ", "
+            << _dataScaled.elementSizeUm() << ")";
+        __memblock.command = __commandStream.str();
+        __allocatedMemblocks[_sdFeatures[index]] = __memblock;
+      }
+#endif
 
     std::string dsName = _featureGroups[0] + sdFeatureName(index);
     std::cout << "Cache miss for feature '" << dsName << "'. Updating cache..."
@@ -183,6 +198,30 @@ namespace iRoCS
         if (p_progress != NULL && !p_progress->updateProgressMessage(
                 "Gauss Laguerre Transform")) return *_sdFeatures[index];
         atb::SDMagFeatureIndex idx2(index.s, index.l, 0);
+        for (int b = 1; b <= maxBand; ++b)
+        {
+          atb::SDMagFeatureIndex idx3(index.s, index.l, b);
+          
+          if (_sdFeatures.find(idx3) == _sdFeatures.end())
+          {
+            _sdFeatures[idx3] =
+                new atb::Array<double,3>(data.shape(), data.elementSizeUm());
+#ifdef DEBUG_MEMORY
+            {
+              std::stringstream __allocCodeLineStream;
+              __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
+              __Memblock __memblock;
+              __memblock.allocCodeLine = __allocCodeLineStream.str();
+              std::stringstream __commandStream;
+              __commandStream
+                  << "_sdFeatures[" << idx3 << "] = new atb::Array<double,3>("
+                  << data.shape() << ", " << data.elementSizeUm() << ")";
+              __memblock.command = __commandStream.str();
+              __allocatedMemblocks[_sdFeatures[idx3]] = __memblock;
+            }
+#endif
+          }
+        }
         atb::STderiv(sdFeature(data, idx2, maxBand, cacheFileName),
                      _sdFeatures, index.s, index.l, maxBand);
 
@@ -224,8 +263,25 @@ namespace iRoCS
     std::cout << "Cache miss for feature '" << dsName << "'. Generating..."
               << std::endl;
 
+    atb::Array<double,3> &d = dataScaled(data, cacheFileName);
+
     _houghFeatures[state] = new atb::Array<double,3>(
-        _dataScaled.shape(), _dataScaled.elementSizeUm());
+        d.shape(), d.elementSizeUm());
+#ifdef DEBUG_MEMORY
+    {
+      std::stringstream __allocCodeLineStream;
+      __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
+      __Memblock __memblock;
+      __memblock.allocCodeLine = __allocCodeLineStream.str();
+      std::stringstream __commandStream;
+      __commandStream
+          << "_houghFeatures[" << state << "] = new atb::Array<double,3>("
+          << d.shape() << ", " << d.elementSizeUm()
+          << ")";
+      __memblock.command = __commandStream.str();
+      __allocatedMemblocks[_houghFeatures[state]] = __memblock;
+    }
+#endif
 
     try
     {
@@ -238,34 +294,58 @@ namespace iRoCS
     }
     catch (BlitzH5Error&) 
     {
-      atb::Array<double,3> &d = dataScaled(data, cacheFileName);
-
       if (p_progress != NULL && !p_progress->updateProgressMessage(
              "Generating '" + dsName + "'")) return *_houghFeatures[state];
 
-      delete _houghFeatures[state];
-      _houghFeatures[state] = NULL;
+      for (int s = PositiveMagnitude; s <= NegativeRadius; ++s)
+      {
+        if (_houghFeatures.find(s) == _houghFeatures.end())
+        {
+          _houghFeatures[s] = new atb::Array<double,3>(
+              d.shape(), d.elementSizeUm());
+#ifdef DEBUG_MEMORY
+          {
+            std::stringstream __allocCodeLineStream;
+            __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
+            __Memblock __memblock;
+            __memblock.allocCodeLine = __allocCodeLineStream.str();
+            std::stringstream __commandStream;
+            __commandStream 
+                << "_houghFeatures[" << s << "] = new atb::Array<double,3>("
+                << d.shape() << ", " << d.elementSizeUm() << ")";
+            __memblock.command = __commandStream.str();
+            __allocatedMemblocks[_houghFeatures[s]] = __memblock;
+          }
+#endif
+        }
+        else 
+        {
+          _houghFeatures[s]->resize(d.shape());
+          _houghFeatures[s]->setElementSizeUm(d.elementSizeUm());
+        } 
+      }
 
-      std::vector<atb::Array<double,3>*> houghmaps, houghmapsR;
-      atb::computeHoughTransform(d, houghmaps, houghmapsR,
-                                 0.5, 6.0, 0.5, 0.5, 1.0, 0.01);
+      std::vector<atb::Array<double,3>*> houghmaps(2, NULL);
+      std::vector<atb::Array<double,3>*> houghmapsR(2, NULL);
+      houghmaps[0] = _houghFeatures[PositiveMagnitude];
+      houghmaps[1] = _houghFeatures[NegativeMagnitude];
+      houghmapsR[0] = _houghFeatures[PositiveRadius];
+      houghmapsR[1] = _houghFeatures[NegativeRadius];
 
-      _houghFeatures[PositiveMagnitude] = houghmaps[0];
-      _houghFeatures[NegativeMagnitude] = houghmaps[1];
-      _houghFeatures[PositiveRadius] = houghmapsR[0];
-      _houghFeatures[NegativeRadius] = houghmapsR[1];
+      atb::computeHoughTransform(
+          d, houghmaps, houghmapsR, 0.5, 6.0, 0.5, 0.5, 1.0, 0.01);
 
       if (cacheFileName == "") return *_houghFeatures[state];
 
       try
       {
-        for (int i = PositiveMagnitude; i <= NegativeRadius; ++i) 
+        for (int s = PositiveMagnitude; s <= NegativeRadius; ++s) 
         {
           if (p_progress != NULL && !p_progress->updateProgressMessage(
                   "Saving '" + cacheFileName + ":" + _featureGroups[1] +
-                  houghFeatureName(i) + "'")) return *_houghFeatures[state];
-          _houghFeatures[i]->save(
-              cacheFileName, _featureGroups[1] + houghFeatureName(i));
+                  houghFeatureName(s) + "'")) return *_houghFeatures[state];
+          _houghFeatures[s]->save(
+              cacheFileName, _featureGroups[1] + houghFeatureName(s));
         }
       }
       catch (BlitzH5Error& e)

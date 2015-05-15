@@ -92,18 +92,61 @@ namespace iRoCS
     std::cout << "Cleaning up iRoCS::Features... " << std::flush;
     for (std::map<atb::SDMagFeatureIndex,atb::Array<double,3>*>::iterator it =
              _sdFeatures.begin(); it != _sdFeatures.end(); ++it)
-        delete it->second;
+    {
+#ifdef DEBUG_MEMORY
+      if (__allocatedMemblocks.find(it->second) == __allocatedMemblocks.end())
+          std::cerr << "WARNING: Deleting externally allocated SD feature "
+                  << it->first << std::endl;
+      else __allocatedMemblocks.erase(it->second);
+#endif
+      delete it->second;
+    }
     for (std::map<int,atb::Array<double,3>*>::iterator it =
              _houghFeatures.begin(); it != _houghFeatures.end(); ++it)
-        delete it->second;
+    {
+#ifdef DEBUG_MEMORY
+      if (__allocatedMemblocks.find(it->second) == __allocatedMemblocks.end())
+          std::cerr << "WARNING: Deleting externally allocated hough feature "
+                  << it->first << std::endl;
+      else __allocatedMemblocks.erase(it->second);
+#endif
+      delete it->second;
+    }
     for (std::vector<std::vector<std::string>*>::iterator it =
              _featureNames.begin(); it != _featureNames.end(); ++it)
-        delete *it;
+    {
+#ifdef DEBUG_MEMORY
+      __allocatedMemblocks.erase(*it);
+#endif
+      delete *it;
+    }
     for (std::vector<std::vector<double>*>::iterator it = _means.begin();
-         it != _means.end(); ++it) delete *it;
+         it != _means.end(); ++it)
+    {
+#ifdef DEBUG_MEMORY
+      __allocatedMemblocks.erase(*it);
+#endif
+      delete *it;
+    }
     for (std::vector<std::vector<double>*>::iterator it = _stddevs.begin();
-         it != _stddevs.end(); ++it) delete *it;
+         it != _stddevs.end(); ++it)
+    {
+#ifdef DEBUG_MEMORY
+      __allocatedMemblocks.erase(*it);
+#endif
+      delete *it;
+    }
     std::cout << "OK" << std::endl;
+#ifdef DEBUG_MEMORY
+    for (std::map<void*,__Memblock>::const_iterator it =
+             __allocatedMemblocks.begin(); it != __allocatedMemblocks.end();
+         ++it)
+    {
+      std::cerr << "WARNING: Memory leak detected:  "
+                << it->second.allocCodeLine << "  "
+                << it->second.command << std::endl;      
+    }
+#endif
   }
 
   blitz::TinyVector<double,3> const &Features::elementSizeUm() const
@@ -121,6 +164,17 @@ namespace iRoCS
       _featureGroups.push_back(groupName);
       _normalize.push_back(None);
       _featureNames.push_back(new std::vector<std::string>());
+#ifdef DEBUG_MEMORY
+      {
+        std::stringstream __allocCodeLineStream;
+        __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 4;
+        __Memblock __memblock;
+        __memblock.allocCodeLine = __allocCodeLineStream.str();
+        __memblock.command =
+            "_featureNames.push_back(new std::vector<std::string>())";
+        __allocatedMemblocks[_featureNames.back()] = __memblock;
+      }
+#endif
     }
     _featureNames[i]->push_back(featureName);
   }
@@ -153,6 +207,13 @@ namespace iRoCS
     {
       std::cout << "Removing '" << sdFeatureName(index) << "' from cache... "
                 << std::flush;
+#ifdef DEBUG_MEMORY
+      if (__allocatedMemblocks.find(_sdFeatures[index]) ==
+          __allocatedMemblocks.end())
+          std::cerr << "WARNING: Deleting externally allocated SD feature "
+                  << index << std::endl;
+      else __allocatedMemblocks.erase(_sdFeatures[index]);
+#endif
       delete _sdFeatures[index];
       _sdFeatures.erase(index);
       std::cout << "OK" << std::endl;
@@ -165,6 +226,13 @@ namespace iRoCS
     {
       std::cout << "Removing '" << houghFeatureName(state)
                 << "' from cache... " << std::flush;
+#ifdef DEBUG_MEMORY
+      if (__allocatedMemblocks.find(_houghFeatures[state]) ==
+          __allocatedMemblocks.end())
+          std::cerr << "WARNING: Deleting externally allocated hough feature "
+                  << state << std::endl;
+      else __allocatedMemblocks.erase(_houghFeatures[state]);
+#endif
       delete _houghFeatures[state];
       _houghFeatures.erase(state);
       std::cout << "OK" << std::endl;
@@ -286,7 +354,33 @@ namespace iRoCS
       {
         if (p_progress != NULL && p_progress->isAborted()) return;
         _means[i] = new std::vector<double>(_featureNames[i]->size(), 0.0);
+#ifdef DEBUG_MEMORY
+        {
+          std::stringstream __allocCodeLineStream;
+          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 4;
+          __Memblock __memblock;
+          __memblock.allocCodeLine = __allocCodeLineStream.str();
+          std::stringstream __commandStream;
+          __commandStream << "_means[" << i << "] = new std::vector<double>("
+                         << _featureNames[i]->size() << ", 0.0)";
+          __memblock.command = __commandStream.str();
+          __allocatedMemblocks[_means[i]] = __memblock;
+        }
+#endif
         _stddevs[i] = new std::vector<double>(_featureNames[i]->size(), 0.0);
+#ifdef DEBUG_MEMORY
+        {
+          std::stringstream __allocCodeLineStream;
+          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 4;
+          __Memblock __memblock;
+          __memblock.allocCodeLine = __allocCodeLineStream.str();
+          std::stringstream __commandStream;
+          __commandStream << "_stddevs[" << i << "] = new std::vector<double>("
+                          << _featureNames[i]->size() << ", 0.0)";
+          __memblock.command = __commandStream.str();
+          __allocatedMemblocks[_stddevs[i]] = __memblock;
+        }
+#endif
 
         for (ptrdiff_t j = 0;
              j < static_cast<ptrdiff_t>(_featureNames[i]->size()); ++j) 
@@ -316,6 +410,10 @@ namespace iRoCS
         {
           for (size_t i = 0; i < _featureGroups.size(); ++i)
           {
+#ifdef DEBUG_MEMORY
+            __allocatedMemblocks.erase(_means[i]);
+            __allocatedMemblocks.erase(_stddevs[i]);
+#endif
             delete _means[i];
             delete _stddevs[i];
           }
@@ -424,16 +522,58 @@ namespace iRoCS
         std::string groupName = h5GroupName(_featureGroups[i]);
         _featureNames[i] = new std::vector<std::string>(
             modelMap.getArraySize("featureNames_" + groupName));
+#ifdef DEBUG_MEMORY
+        {
+          std::stringstream __allocCodeLineStream;
+          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
+          __Memblock __memblock;
+          __memblock.allocCodeLine = __allocCodeLineStream.str();
+          std::stringstream __commandStream;
+          __commandStream
+              << "_featureNames[" << i << "] = new std::vector<std::string>("
+              << modelMap.getArraySize("featureNames_" + groupName) << ")";
+          __memblock.command = __commandStream.str();
+          __allocatedMemblocks[_featureNames[i]] = __memblock;
+        }
+#endif
         modelMap.getArray("featureNames_" + groupName,
                           _featureNames[i]->begin(),
                           static_cast<int>(_featureNames[i]->size()));
         _means[i] = new std::vector<double>(
             modelMap.getArraySize("featureNames_" + groupName));
+#ifdef DEBUG_MEMORY
+        {
+          std::stringstream __allocCodeLineStream;
+          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
+          __Memblock __memblock;
+          __memblock.allocCodeLine = __allocCodeLineStream.str();
+          std::stringstream __commandStream;
+          __commandStream
+              << "_means[" << i << "] = new std::vector<double>("
+              << modelMap.getArraySize("featureNames_" + groupName) << ")";
+          __memblock.command = __commandStream.str();
+          __allocatedMemblocks[_means[i]] = __memblock;
+        }
+#endif
         modelMap.getArray("featureMeans_" + groupName,
                           _means[i]->begin(),
                           static_cast<int>(_means[i]->size()));
         _stddevs[i] = new std::vector<double>(
             modelMap.getArraySize("featureNames_" + groupName));
+#ifdef DEBUG_MEMORY
+        {
+          std::stringstream __allocCodeLineStream;
+          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
+          __Memblock __memblock;
+          __memblock.allocCodeLine = __allocCodeLineStream.str();
+          std::stringstream __commandStream;
+          __commandStream
+              << "_stddevs[" << i << "] = new std::vector<double>("
+              << modelMap.getArraySize("featureNames_" + groupName) << ")";
+          __memblock.command = __commandStream.str();
+          __allocatedMemblocks[_stddevs[i]] = __memblock;
+        }
+#endif
         modelMap.getArray("featureStddevs_" + groupName,
                           _stddevs[i]->begin(),
                           static_cast<int>(_stddevs[i]->size()));

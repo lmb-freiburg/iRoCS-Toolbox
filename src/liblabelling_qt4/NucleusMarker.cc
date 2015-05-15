@@ -473,10 +473,17 @@ void NucleusMarkerControlWidget::updatePredictedSubtypeSuffix()
 }
 
 
-NucleusMarker::NucleusMarker(blitz::TinyVector<double,3> const& position,
-                             double radius,
-                             segmentation::FrequencyArray const &coefficients,
-                             AnnotationChannelSpecs* channel)
+NucleusMarker::NucleusMarker(AnnotationChannelSpecs* channel)
+        : SHSurfaceMarker(channel), _value(-1), _confidence(-1), _sphase(-1),
+          _borderDistance(-1), _volume(-1), _mitotic(false),
+          _predictedMitotic(false), _subtype(-1), _predictedSubtype(-1),
+          _continuity(-1), _predictedContinuity(-1)
+{}
+  
+NucleusMarker::NucleusMarker(
+    blitz::TinyVector<double,3> const& position, double radius,
+    segmentation::FrequencyArray const &coefficients,
+    AnnotationChannelSpecs* channel)
         : SHSurfaceMarker(position, radius, coefficients, channel),
           _value(-1), _confidence(-1), _sphase(-1), _borderDistance(-1),
           _volume(-1), _mitotic(false), _predictedMitotic(false),

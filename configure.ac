@@ -489,6 +489,7 @@ AC_CONFIG_FILES([test/libBlitzFFTW/Makefile])
 AC_CONFIG_FILES([test/libBlitz2DGraphics/Makefile])
 AC_CONFIG_FILES([test/lmbs2kit/Makefile])
 AC_CONFIG_FILES([test/libArrayToolbox/Makefile])
+AC_CONFIG_FILES([test/liblabelling_qt4/Makefile])
 AC_OUTPUT
 
 if test "x$enable_statictools" == "x1"; then

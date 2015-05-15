@@ -143,8 +143,7 @@ namespace iRoCS
             int progress = static_cast<int>(
                 static_cast<double>(chunk) * progressPerChunk +
                 static_cast<double>(feaIdx) * progressStepPerFeatureLoad);
-            if (pr != NULL && !pr->updateProgress(progress))
-                return;
+            if (pr != NULL && !pr->updateProgress(progress)) return;
           }
           for (int band = 1; band <= bandMax - 2 * laplace; ++band)
               features.deleteFeature(
@@ -240,13 +239,15 @@ namespace iRoCS
     {
       if (pr != NULL && pr->isAborted()) return;
       atb::Nucleus nc;
-      nc.setPositionUm(blitz::TinyVector<double,3>(
-                           lcMax[i] * classification.elementSizeUm()));
+      nc.setPositionUm(
+          blitz::TinyVector<double,3>(
+              lcMax[i] * classification.elementSizeUm()));
       nc.setRadiusUm(2.0);
       nc.setValue(static_cast<double>(classification(lcMax[i])));
       ncTmp.push_back(nc);
     }
     lcMax.clear();
+
     std::sort(ncTmp.begin(), ncTmp.end());
     std::reverse(ncTmp.begin(), ncTmp.end());
     std::vector<atb::Nucleus>::const_iterator ncIt2;
@@ -266,6 +267,5 @@ namespace iRoCS
     ncTmp.clear();
     std::cout << "  " << nuclei.size() << " nucleus candidates remaining"
               << std::endl;
-    
   }
 }

@@ -75,7 +75,16 @@ namespace atb
       memset(b, 0, (maxBand + 1) * blitz::product(paddedShape) *
              sizeof(std::complex<double>));
 
-      blitz::Array<DataT,3> *res = new blitz::Array<DataT,3>(data.shape());
+      blitz::Array<DataT,3> *res;
+      if (out.find(SDMagFeatureIndex(sigma, laplace, l)) == out.end())
+      {
+        std::cerr << "Allocating new Array out["
+                  << SDMagFeatureIndex(sigma, laplace, l) << "]" << std::endl;
+        out[SDMagFeatureIndex(sigma, laplace, l)] =
+            new blitz::Array<DataT,3>(data.shape());
+      }
+      res = out[SDMagFeatureIndex(sigma, laplace, l)];
+      res->resize(data.shape());
 
       // Compute spherical tensor
       std::cout << "    Computing real derivative" <<  std::endl;
@@ -111,8 +120,6 @@ namespace atb
         ++it;
         res->data()[i] = std::sqrt(res->data()[i]);
       }
-      
-      out[SDMagFeatureIndex(sigma, laplace, l)] = res;
 
       // Swap Array roles
       swap = a;
@@ -210,9 +217,17 @@ namespace atb
         }
       }
 
-      out[SDMagFeatureIndex(sigma, laplace, l)] =
-          new Array<DataT,3>(data.shape(), data.elementSizeUm());
-      *out[SDMagFeatureIndex(sigma, laplace, l)] = res(validRange);
+      atb::Array<DataT,3> *res2;
+      if (out.find(SDMagFeatureIndex(sigma, laplace, l)) == out.end())
+      {
+        std::cerr << "Allocating new Array out["
+                  << SDMagFeatureIndex(sigma, laplace, l) << "]" << std::endl;
+        out[SDMagFeatureIndex(sigma, laplace, l)] = new Array<DataT,3>();
+      }
+      res2 = out[SDMagFeatureIndex(sigma, laplace, l)];
+      res2->resize(data.shape());
+      res2->setElementSizeUm(data.elementSizeUm());
+      *res2 = res(validRange);
 
       // Swap Array roles
       tmp = a;
