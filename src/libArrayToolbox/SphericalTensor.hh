@@ -165,6 +165,8 @@ namespace atb
  *   \brief Wrapper method for computing spherical tensorial derivative
  *   magnitude features
  *
+ *   \deprecated
+ *
  *   \param data    The input Array to compute voxelwise features for
  *   \param out     The features sorted by the SDMagFeatureIndex
  *   \param sigma   The current feature scale (only for SDMagFeatureIndex)
@@ -176,6 +178,27 @@ namespace atb
   template<typename DataT>
   void STderiv(Array<DataT,3> const &data,
                std::map<SDMagFeatureIndex,Array<DataT,3>*> &out,
+               double sigma, int laplace, BlitzIndexT maxBand);
+
+/*======================================================================*/
+/*! 
+ *   \brief Wrapper method for computing spherical tensorial derivative
+ *   magnitude features
+ *
+ *   This function is used in iRoCS::Features to compute the Schmidt
+ *   semi-normalized solid harmonic features.
+ *
+ *   \param data    The input Array to compute voxelwise features for
+ *   \param out     The features sorted by the SDMagFeatureIndex
+ *   \param sigma   The current feature scale (only for SDMagFeatureIndex)
+ *   \param laplace The number of laplacians that have been applied before
+ *                  (only for SDMagFeatureIndex)
+ *   \param maxBand The maximum expansion band
+ */
+/*======================================================================*/
+  template<typename DataT>
+  void STderiv(Array<DataT,3> const &data,
+               std::map< SDMagFeatureIndex, Array<DataT,3> > &sdFeatures,
                double sigma, int laplace, BlitzIndexT maxBand);
 
 }

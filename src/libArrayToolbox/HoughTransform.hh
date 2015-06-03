@@ -28,12 +28,14 @@
 #endif
 
 #include <vector>
+#include <map>
 
 #include <blitz/array.h>
 
 #include "Array.hh"
 #include "ATBDataSynthesis.hh"
 #include "CentralGradientFilter.hh"
+#include "GaussianFilter.hh"
 #include "SeparableConvolutionFilter.hh"
 
 #include <libProgressReporter/ProgressReporter.hh>
@@ -45,6 +47,8 @@ namespace atb
 /*! 
  *   Fast implementation of the spherical hough transform for
  *   non-overlapping spheres
+ *
+ *   \deprecated
  *
  *   \param data          The raw gray values to search spherical structures
  *                        in
@@ -77,6 +81,8 @@ namespace atb
  *   Fast implementation of the spherical hough transform for
  *   non-overlapping spheres
  *
+ *   \deprecated
+ *
  *   \param data          The raw gray values to search spherical structures
  *                        in
  *   \param houghmaps     In this vector the two houghmaps for each gradient
@@ -99,6 +105,47 @@ namespace atb
       const Array<DataT,3>& data,
       std::vector< Array<double,3>* >& houghmaps,
       std::vector< Array<double,3>* >& houghmapsR,
+      const double rMin, const double rMax,
+      const double rStep, const double preSmoothing,
+      const double postSmoothing, const double minMagnitude);
+
+/*======================================================================*/
+/*! 
+ *   Fast implementation of the spherical hough transform for
+ *   non-overlapping spheres.
+ *
+ *   This is the variant used in the iRoCS Toolbox by the iRoCS::Features
+ *   class.
+ *
+ *   \param data          The raw gray values to search spherical structures
+ *                        in
+ *   \param houghFeatures The map to store the houghmaps for positive
+ *     and negative gradient direction to. It will contain the following
+ *     map entries after successful execution:
+ *     <ul>
+ *     <li>1 ==> Voting map for forward gradient voting (PositiveMagnitude)
+ *     <li>2 ==> Voting map for reverse gradient voting (NegativeMagnitude)
+ *     <li>3 ==> Radii for forward gradient voting (PositiveRadius)
+ *     <li>4 ==> Radii for reverse gradient voting (NegativeRadius)
+ *     </ul>
+ *     Existing map entries with these keys will be overwritten, the rest of
+ *     the map is untouched.
+ *   \param rMin          Minimum radius
+ *   \param rMax          Maximum radius
+ *   \param rStep         Radius increment
+ *   \param preSmoothing  standard deviation of the gaussian derivative that
+ *                        is used as derivative operator
+ *   \param postSmoothing The houghmaps will be smoothed with a gaussian of
+ *                        the standard deviation given here to regularize
+ *                        the result and reduce spurious detections
+ *   \param minMagnitude  Only gradient magnitudes above the threshold
+ *                        provided may vote
+ */
+/*======================================================================*/
+  template<typename DataT>
+  void computeHoughTransform(
+      const Array<DataT,3>& data,
+      std::map< int,Array<double,3> > &houghFeatures,
       const double rMin, const double rMax,
       const double rStep, const double preSmoothing,
       const double postSmoothing, const double minMagnitude);

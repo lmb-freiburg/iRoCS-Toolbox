@@ -88,66 +88,7 @@ namespace iRoCS
   }
 
   Features::~Features()
-  {
-    std::cout << "Cleaning up iRoCS::Features... " << std::flush;
-    for (std::map<atb::SDMagFeatureIndex,atb::Array<double,3>*>::iterator it =
-             _sdFeatures.begin(); it != _sdFeatures.end(); ++it)
-    {
-#ifdef DEBUG_MEMORY
-      if (__allocatedMemblocks.find(it->second) == __allocatedMemblocks.end())
-          std::cerr << "WARNING: Deleting externally allocated SD feature "
-                  << it->first << std::endl;
-      else __allocatedMemblocks.erase(it->second);
-#endif
-      delete it->second;
-    }
-    for (std::map<int,atb::Array<double,3>*>::iterator it =
-             _houghFeatures.begin(); it != _houghFeatures.end(); ++it)
-    {
-#ifdef DEBUG_MEMORY
-      if (__allocatedMemblocks.find(it->second) == __allocatedMemblocks.end())
-          std::cerr << "WARNING: Deleting externally allocated hough feature "
-                  << it->first << std::endl;
-      else __allocatedMemblocks.erase(it->second);
-#endif
-      delete it->second;
-    }
-    for (std::vector<std::vector<std::string>*>::iterator it =
-             _featureNames.begin(); it != _featureNames.end(); ++it)
-    {
-#ifdef DEBUG_MEMORY
-      __allocatedMemblocks.erase(*it);
-#endif
-      delete *it;
-    }
-    for (std::vector<std::vector<double>*>::iterator it = _means.begin();
-         it != _means.end(); ++it)
-    {
-#ifdef DEBUG_MEMORY
-      __allocatedMemblocks.erase(*it);
-#endif
-      delete *it;
-    }
-    for (std::vector<std::vector<double>*>::iterator it = _stddevs.begin();
-         it != _stddevs.end(); ++it)
-    {
-#ifdef DEBUG_MEMORY
-      __allocatedMemblocks.erase(*it);
-#endif
-      delete *it;
-    }
-    std::cout << "OK" << std::endl;
-#ifdef DEBUG_MEMORY
-    for (std::map<void*,__Memblock>::const_iterator it =
-             __allocatedMemblocks.begin(); it != __allocatedMemblocks.end();
-         ++it)
-    {
-      std::cerr << "WARNING: Memory leak detected:  "
-                << it->second.allocCodeLine << "  "
-                << it->second.command << std::endl;      
-    }
-#endif
-  }
+  {}
 
   blitz::TinyVector<double,3> const &Features::elementSizeUm() const
   {
@@ -163,20 +104,9 @@ namespace iRoCS
     {
       _featureGroups.push_back(groupName);
       _normalize.push_back(None);
-      _featureNames.push_back(new std::vector<std::string>());
-#ifdef DEBUG_MEMORY
-      {
-        std::stringstream __allocCodeLineStream;
-        __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 4;
-        __Memblock __memblock;
-        __memblock.allocCodeLine = __allocCodeLineStream.str();
-        __memblock.command =
-            "_featureNames.push_back(new std::vector<std::string>())";
-        __allocatedMemblocks[_featureNames.back()] = __memblock;
-      }
-#endif
+      _featureNames.push_back(std::vector<std::string>());
     }
-    _featureNames[i]->push_back(featureName);
+    _featureNames[i].push_back(featureName);
   }
 
   void Features::setGroupNormalization(
@@ -203,40 +133,12 @@ namespace iRoCS
 
   void Features::deleteFeature(atb::SDMagFeatureIndex const &index)
   {
-    if (_sdFeatures.find(index) != _sdFeatures.end())
-    {
-      std::cout << "Removing '" << sdFeatureName(index) << "' from cache... "
-                << std::flush;
-#ifdef DEBUG_MEMORY
-      if (__allocatedMemblocks.find(_sdFeatures[index]) ==
-          __allocatedMemblocks.end())
-          std::cerr << "WARNING: Deleting externally allocated SD feature "
-                  << index << std::endl;
-      else __allocatedMemblocks.erase(_sdFeatures[index]);
-#endif
-      delete _sdFeatures[index];
-      _sdFeatures.erase(index);
-      std::cout << "OK" << std::endl;
-    }
+    _sdFeatures.erase(index);
   }
 
   void Features::deleteFeature(const int state)
   {
-    if (_houghFeatures.find(state) != _houghFeatures.end())
-    {
-      std::cout << "Removing '" << houghFeatureName(state)
-                << "' from cache... " << std::flush;
-#ifdef DEBUG_MEMORY
-      if (__allocatedMemblocks.find(_houghFeatures[state]) ==
-          __allocatedMemblocks.end())
-          std::cerr << "WARNING: Deleting externally allocated hough feature "
-                  << state << std::endl;
-      else __allocatedMemblocks.erase(_houghFeatures[state]);
-#endif
-      delete _houghFeatures[state];
-      _houghFeatures.erase(state);
-      std::cout << "OK" << std::endl;
-    }
+    _houghFeatures.erase(state);
   }
 
   void Features::generateRandomSamples(
@@ -330,16 +232,16 @@ namespace iRoCS
         {
           if (p_progress != NULL && p_progress->isAborted()) continue;
           double norm = 0.0;
-          for (size_t j = 0; j < _featureNames[i]->size(); ++j)
+          for (size_t j = 0; j < _featureNames[i].size(); ++j)
               norm += samples[k][static_cast<int>(j + feaStart)] *
                   samples[k][static_cast<int>(j + feaStart)];
           norm = (norm > 0.0) ? 1.0 / std::sqrt(norm) : 0.0;
-          for (size_t j = 0; j < _featureNames[i]->size(); ++j)
+          for (size_t j = 0; j < _featureNames[i].size(); ++j)
               samples[k][static_cast<int>(j + feaStart)] *= norm;
         }
         if (p_progress != NULL && p_progress->isAborted()) return;
       }
-      feaStart += _featureNames[i]->size();
+      feaStart += _featureNames[i].size();
     }
     if (p_progress != NULL && p_progress->isAborted()) return;
 
@@ -347,78 +249,39 @@ namespace iRoCS
     {
       if (p_progress != NULL && !p_progress->updateProgressMessage(
               "Computing feature means and standard deviations")) return;
-      _means.resize(_featureGroups.size(), NULL);
-      _stddevs.resize(_featureGroups.size(), NULL);
+      _means.resize(_featureGroups.size());
+      _stddevs.resize(_featureGroups.size());
       size_t feaIdx = 0;
       for (size_t i = 0; i < _featureGroups.size(); ++i)
       {
         if (p_progress != NULL && p_progress->isAborted()) return;
-        _means[i] = new std::vector<double>(_featureNames[i]->size(), 0.0);
-#ifdef DEBUG_MEMORY
-        {
-          std::stringstream __allocCodeLineStream;
-          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 4;
-          __Memblock __memblock;
-          __memblock.allocCodeLine = __allocCodeLineStream.str();
-          std::stringstream __commandStream;
-          __commandStream << "_means[" << i << "] = new std::vector<double>("
-                         << _featureNames[i]->size() << ", 0.0)";
-          __memblock.command = __commandStream.str();
-          __allocatedMemblocks[_means[i]] = __memblock;
-        }
-#endif
-        _stddevs[i] = new std::vector<double>(_featureNames[i]->size(), 0.0);
-#ifdef DEBUG_MEMORY
-        {
-          std::stringstream __allocCodeLineStream;
-          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 4;
-          __Memblock __memblock;
-          __memblock.allocCodeLine = __allocCodeLineStream.str();
-          std::stringstream __commandStream;
-          __commandStream << "_stddevs[" << i << "] = new std::vector<double>("
-                          << _featureNames[i]->size() << ", 0.0)";
-          __memblock.command = __commandStream.str();
-          __allocatedMemblocks[_stddevs[i]] = __memblock;
-        }
-#endif
+        _means[i].resize(_featureNames[i].size(), 0.0);
+        _stddevs[i].resize(_featureNames[i].size(), 0.0);
 
         for (ptrdiff_t j = 0;
-             j < static_cast<ptrdiff_t>(_featureNames[i]->size()); ++j) 
+             j < static_cast<ptrdiff_t>(_featureNames[i].size()); ++j) 
         {
           if (p_progress != NULL && p_progress->isAborted()) continue;
           for (std::vector<svt::BasicFV>::const_iterator it = samples.begin();
                it != samples.end(); ++it)
           {
             if (p_progress != NULL && p_progress->isAborted()) continue;
-            (*_means[i])[j] += (*it)[static_cast<int>(feaIdx)];
+            _means[i][j] += (*it)[static_cast<int>(feaIdx)];
           }
-          (*_means[i])[j] /= static_cast<double>(samples.size());
+          _means[i][j] /= static_cast<double>(samples.size());
           for (std::vector<svt::BasicFV>::const_iterator it = samples.begin();
                it != samples.end(); ++it)
           {
             if (p_progress != NULL && p_progress->isAborted()) continue;
-            (*_stddevs[i])[j] +=
-                std::pow((*it)[static_cast<int>(feaIdx)] -
-                         (*_means[i])[j], 2.0);
+            _stddevs[i][j] +=
+                ((*it)[static_cast<int>(feaIdx)] - _means[i][j]) *
+                ((*it)[static_cast<int>(feaIdx)] - _means[i][j]);
           }
-          (*_stddevs[i])[j] =
-              std::sqrt((*_stddevs[i])[j] /
-                        static_cast<double>(samples.size()));
+          _stddevs[i][j] =
+              std::sqrt(_stddevs[i][j] / static_cast<double>(samples.size()));
           ++feaIdx;
         }
-        if (p_progress != NULL && p_progress->isAborted())
-        {
-          for (size_t i = 0; i < _featureGroups.size(); ++i)
-          {
-#ifdef DEBUG_MEMORY
-            __allocatedMemblocks.erase(_means[i]);
-            __allocatedMemblocks.erase(_stddevs[i]);
-#endif
-            delete _means[i];
-            delete _stddevs[i];
-          }
-          return;
-        }
+        if (p_progress != NULL && p_progress->isAborted()) return;
       }
     }
   
@@ -444,16 +307,16 @@ namespace iRoCS
         {
           if (p_progress != NULL && p_progress->isAborted()) continue;
           size_t feaIdx = feaStart;
-          for (size_t j = 0; j < _featureNames[i]->size(); ++j, ++feaIdx) 
+          for (size_t j = 0; j < _featureNames[i].size(); ++j, ++feaIdx) 
           {
             samples[k][static_cast<int>(feaIdx)] =
-                (samples[k][static_cast<int>(feaIdx)] -
-                 (*_means[i])[j]) / (*_stddevs[i])[j];
+                (samples[k][static_cast<int>(feaIdx)] - _means[i][j]) /
+                _stddevs[i][j];
           }
         }
         if (p_progress != NULL && p_progress->isAborted()) return;
       }
-      feaStart += _featureNames[i]->size();
+      feaStart += _featureNames[i].size();
     }
   }
 
@@ -464,8 +327,8 @@ namespace iRoCS
       svt::StDataHdf5 modelMap(modelFileName.c_str(), H5F_ACC_RDWR);
       modelMap.setExceptionFlag(true);
 
-      modelMap.setArray("featureGroups",
-                        _featureGroups.begin(), _featureGroups.size());
+      modelMap.setArray(
+          "featureGroups", _featureGroups.begin(), _featureGroups.size());
       std::vector<int> normalize(_normalize.size());
       for (size_t i = 0; i < _normalize.size(); ++i)
           normalize[i] = int(_normalize[i]);
@@ -475,11 +338,11 @@ namespace iRoCS
       {
         std::string groupName = h5GroupName(_featureGroups[i]);
         modelMap.setArray("featureNames_" + groupName,
-                          _featureNames[i]->begin(), _featureNames[i]->size());
+                          _featureNames[i].begin(), _featureNames[i].size());
         modelMap.setArray("featureMeans_" + groupName,
-                          _means[i]->begin(), _means[i]->size());
+                          _means[i].begin(), _means[i].size());
         modelMap.setArray("featureStddevs_" + groupName,
-                          _stddevs[i]->begin(), _stddevs[i]->size());
+                          _stddevs[i].begin(), _stddevs[i].size());
       }
     }
     catch (std::exception &e)
@@ -499,84 +362,37 @@ namespace iRoCS
       svt::StDataHdf5 modelMap(modelFileName.c_str());
       modelMap.setExceptionFlag(true);
 
-      _featureGroups.resize(modelMap.getArraySize("featureGroups"));
-      modelMap.getArray("featureGroups",
-                        _featureGroups.begin(),
-                        static_cast<int>(_featureGroups.size()));
+      int nFeatureGroups = modelMap.getArraySize("featureGroups");
+      _featureGroups.resize(nFeatureGroups);
+      modelMap.getArray(
+          "featureGroups", _featureGroups.begin(), nFeatureGroups);
       _featureBaseGroup = _featureGroups.front().substr(
           0, _featureGroups.front().rfind("/"));
       _featureBaseGroup = _featureBaseGroup.substr(
           0, _featureBaseGroup.rfind("/"));
-      _normalize.resize(_featureGroups.size());
-      std::vector<int> normalize(_featureGroups.size());
+      _normalize.resize(nFeatureGroups);
+      std::vector<int> normalize(nFeatureGroups);
       modelMap.getArray(
-          "featureNormalization",
-          normalize.begin(), static_cast<int>(normalize.size()));
-      for (size_t i = 0; i < normalize.size(); ++i)
+          "featureNormalization", normalize.begin(), nFeatureGroups);
+      for (int i = 0; i < nFeatureGroups; ++i)
           _normalize[i] = static_cast<NormalizationType>(normalize[i]);
-      _featureNames.resize(_featureGroups.size(), NULL);
-      _means.resize(_featureGroups.size(), NULL);
-      _stddevs.resize(_featureGroups.size(), NULL);
+      _featureNames.resize(_featureGroups.size());
+      _means.resize(_featureGroups.size());
+      _stddevs.resize(_featureGroups.size());
       for (size_t i = 0; i < _featureGroups.size(); ++i) 
       {
         std::string groupName = h5GroupName(_featureGroups[i]);
-        _featureNames[i] = new std::vector<std::string>(
+        _featureNames[i].resize(
             modelMap.getArraySize("featureNames_" + groupName));
-#ifdef DEBUG_MEMORY
-        {
-          std::stringstream __allocCodeLineStream;
-          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
-          __Memblock __memblock;
-          __memblock.allocCodeLine = __allocCodeLineStream.str();
-          std::stringstream __commandStream;
-          __commandStream
-              << "_featureNames[" << i << "] = new std::vector<std::string>("
-              << modelMap.getArraySize("featureNames_" + groupName) << ")";
-          __memblock.command = __commandStream.str();
-          __allocatedMemblocks[_featureNames[i]] = __memblock;
-        }
-#endif
-        modelMap.getArray("featureNames_" + groupName,
-                          _featureNames[i]->begin(),
-                          static_cast<int>(_featureNames[i]->size()));
-        _means[i] = new std::vector<double>(
-            modelMap.getArraySize("featureNames_" + groupName));
-#ifdef DEBUG_MEMORY
-        {
-          std::stringstream __allocCodeLineStream;
-          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
-          __Memblock __memblock;
-          __memblock.allocCodeLine = __allocCodeLineStream.str();
-          std::stringstream __commandStream;
-          __commandStream
-              << "_means[" << i << "] = new std::vector<double>("
-              << modelMap.getArraySize("featureNames_" + groupName) << ")";
-          __memblock.command = __commandStream.str();
-          __allocatedMemblocks[_means[i]] = __memblock;
-        }
-#endif
-        modelMap.getArray("featureMeans_" + groupName,
-                          _means[i]->begin(),
-                          static_cast<int>(_means[i]->size()));
-        _stddevs[i] = new std::vector<double>(
-            modelMap.getArraySize("featureNames_" + groupName));
-#ifdef DEBUG_MEMORY
-        {
-          std::stringstream __allocCodeLineStream;
-          __allocCodeLineStream << __FILE__ << ":" << __LINE__ - 5;
-          __Memblock __memblock;
-          __memblock.allocCodeLine = __allocCodeLineStream.str();
-          std::stringstream __commandStream;
-          __commandStream
-              << "_stddevs[" << i << "] = new std::vector<double>("
-              << modelMap.getArraySize("featureNames_" + groupName) << ")";
-          __memblock.command = __commandStream.str();
-          __allocatedMemblocks[_stddevs[i]] = __memblock;
-        }
-#endif
-        modelMap.getArray("featureStddevs_" + groupName,
-                          _stddevs[i]->begin(),
-                          static_cast<int>(_stddevs[i]->size()));
+        int nFeatures = _featureNames[i].size();
+        modelMap.getArray(
+            "featureNames_" + groupName, _featureNames[i].begin(), nFeatures);
+        _means[i].resize(nFeatures);
+        modelMap.getArray(
+            "featureMeans_" + groupName, _means[i].begin(), nFeatures);
+        _stddevs[i].resize(nFeatures);
+        modelMap.getArray(
+            "featureStddevs_" + groupName, _stddevs[i].begin(), nFeatures);
       }
     }
     catch (std::exception &e)

@@ -6,6 +6,8 @@ MOC = @QT4_MOC@
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -version-info 1:0:0
 
+# version bump to 2:0:1 pending (Interface extension)
+
 MOC_GEN_SOURCES = \
 	moc_ProgressReporterQt4.cc
 

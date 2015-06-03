@@ -186,4 +186,9 @@ namespace iRoCS
     abort();
   }
 
+  QProgressBar *ProgressReporterQt4::progressBar() const
+  {
+    return p_progressBar;
+  }
+
 }

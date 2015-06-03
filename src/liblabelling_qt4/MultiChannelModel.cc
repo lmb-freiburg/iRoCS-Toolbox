@@ -551,8 +551,7 @@ void MultiChannelModel::removeChannel(
   if (bBoxChanged) emit boundingBoxChanged(_lowerBoundUm, _upperBoundUm);
   if (elementSizeUmChanged) emit elementSizeChanged(_elementSizeUm);
 
-  // If the model becomes empty reset the shape and element size,
-  // disable the "Delete channel" button, and emit the isEmpty SIGNAL
+  // If the model becomes empty emit the isEmpty SIGNAL
   if (_channels.size() == 0) emit isEmpty(true);
 
   // emit the channelRemoved SIGNAL

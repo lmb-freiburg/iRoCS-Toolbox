@@ -239,5 +239,107 @@ namespace atb
     delete[] b;    
   }
 
+  template<typename DataT>
+  void STderiv(Array<DataT,3> const &data,
+               std::map< SDMagFeatureIndex, Array<DataT,3> > &sdFeatures,
+               double sigma, int laplace, BlitzIndexT maxBand)
+  {
+    blitz::TinyVector<BlitzIndexT,3> paddedShape, lb, ub;
+    paddedShape = data.shape() + 2 * (maxBand + 1);
+    lb = BlitzIndexT(maxBand + 1);
+    ub = lb + data.shape() - 1;
+    blitz::RectDomain<3> validRange(lb, ub);
+
+    // Allocate
+    std::cout << "  Allocating temporary arrays" << std::endl;
+    std::complex<double>* a = new std::complex<double>[
+        (maxBand + 1) * blitz::product(paddedShape)];
+    memset(a, 0, (maxBand + 1) * blitz::product(paddedShape) *
+           sizeof(std::complex<double>));
+    std::complex<double>* b = new std::complex<double>[
+        (maxBand + 1) * blitz::product(paddedShape)];
+    BlitzIndexT dataSize[] = { paddedShape(2), paddedShape(1), paddedShape(0) };
+  
+    // Convert data to complex double and initialize first temporary
+    std::cout << "  Converting data to complex numbers" << std::endl;
+    Array<std::complex<double>,3> cData(paddedShape, data.elementSizeUm());
+    for (Array<std::complex<double>,3>::iterator it = cData.begin();
+         it != cData.end(); ++it) 
+    {
+      blitz::TinyVector<BlitzIndexT,3> sPos = it.position() - lb;
+      for (int d = 0; d < 3; ++d)
+      {
+        if (sPos(d) < 0) sPos(d) = 0;
+        if (sPos(d) >= data.extent(d)) sPos(d) = data.extent(d) - 1;
+      }
+      *it = static_cast< std::complex<double> >(data(sPos));
+    }
+
+    std::cout << "  Initializing first temporary array" << std::endl;
+    memcpy(a, &cData(0, 0, 0), cData.size() * sizeof(std::complex<double>));
+    std::cout << "  Cleaning up complex array" << std::endl;
+    cData.free();
+
+    std::cout << "Allocating temporary result Array" << std::endl;
+    Array<DataT,3> res(paddedShape, data.elementSizeUm());
+    std::complex<double>* tmp;
+  
+    // Iterate over desired bands and compute features
+    for (int l = 1; l <= maxBand; ++l) 
+    {
+      std::cout << "  Processing band " << l << " of " << maxBand << std::endl;
+
+      memset(b, 0, (maxBand + 1) * blitz::product(paddedShape) *
+             sizeof(std::complex<double>));
+
+      // Compute spherical tensor
+      std::cout << "    Computing real derivative" <<  std::endl;
+      STderivReal(reinterpret_cast<double*>(a), dataSize, l,
+                  reinterpret_cast<double*>(b));
+
+      // Compute features (absolute values of tensor)
+      std::cout << "    Computing absolute value of real derivative tensor"
+                <<  std::endl;
+      res = 0;
+      BlitzIndexT planeSize = res.extent(1) * res.extent(2);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (BlitzIndexT z = 0; z < res.extent(0); ++z) 
+      {
+        DataT* it1 = &res(z, BlitzIndexT(0), BlitzIndexT(0));
+        std::complex<double>* it2 = b + z * (l + 1) * planeSize;
+
+        for (; it1 < &res(z, BlitzIndexT(0), BlitzIndexT(0)) +
+                 planeSize; ++it1) 
+        {
+          for (BlitzIndexT j = 0; j < l; ++j, ++it2) 
+          {
+            *it1 += std::real(*it2) * std::real(*it2) +
+                std::imag(*it2) * std::imag(*it2);
+          }
+          *it1 += 0.5 * (std::real(*it2) * std::real(*it2) +
+                         std::imag(*it2) * std::imag(*it2));
+          ++it2;
+          *it1 = std::sqrt(*it1);
+        }
+      }
+
+      atb::Array<double,3> &fea =
+          sdFeatures[SDMagFeatureIndex(sigma, laplace, l)];
+      fea.resize(data.shape());
+      fea.setElementSizeUm(data.elementSizeUm());
+      fea = res(validRange);
+
+      // Swap Array roles
+      tmp = a;
+      a = b;
+      b = tmp;
+    }
+
+    delete[] a;
+    delete[] b;    
+  }
+
 }
 

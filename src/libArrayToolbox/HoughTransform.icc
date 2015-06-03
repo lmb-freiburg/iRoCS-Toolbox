@@ -379,4 +379,156 @@ namespace atb
     }
   }  
 
+  template<typename DataT>
+  void computeHoughTransform(
+      const Array<DataT,3>& data,
+      std::map< int, Array<double,3> >& houghFeatures,
+      const double rMin, const double rMax,
+      const double rStep, const double preSmoothing,
+      const double postSmoothing, const double minMagnitude) 
+  {
+    Array<blitz::TinyVector<double,3>,3> ddata(
+        data.shape(), data.elementSizeUm());
+  
+    if (preSmoothing > 0.0f)
+    {
+      std::vector< Array<DataT,1> > gaussKernels(3);
+      std::vector< Array<DataT,1> > derivativeKernels(3);
+      SeparableConvolutionFilter<DataT,3> filter(RepeatBT);
+      for (int d = 0; d < 3; ++d)
+      {
+        gaussKernels[d].setElementSizeUm(
+            blitz::TinyVector<double,1>(data.elementSizeUm()(d)));
+        gaussian(gaussKernels[d], blitz::TinyVector<double,1>(preSmoothing));
+        derivativeKernels[d].setElementSizeUm(
+            blitz::TinyVector<double,1>(data.elementSizeUm()(d)));
+        gaussianDerivative(
+            derivativeKernels[d], blitz::TinyVector<double,1>(preSmoothing),
+            blitz::TinyVector<int,1>(1));
+      }
+      Array<DataT,3> tmp(data.shape(), data.elementSizeUm());
+      for (int d = 0; d < 3; ++d)
+      {
+        for (int d2 = 0; d2 < 3; ++d2)
+            filter.setKernelForDim(
+                (d == d2) ? &derivativeKernels[d2] : &gaussKernels[d2], d2);
+        filter.apply(data, tmp);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (BlitzIndexT i = 0; i < data.size(); ++i)
+            ddata.dataFirst()[i](d) = tmp.dataFirst()[i];
+      }
+    }
+    else
+    {
+      CentralGradientFilter<DataT,3> filter(RepeatBT);
+      filter.apply(data, ddata);
+    }
+    
+    Array<double,3> ddataMag(ddata.shape(), data.elementSizeUm());
+    double ddataMagMin = std::numeric_limits<double>::infinity();
+    double ddataMagMax = -std::numeric_limits<double>::infinity();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < ddata.size(); ++i)
+    {
+      ddataMag.dataFirst()[i] =
+          std::sqrt(blitz::dot(ddata.dataFirst()[i], ddata.dataFirst()[i]));
+      if (ddataMag.dataFirst()[i] != 0.0)
+          ddata.dataFirst()[i] /= ddataMag.dataFirst()[i];
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      {
+        if (ddataMag.dataFirst()[i] > ddataMagMax)
+            ddataMagMax = ddataMag.dataFirst()[i];
+        if (ddataMag.dataFirst()[i] < ddataMagMin)
+            ddataMagMin = ddataMag.dataFirst()[i];
+      }
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(ddata.size()); ++i)
+    {
+      ddataMag.dataFirst()[i] = (ddataMag.dataFirst()[i] - ddataMagMin) /
+          (ddataMagMax - ddataMagMin);
+    }
+  
+    for (int i = 1; i <= 4; ++i)
+    {
+      houghFeatures[i].resize(data.shape());
+      houghFeatures[i].setElementSizeUm(data.elementSizeUm());
+    }
+
+    for (int i = 1; i <= 2; ++i)
+    {
+      std::memset(
+          houghFeatures[i].dataFirst(), 0, data.size() * sizeof(double));
+      std::memset(
+          houghFeatures[i + 2].dataFirst(), 0, data.size() * sizeof(double));
+
+      blitz::Array<double,3> accu(data.shape());
+      double direction = (i == 1) ? 1.0 : -1.0;
+      for (double r = rMin; r <= rMax; r += rStep) 
+      {
+        std::cout << "Computing hough transform - r = "
+                  << r << " micron        " << std::endl;
+
+        std::memset(accu.dataFirst(), 0, accu.size() * sizeof(double));
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t j = 0; j < static_cast<ptrdiff_t>(data.size()); ++j) 
+        {
+          if (ddataMag.dataFirst()[j] < minMagnitude) continue;
+
+          blitz::TinyVector<ptrdiff_t,3> p;
+          ptrdiff_t tmp = j;
+          for (int d = 2; d >= 0; --d)
+          {
+            p(d) = tmp % data.extent(d);
+            tmp /= data.extent(d);
+          }
+          p = blitz::TinyVector<ptrdiff_t,3>(
+              blitz::TinyVector<double,3>(p) + direction * r *
+              ddata.dataFirst()[j] / data.elementSizeUm() + 0.5);
+
+          if (blitz::all(p >= 0 && p < accu.shape())) 
+          {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            accu(p) += 1.0f;
+          }
+        }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t j = 0; j < static_cast<ptrdiff_t>(data.size()); ++j) 
+        {
+          if (accu.dataFirst()[j] > houghFeatures[i].dataFirst()[j])
+          {
+            houghFeatures[i + 2].dataFirst()[j] = r;
+            houghFeatures[i].dataFirst()[j] = accu.dataFirst()[j];
+          }
+        }
+      }
+    }
+  
+    if (postSmoothing != 0.0f) 
+    {
+      GaussianFilter<DataT,3> filter(
+          blitz::TinyVector<double,3>(postSmoothing), data.elementSizeUm(),
+          RepeatBT);
+      for (int i = 1; i <= 2; ++i)
+          filter.apply(houghFeatures[i], houghFeatures[i]);
+    }
+  }  
+
 }

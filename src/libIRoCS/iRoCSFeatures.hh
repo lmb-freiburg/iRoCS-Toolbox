@@ -39,8 +39,6 @@
 
 #include <libsvmtl/BasicFV.hh>
 
-#define DEBUG_MEMORY
-
 namespace iRoCS
 {
 
@@ -49,15 +47,6 @@ namespace iRoCS
 
   public:
   
-#ifdef DEBUG_MEMORY
-  struct __Memblock
-  {
-    std::string allocCodeLine;
-    std::string command;
-  };
-  std::map<void*,__Memblock> __allocatedMemblocks;
-#endif
-
     enum NormalizationType
     {
         None = 0x0000,
@@ -167,15 +156,15 @@ namespace iRoCS
     std::map<int,std::string> _houghDsNames;
 
     atb::Array<double,3> _dataScaled;
-    std::map<atb::SDMagFeatureIndex,atb::Array<double,3>*> _sdFeatures;
-    std::map<int, atb::Array<double,3>*> _houghFeatures;
+    std::map< atb::SDMagFeatureIndex, atb::Array<double,3> > _sdFeatures;
+    std::map< int, atb::Array<double,3> > _houghFeatures;
     atb::Array<blitz::TinyVector<double,3>,3> _intrinsicCoordinates;
 
     std::string _featureBaseGroup;
     std::vector<std::string> _featureGroups;
     std::vector<NormalizationType> _normalize;
-    std::vector<std::vector<std::string>*> _featureNames;
-    std::vector<std::vector<double>*> _means, _stddevs;
+    std::vector< std::vector<std::string> > _featureNames;
+    std::vector< std::vector<double> > _means, _stddevs;
 
   };
 

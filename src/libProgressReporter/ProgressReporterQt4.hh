@@ -84,6 +84,8 @@ namespace iRoCS
 
     bool updateProgressMessage(std::string const &message);
 
+    QProgressBar *progressBar() const;
+
   signals:
 
     void progressMinChanged(int);
