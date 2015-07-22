@@ -45,12 +45,7 @@ ColorMap::ColorMap(long long start, long long end)
       _fixedRandomColors[i] = generateRandomColor();
 
   _gammaLUT.resize(65536);
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-  for (int i = 0; i < static_cast<int>(_gammaLUT.size()); ++i)
-      _gammaLUT[i] = static_cast<double>(i) /
-          static_cast<double>(_gammaLUT.size() - 1);
+  _updateGammaLUT();
 }
 
 ColorMap::ColorMap(ColorMap const &colorMap)

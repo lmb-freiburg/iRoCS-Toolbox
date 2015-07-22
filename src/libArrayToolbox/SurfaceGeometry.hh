@@ -133,6 +133,12 @@ namespace atb
  *   \brief Get a random-access reference onto the Vertex vector of this
  *   SurfaceGeometry object.
  *
+ *   When requesting a read-write reference to the vertices, the bounding
+ *   will be recomputed when requested the next time. When editing a stored
+ *   reference, the bounding box will be only recomputed at first bounding box
+ *   request, try to avoid keeping references to the vertex vector, or
+ *   request a new reference if you want to force a bounding box update.
+ *
  *   \return A reference to the Vertex vector of this SurfaceGeometry object
  */
 /*======================================================================*/
@@ -250,11 +256,47 @@ namespace atb
         std::vector< blitz::TinyVector<blitz::TinyVector<float,2>,2> > &lines)
         const;
 
+/*======================================================================*/
+/*! 
+ *   Get the tight, axis-aligned lower bound of the bounding box for this
+ *   surface geometry. Lower and upper bound will be recomputed if a
+ *   random-access reference to the vertex vector of this SurfaceGeometry
+ *   was requested since the last call to boundingBoxLowerBoundUm() or
+ *   boundingBoxUpperBoundUm(). If the user stores a persistent reference
+ *   for editing the automatic update fails.
+ *
+ *   \return The lower bound of the bounding box enclosing this
+ *     SurfaceGeometry
+ */
+/*======================================================================*/
+    blitz::TinyVector<double,3> const &boundingBoxLowerBoundUm() const;
+
+/*======================================================================*/
+/*! 
+ *   Get the tight, axis-aligned upper bound of the bounding box for this
+ *   surface geometry. Lower and upper bound will be recomputed if a
+ *   random-access reference to the vertex vector of this SurfaceGeometry
+ *   was requested since the last call to boundingBoxLowerBoundUm() or
+ *   boundingBoxUpperBoundUm(). If the user stores a persistent reference
+ *   for editing the automatic update fails.
+ *
+ *   \return The upper bound of the bounding box enclosing this
+ *     SurfaceGeometry
+ */
+/*======================================================================*/
+    blitz::TinyVector<double,3> const &boundingBoxUpperBoundUm() const;
+
   private:
+
+    void _updateBoundingBox() const;
 
     std::vector<VertexT> _vertices;
     std::vector<NormalT> _normals;
     std::vector<IndexT> _indices;
+
+    mutable blitz::TinyVector<double,3> _boundingBoxLowerBoundUm,
+        _boundingBoxUpperBoundUm;
+    mutable bool _boundingBoxUpToDate;
     
   };
 

@@ -34,12 +34,16 @@ namespace atb
 {
 
   SurfaceGeometry::SurfaceGeometry()
-          : _vertices(), _normals(), _indices()
+          : _vertices(), _normals(), _indices(), _boundingBoxLowerBoundUm(0.0),
+            _boundingBoxUpperBoundUm(0.0), _boundingBoxUpToDate(false)
   {}
   
   SurfaceGeometry::SurfaceGeometry(SurfaceGeometry const &geometry)
           : _vertices(geometry._vertices), _normals(geometry._normals),
-            _indices(geometry._indices)
+            _indices(geometry._indices),
+            _boundingBoxLowerBoundUm(geometry._boundingBoxLowerBoundUm),
+            _boundingBoxUpperBoundUm(geometry._boundingBoxUpperBoundUm),
+            _boundingBoxUpToDate(geometry._boundingBoxUpToDate)
   {}
 
   SurfaceGeometry::~SurfaceGeometry()
@@ -50,6 +54,9 @@ namespace atb
     _vertices = geometry._vertices;
     _normals = geometry._normals;
     _indices = geometry._indices;
+    _boundingBoxLowerBoundUm = geometry._boundingBoxLowerBoundUm;
+    _boundingBoxUpperBoundUm = geometry._boundingBoxUpperBoundUm;
+    _boundingBoxUpToDate = geometry._boundingBoxUpToDate;
     return *this;
   }
 
@@ -60,6 +67,7 @@ namespace atb
   
   std::vector<SurfaceGeometry::VertexT> &SurfaceGeometry::vertices()
   {
+    _boundingBoxUpToDate = false;
     return _vertices;
   }
 
@@ -208,5 +216,43 @@ namespace atb
       if (p == 2) lines.push_back(line);
     }
   }
+ 
+  blitz::TinyVector<double,3> const &
+  SurfaceGeometry::boundingBoxLowerBoundUm() const
+  {
+    if (!_boundingBoxUpToDate) _updateBoundingBox();
+    return _boundingBoxLowerBoundUm;
+  }
   
+  blitz::TinyVector<double,3> const &
+  SurfaceGeometry::boundingBoxUpperBoundUm() const
+  {
+    if (!_boundingBoxUpToDate) _updateBoundingBox();
+    return _boundingBoxUpperBoundUm;
+  }
+  
+  void SurfaceGeometry::_updateBoundingBox() const
+  {
+    if (_vertices.size() == 0)
+    {
+      _boundingBoxLowerBoundUm = 0.0;
+      _boundingBoxUpperBoundUm = 0.0;
+    }
+    else
+    {
+      _boundingBoxLowerBoundUm = _boundingBoxUpperBoundUm = _vertices[0];
+      for (size_t i = 1; i < _vertices.size(); ++i)
+      {
+        for (int d = 0; d < 3; ++d)
+        {
+          if (_vertices[i](d) < _boundingBoxLowerBoundUm(d))
+              _boundingBoxLowerBoundUm(d) = _vertices[i](d);
+          if (_vertices[i](d) > _boundingBoxUpperBoundUm(d))
+              _boundingBoxUpperBoundUm(d) = _vertices[i](d);          
+        }
+      }
+    }
+    _boundingBoxUpToDate = true;
+  }
+ 
 }
