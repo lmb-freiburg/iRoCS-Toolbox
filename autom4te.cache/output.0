@@ -16455,9 +16455,9 @@ else
 fi
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw_kernel_malloc in -lfftw3" >&5
-$as_echo_n "checking for fftw_kernel_malloc in -lfftw3... " >&6; }
-if ${ac_cv_lib_fftw3_fftw_kernel_malloc+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw_malloc in -lfftw3" >&5
+$as_echo_n "checking for fftw_malloc in -lfftw3... " >&6; }
+if ${ac_cv_lib_fftw3_fftw_malloc+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -16471,27 +16471,27 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char fftw_kernel_malloc ();
+char fftw_malloc ();
 int
 main ()
 {
-return fftw_kernel_malloc ();
+return fftw_malloc ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_fftw3_fftw_kernel_malloc=yes
+  ac_cv_lib_fftw3_fftw_malloc=yes
 else
-  ac_cv_lib_fftw3_fftw_kernel_malloc=no
+  ac_cv_lib_fftw3_fftw_malloc=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fftw3_fftw_kernel_malloc" >&5
-$as_echo "$ac_cv_lib_fftw3_fftw_kernel_malloc" >&6; }
-if test "x$ac_cv_lib_fftw3_fftw_kernel_malloc" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fftw3_fftw_malloc" >&5
+$as_echo "$ac_cv_lib_fftw3_fftw_malloc" >&6; }
+if test "x$ac_cv_lib_fftw3_fftw_malloc" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 @%:@define HAVE_LIBFFTW3 1
 _ACEOF
@@ -16502,9 +16502,9 @@ else
   as_fn_error $? "fftw library not found in $with_fftw/lib" "$LINENO" 5
 fi
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw_kernel_malloc in -lfftw3f" >&5
-$as_echo_n "checking for fftw_kernel_malloc in -lfftw3f... " >&6; }
-if ${ac_cv_lib_fftw3f_fftw_kernel_malloc+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw_malloc in -lfftw3f" >&5
+$as_echo_n "checking for fftw_malloc in -lfftw3f... " >&6; }
+if ${ac_cv_lib_fftw3f_fftw_malloc+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -16518,27 +16518,27 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char fftw_kernel_malloc ();
+char fftw_malloc ();
 int
 main ()
 {
-return fftw_kernel_malloc ();
+return fftw_malloc ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_fftw3f_fftw_kernel_malloc=yes
+  ac_cv_lib_fftw3f_fftw_malloc=yes
 else
-  ac_cv_lib_fftw3f_fftw_kernel_malloc=no
+  ac_cv_lib_fftw3f_fftw_malloc=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fftw3f_fftw_kernel_malloc" >&5
-$as_echo "$ac_cv_lib_fftw3f_fftw_kernel_malloc" >&6; }
-if test "x$ac_cv_lib_fftw3f_fftw_kernel_malloc" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fftw3f_fftw_malloc" >&5
+$as_echo "$ac_cv_lib_fftw3f_fftw_malloc" >&6; }
+if test "x$ac_cv_lib_fftw3f_fftw_malloc" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 @%:@define HAVE_LIBFFTW3F 1
 _ACEOF
@@ -16558,9 +16558,9 @@ else
 fi
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw_kernel_malloc in -lfftw3" >&5
-$as_echo_n "checking for fftw_kernel_malloc in -lfftw3... " >&6; }
-if ${ac_cv_lib_fftw3_fftw_kernel_malloc+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw_malloc in -lfftw3" >&5
+$as_echo_n "checking for fftw_malloc in -lfftw3... " >&6; }
+if ${ac_cv_lib_fftw3_fftw_malloc+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -16574,27 +16574,27 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char fftw_kernel_malloc ();
+char fftw_malloc ();
 int
 main ()
 {
-return fftw_kernel_malloc ();
+return fftw_malloc ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_fftw3_fftw_kernel_malloc=yes
+  ac_cv_lib_fftw3_fftw_malloc=yes
 else
-  ac_cv_lib_fftw3_fftw_kernel_malloc=no
+  ac_cv_lib_fftw3_fftw_malloc=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fftw3_fftw_kernel_malloc" >&5
-$as_echo "$ac_cv_lib_fftw3_fftw_kernel_malloc" >&6; }
-if test "x$ac_cv_lib_fftw3_fftw_kernel_malloc" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fftw3_fftw_malloc" >&5
+$as_echo "$ac_cv_lib_fftw3_fftw_malloc" >&6; }
+if test "x$ac_cv_lib_fftw3_fftw_malloc" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 @%:@define HAVE_LIBFFTW3 1
 _ACEOF
@@ -16605,9 +16605,9 @@ else
   as_fn_error $? "fftw library not found in standard library path. Please provide the path to your fftw installation using the --with-fftw option" "$LINENO" 5
 fi
   
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw_kernel_malloc in -lfftw3f" >&5
-$as_echo_n "checking for fftw_kernel_malloc in -lfftw3f... " >&6; }
-if ${ac_cv_lib_fftw3f_fftw_kernel_malloc+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw_malloc in -lfftw3f" >&5
+$as_echo_n "checking for fftw_malloc in -lfftw3f... " >&6; }
+if ${ac_cv_lib_fftw3f_fftw_malloc+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -16621,27 +16621,27 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char fftw_kernel_malloc ();
+char fftw_malloc ();
 int
 main ()
 {
-return fftw_kernel_malloc ();
+return fftw_malloc ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_fftw3f_fftw_kernel_malloc=yes
+  ac_cv_lib_fftw3f_fftw_malloc=yes
 else
-  ac_cv_lib_fftw3f_fftw_kernel_malloc=no
+  ac_cv_lib_fftw3f_fftw_malloc=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fftw3f_fftw_kernel_malloc" >&5
-$as_echo "$ac_cv_lib_fftw3f_fftw_kernel_malloc" >&6; }
-if test "x$ac_cv_lib_fftw3f_fftw_kernel_malloc" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_fftw3f_fftw_malloc" >&5
+$as_echo "$ac_cv_lib_fftw3f_fftw_malloc" >&6; }
+if test "x$ac_cv_lib_fftw3f_fftw_malloc" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 @%:@define HAVE_LIBFFTW3F 1
 _ACEOF

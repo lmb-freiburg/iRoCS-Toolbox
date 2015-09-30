@@ -230,16 +230,16 @@ if test "$with_fftw" != "autodetect"; then
   LDFLAGS+=" -L$with_fftw/lib"
   AC_CHECK_HEADER([fftw3.h], [],
     AC_MSG_ERROR([fftw headers not found in $with_fftw/include]))
-  AC_CHECK_LIB(fftw3, fftw_kernel_malloc, [],
+  AC_CHECK_LIB(fftw3, fftw_malloc, [],
     AC_MSG_ERROR([fftw library not found in $with_fftw/lib]))
-  AC_CHECK_LIB(fftw3f, fftw_kernel_malloc, [],
+  AC_CHECK_LIB(fftw3f, fftw_malloc, [],
     AC_MSG_ERROR([fftwf library not found in $with_fftw/lib]))
 else	
   AC_CHECK_HEADER([fftw3.h], [],
     AC_MSG_ERROR([fftw headers not found in standard include path. Please provide the path to your fftw installation using the --with-fftw option]))
-  AC_CHECK_LIB(fftw3, fftw_kernel_malloc, [],
+  AC_CHECK_LIB(fftw3, fftw_malloc, [],
     AC_MSG_ERROR([fftw library not found in standard library path. Please provide the path to your fftw installation using the --with-fftw option]))  
-  AC_CHECK_LIB(fftw3f, fftw_kernel_malloc, [],
+  AC_CHECK_LIB(fftw3f, fftw_malloc, [],
     AC_MSG_ERROR([fftwf library not found in standard library path. Please provide the path to your fftw installation using the --with-fftw option]))  
 fi
 
