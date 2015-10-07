@@ -29,7 +29,8 @@
 
 #include <vector>
 #include <blitz/array.h>
-#include <opencv/cv.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include <libBlitzHdf5/BlitzHdf5Light.hh>
 

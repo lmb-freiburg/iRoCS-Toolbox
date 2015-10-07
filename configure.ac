@@ -249,8 +249,10 @@ fi
 if test "$with_opencv" != "autodetect"; then
   CPPFLAGS+=" -I$with_opencv/include"
   LDFLAGS+=" -L$with_opencv/lib"
-  AC_CHECK_HEADER([opencv/cv.h], [],
-    AC_MSG_ERROR([OpenCV translation headers not found in $with_opencv/include/opencv. In Ubuntu they are contained in the package libcv-dev.]))
+  AC_CHECK_HEADER([opencv2/core/core.hpp], [],
+    AC_MSG_ERROR([OpenCV core header (opencv2/core/core.hpp) not found in $with_opencv.]))
+  AC_CHECK_HEADER([opencv2/imgproc/imgproc.hpp], [],
+    AC_MSG_ERROR([OpenCV Imageprocessing header (opencv2/imgproc/imgproc.hpp) not found in $with_opencv.]))
   AC_CHECK_LIB(opencv_core, cvError, [
     LIBS="-lopencv_core $LIBS"
     AC_CHECK_LIB(opencv_imgproc, cvFitEllipse2, [],
@@ -261,8 +263,10 @@ if test "$with_opencv" != "autodetect"; then
         AC_MSG_ERROR([OpenCV (libcv) library not found in $with_openvc/lib])])], [
       AC_MSG_ERROR([OpenCV core (libcxcore) library not found in $with_opencv/lib])])])
 else	
-  AC_CHECK_HEADER([opencv/cv.h], [],
-    AC_MSG_ERROR([OpenCV headers not found in standard include path. Please provide the path to your OpenCV installation using the --with-opencv option]))
+  AC_CHECK_HEADER([opencv2/core/core.hpp], [],
+    AC_MSG_ERROR([OpenCV core header (opencv2/core/core.hpp) not found in standard include path. Please provide the path to your OpenCV installation using the --with-opencv option.]))
+  AC_CHECK_HEADER([opencv2/imgproc/imgproc.hpp], [],
+    AC_MSG_ERROR([OpenCV Imageprocessing header (opencv2/imgproc/imgproc.hpp) not found in standard include path. Please provide the path to your OpenCV installation using the --with-opencv option.]))
   AC_CHECK_LIB(opencv_core, cvError, [
     LIBS="-lopencv_core $LIBS"
     AC_CHECK_LIB(opencv_imgproc, cvFitEllipse2, [],

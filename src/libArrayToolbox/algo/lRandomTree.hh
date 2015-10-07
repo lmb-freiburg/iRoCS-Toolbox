@@ -39,7 +39,7 @@
 #include <map>
 
 #include <opencv/cxcore.h>
-#include <opencv/cv.h>
+//#include <opencv/cv.h>
 
 // Auxilary structure
 struct IntIndex
