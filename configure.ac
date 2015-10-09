@@ -97,17 +97,18 @@ if test "x$PKG_CONFIG" != "x"; then
     PKG_CHECK_MODULES(FFTW, [fftw3 fftw3f], [],
       [AC_MSG_NOTICE(pkgconfig for fftw not found... Deferring)])
   fi
-#  if test "$with_opencv" == "autodetect"; then
-#    PKG_CHECK_MODULES(OPENCV, [opencv], [],
-#      [AC_MSG_NOTICE(pkgconfig for OpenCV not found... Deferring)])
-#  fi
+  if test "$with_opencv" == "autodetect"; then
+    PKG_CHECK_MODULES(OPENCV, [opencv], [],
+      [AC_MSG_NOTICE(pkgconfig for OpenCV not found... Deferring)])
+  fi
   PKG_CHECK_MODULES(GLU, [glu], [],
     [AC_MSG_NOTICE(pkgconfig for glu not found... Deferring)])
   if test "$with_qt4" == "autodetect"; then
-    PKG_CHECK_MODULES(QT4, [QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0], [
-      AC_PATH_PROGS(QT4_MOC, [moc-qt4 moc], moc,`eval $PKG_CONFIG --variable=exec_prefix QtCore`/bin)
-      AC_PATH_PROG(QT4_RCC, rcc, rcc,`eval $PKG_CONFIG --variable=exec_prefix QtCore`/bin)
-      AC_PATH_PROGS(QT4_UIC, [uic-qt4 uic], uic,`eval $PKG_CONFIG --variable=exec_prefix QtCore`/bin)], [AC_MSG_NOTICE(pkgconfig for Qt4 not found... Deferring)])
+    PKG_CHECK_MODULES(QT4, [QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0], [
+      QT4_MOC="`pkg-config --variable=moc_location QtCore`"
+      QT4_RCC="`pkg-config --variable=rcc_location QtCore`"
+      QT4_UIC="`pkg-config --variable=uic_location QtCore`"],
+      [AC_MSG_NOTICE(pkgconfig for Qt4 not found... Deferring)])
     AC_SUBST(QT4_MOC)
     AC_SUBST(QT4_RCC)
     AC_SUBST(QT4_UIC)
@@ -146,10 +147,6 @@ if test "x$PKG_CONFIG" != "x"; then
       PKG_CHECK_MODULES(FFTW_STATIC, [fftw3 fftw3f], [],
         [AC_MSG_ERROR(No static FFTW library available)])
     fi
-#    PKG_CHECK_MODULES(OPENGL_STATIC, [gl], [],
-#      [AC_MSG_ERROR(No static OpenGL library available)])
-#    PKG_CHECK_MODULES(ZLIB_STATIC, [zlib], [],
-#      [AC_MSG_ERROR(No static zlib library available)])
     if test "x$OPENCV_LIBS" != "x"; then
       PKG_CHECK_MODULES(OPENCV_STATIC, [opencv], [],
         [AC_MSG_ERROR(No static OpenCV library available)])

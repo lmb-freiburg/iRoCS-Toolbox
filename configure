@@ -635,8 +635,6 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-OPENCV_LIBS
-OPENCV_CFLAGS
 OPENCV_STATIC_LIBS
 OPENCV_STATIC_CFLAGS
 FFTW_STATIC_LIBS
@@ -658,6 +656,8 @@ QT4_LIBS
 QT4_CFLAGS
 GLU_LIBS
 GLU_CFLAGS
+OPENCV_LIBS
+OPENCV_CFLAGS
 FFTW_LIBS
 FFTW_CFLAGS
 HDF5_LIBS
@@ -846,6 +846,8 @@ HDF5_CFLAGS
 HDF5_LIBS
 FFTW_CFLAGS
 FFTW_LIBS
+OPENCV_CFLAGS
+OPENCV_LIBS
 GLU_CFLAGS
 GLU_LIBS
 QT4_CFLAGS
@@ -1542,6 +1544,9 @@ Some influential environment variables:
   HDF5_LIBS   linker flags for HDF5, overriding pkg-config
   FFTW_CFLAGS C compiler flags for FFTW, overriding pkg-config
   FFTW_LIBS   linker flags for FFTW, overriding pkg-config
+  OPENCV_CFLAGS
+              C compiler flags for OPENCV, overriding pkg-config
+  OPENCV_LIBS linker flags for OPENCV, overriding pkg-config
   GLU_CFLAGS  C compiler flags for GLU, overriding pkg-config
   GLU_LIBS    linker flags for GLU, overriding pkg-config
   QT4_CFLAGS  C compiler flags for QT4, overriding pkg-config
@@ -16410,10 +16415,81 @@ $as_echo "yes" >&6; }
 
 fi
   fi
-#  if test "$with_opencv" == "autodetect"; then
-#    PKG_CHECK_MODULES(OPENCV, [opencv], [],
-#      [AC_MSG_NOTICE(pkgconfig for OpenCV not found... Deferring)])
-#  fi
+  if test "$with_opencv" == "autodetect"; then
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENCV" >&5
+$as_echo_n "checking for OPENCV... " >&6; }
+
+if test -n "$OPENCV_CFLAGS"; then
+    pkg_cv_OPENCV_CFLAGS="$OPENCV_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_CFLAGS=`$PKG_CONFIG --cflags "opencv" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$OPENCV_LIBS"; then
+    pkg_cv_OPENCV_LIBS="$OPENCV_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_LIBS=`$PKG_CONFIG --libs "opencv" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "opencv" 2>&1`
+        else
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "opencv" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$OPENCV_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
+else
+	OPENCV_CFLAGS=$pkg_cv_OPENCV_CFLAGS
+	OPENCV_LIBS=$pkg_cv_OPENCV_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
+  fi
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for GLU" >&5
@@ -16497,12 +16573,12 @@ if test -n "$QT4_CFLAGS"; then
     pkg_cv_QT4_CFLAGS="$QT4_CFLAGS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0") 2>&5
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0") 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_QT4_CFLAGS=`$PKG_CONFIG --cflags "QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0" 2>/dev/null`
+  pkg_cv_QT4_CFLAGS=`$PKG_CONFIG --cflags "QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0" 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
 else
   pkg_failed=yes
@@ -16514,12 +16590,12 @@ if test -n "$QT4_LIBS"; then
     pkg_cv_QT4_LIBS="$QT4_LIBS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0") 2>&5
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0") 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_QT4_LIBS=`$PKG_CONFIG --libs "QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0" 2>/dev/null`
+  pkg_cv_QT4_LIBS=`$PKG_CONFIG --libs "QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0" 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
 else
   pkg_failed=yes
@@ -16540,9 +16616,9 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        QT4_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0" 2>&1`
+	        QT4_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0" 2>&1`
         else
-	        QT4_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "QtCore QtGui QtOpenGL QtXml QtSvg >= 4.6.0" 2>&1`
+	        QT4_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$QT4_PKG_ERRORS" >&5
@@ -16560,139 +16636,9 @@ else
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
-      for ac_prog in moc-qt4 moc
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_QT4_MOC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $QT4_MOC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_QT4_MOC="$QT4_MOC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in `eval $PKG_CONFIG --variable=exec_prefix QtCore`/bin
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_QT4_MOC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-QT4_MOC=$ac_cv_path_QT4_MOC
-if test -n "$QT4_MOC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $QT4_MOC" >&5
-$as_echo "$QT4_MOC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$QT4_MOC" && break
-done
-test -n "$QT4_MOC" || QT4_MOC="moc"
-
-      # Extract the first word of "rcc", so it can be a program name with args.
-set dummy rcc; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_QT4_RCC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $QT4_RCC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_QT4_RCC="$QT4_RCC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in `eval $PKG_CONFIG --variable=exec_prefix QtCore`/bin
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_QT4_RCC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_path_QT4_RCC" && ac_cv_path_QT4_RCC="rcc"
-  ;;
-esac
-fi
-QT4_RCC=$ac_cv_path_QT4_RCC
-if test -n "$QT4_RCC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $QT4_RCC" >&5
-$as_echo "$QT4_RCC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-      for ac_prog in uic-qt4 uic
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_QT4_UIC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $QT4_UIC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_QT4_UIC="$QT4_UIC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in `eval $PKG_CONFIG --variable=exec_prefix QtCore`/bin
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_QT4_UIC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-QT4_UIC=$ac_cv_path_QT4_UIC
-if test -n "$QT4_UIC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $QT4_UIC" >&5
-$as_echo "$QT4_UIC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$QT4_UIC" && break
-done
-test -n "$QT4_UIC" || QT4_UIC="uic"
-
+      QT4_MOC="`pkg-config --variable=moc_location QtCore`"
+      QT4_RCC="`pkg-config --variable=rcc_location QtCore`"
+      QT4_UIC="`pkg-config --variable=uic_location QtCore`"
 fi
 
 
@@ -17215,10 +17161,6 @@ $as_echo "yes" >&6; }
 
 fi
     fi
-#    PKG_CHECK_MODULES(OPENGL_STATIC, [gl], [],
-#      [AC_MSG_ERROR(No static OpenGL library available)])
-#    PKG_CHECK_MODULES(ZLIB_STATIC, [zlib], [],
-#      [AC_MSG_ERROR(No static zlib library available)])
     if test "x$OPENCV_LIBS" != "x"; then
 
 pkg_failed=no
