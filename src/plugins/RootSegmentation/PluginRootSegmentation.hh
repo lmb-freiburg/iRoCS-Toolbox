@@ -34,7 +34,7 @@
 #include "RootSegmentationParametersDialog.hh"
 #include "RootSegmentationThread.hh"
 
-#include <libProgressReporter/ProgressReporterQt4.hh>
+#include <libProgressReporter_qt4/ProgressReporterQt4.hh>
 
 class PluginRootSegmentation : public QObject, public PluginInterface
 {

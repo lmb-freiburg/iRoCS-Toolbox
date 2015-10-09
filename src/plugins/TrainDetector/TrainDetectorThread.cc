@@ -20,45 +20,21 @@
  *
  **************************************************************************/
 
-#ifndef ATTACHIROCSTOCELLSEGMENTATIONWORKER_HH
-#define ATTACHIROCSTOCELLSEGMENTATIONWORKER_HH
+#include "TrainDetectorThread.hh"
 
-#ifdef HAVE_CONFIG_H
-#include <config.hh>
-#endif
+#include <libIRoCS/TrainDetectorWorker.hh>
 
-#include <QtCore/QThread>
+TrainDetectorThread::TrainDetectorThread(
+    TrainDetectorParametersDialog const &parameters,
+    iRoCS::ProgressReporter *progress) 
+        : QThread(), _parameters(parameters), p_progress(progress),
+          _sigmaMin(0.5), _sigmaMax(64.0), _sigmaStep(2.0), _bandMax(5)
+{}
 
-#include <liblabelling_qt4/LabellingMainWidget.hh>
+TrainDetectorThread::~TrainDetectorThread()
+{}
 
-#include <libProgressReporter/ProgressReporter.hh>
-#include <libArrayToolbox/iRoCS.hh>
-
-#include "AttachIRoCSToCellSegmentationParameters.hh"
-
-class AttachIRoCSToCellSegmentationWorker : public QThread
+void TrainDetectorThread::run()
 {
-
-  Q_OBJECT
-
-  public:
-  
-  AttachIRoCSToCellSegmentationWorker(
-      AttachIRoCSToCellSegmentationParameters const &parameters,
-      atb::IRoCS *rct, iRoCS::ProgressReporter *progress = NULL,
-      LabellingMainWidget* mainWidget = NULL, QWidget* parent = NULL);
-  ~AttachIRoCSToCellSegmentationWorker();
-
-  void run();
-
-private:
-
-  AttachIRoCSToCellSegmentationParameters const &_parameters;
-  atb::IRoCS *p_rct;
-
-  iRoCS::ProgressReporter *p_progress;
-  LabellingMainWidget *p_mainWidget;
-
-};
-
-#endif
+  iRoCS::trainDetector(_parameters, p_progress);
+}

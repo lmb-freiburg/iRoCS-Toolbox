@@ -27,7 +27,7 @@
 #include <config.hh>
 #endif
 
-#include <libProgressReporter/ProgressReporterQt4.hh>
+#include <libProgressReporter_qt4/ProgressReporterQt4.hh>
 
 #include <QtCore/QThread>
 

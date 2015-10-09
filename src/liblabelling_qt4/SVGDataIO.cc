@@ -37,8 +37,6 @@
 #include <QtGui/QPainter>
 #include <QtXml/QXmlStreamWriter>
 
-#include <libProgressReporter/ProgressReporterQt4.hh>
-
 #include "LabellingMainWidget.hh"
 #include "MultiChannelModel.hh"
 #include "FileNameSelectionControlElement.hh"

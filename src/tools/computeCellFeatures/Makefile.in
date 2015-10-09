@@ -79,6 +79,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = computeCellFeatures$(EXEEXT)
+@STATIC_TOOLS_TRUE@am__append_1 = $(HDF5_STATIC_LIBS)
+@STATIC_TOOLS_FALSE@am__append_2 = $(HDF5_LIBS)
 subdir = src/tools/computeCellFeatures
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/depcomp
@@ -94,22 +96,28 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_computeCellFeatures_OBJECTS = computeCellFeatures.$(OBJEXT)
 computeCellFeatures_OBJECTS = $(am_computeCellFeatures_OBJECTS)
-computeCellFeatures_LDADD = $(LDADD)
+am__DEPENDENCIES_1 =
+@STATIC_TOOLS_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
+@STATIC_TOOLS_FALSE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1)
 computeCellFeatures_DEPENDENCIES =  \
 	$(top_builddir)/src/libIRoCS/libIRoCS.la \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la \
-	$(top_builddir)/src/liblabelling_qt4/libLabelling_qt4.la \
-	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
 	$(top_builddir)/src/libsegmentation/libsegmentation.la \
-	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
 	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
 	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
-	$(top_builddir)/src/libcmdline/libcmdline.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(top_builddir)/src/libcmdline/libcmdline.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(am__DEPENDENCIES_2) $(am__DEPENDENCIES_3)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+computeCellFeatures_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(AM_CXXFLAGS) $(CXXFLAGS) $(computeCellFeatures_LDFLAGS) \
+	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -179,6 +187,10 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BLITZ_CFLAGS = @BLITZ_CFLAGS@
+BLITZ_LIBS = @BLITZ_LIBS@
+BLITZ_STATIC_CFLAGS = @BLITZ_STATIC_CFLAGS@
+BLITZ_STATIC_LIBS = @BLITZ_STATIC_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -199,13 +211,31 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+FFTW_CFLAGS = @FFTW_CFLAGS@
+FFTW_LIBS = @FFTW_LIBS@
+FFTW_STATIC_CFLAGS = @FFTW_STATIC_CFLAGS@
+FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
+GLU_CFLAGS = @GLU_CFLAGS@
+GLU_LIBS = @GLU_LIBS@
 GREP = @GREP@
+GSL_CFLAGS = @GSL_CFLAGS@
+GSL_LIBS = @GSL_LIBS@
+GSL_STATIC_CFLAGS = @GSL_STATIC_CFLAGS@
+GSL_STATIC_LIBS = @GSL_STATIC_LIBS@
+HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_LIBS = @HDF5_LIBS@
+HDF5_STATIC_CFLAGS = @HDF5_STATIC_CFLAGS@
+HDF5_STATIC_LIBS = @HDF5_STATIC_LIBS@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+JPEG_CFLAGS = @JPEG_CFLAGS@
+JPEG_LIBS = @JPEG_LIBS@
+JPEG_STATIC_CFLAGS = @JPEG_STATIC_CFLAGS@
+JPEG_STATIC_LIBS = @JPEG_STATIC_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
@@ -221,7 +251,12 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OPENCV_CFLAGS = @OPENCV_CFLAGS@
+OPENCV_LIBS = @OPENCV_LIBS@
+OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
+OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
+OPENMP_LIBS = @OPENMP_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -232,8 +267,12 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+QT4_CFLAGS = @QT4_CFLAGS@
+QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
-QT4_QMAKE = @QT4_QMAKE@
 QT4_RCC = @QT4_RCC@
 QT4_UIC = @QT4_UIC@
 RANLIB = @RANLIB@
@@ -241,6 +280,10 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TIFF_CFLAGS = @TIFF_CFLAGS@
+TIFF_LIBS = @TIFF_LIBS@
+TIFF_STATIC_CFLAGS = @TIFF_STATIC_CFLAGS@
+TIFF_STATIC_LIBS = @TIFF_STATIC_LIBS@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -295,19 +338,21 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -Wno-long-long -I$(top_srcdir)/src
-@STATIC_TOOLS_TRUE@AM_LDFLAGS = -static
-LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la \
-	$(top_builddir)/src/liblabelling_qt4/libLabelling_qt4.la \
-	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
+AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
+	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
+
+AM_CXXFLAGS = -Wno-long-long
+computeCellFeatures_LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \
 	$(top_builddir)/src/libsegmentation/libsegmentation.la \
-	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
 	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
 	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
-	$(top_builddir)/src/libcmdline/libcmdline.la
-
+	$(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(top_builddir)/src/libcmdline/libcmdline.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la $(am__append_1) \
+	$(am__append_2)
+@STATIC_TOOLS_TRUE@computeCellFeatures_LDFLAGS = -all-static
 computeCellFeatures_SOURCES = computeCellFeatures.cc
 all: all-am
 
@@ -395,7 +440,7 @@ clean-binPROGRAMS:
 
 computeCellFeatures$(EXEEXT): $(computeCellFeatures_OBJECTS) $(computeCellFeatures_DEPENDENCIES) $(EXTRA_computeCellFeatures_DEPENDENCIES) 
 	@rm -f computeCellFeatures$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(computeCellFeatures_OBJECTS) $(computeCellFeatures_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(computeCellFeatures_LINK) $(computeCellFeatures_OBJECTS) $(computeCellFeatures_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

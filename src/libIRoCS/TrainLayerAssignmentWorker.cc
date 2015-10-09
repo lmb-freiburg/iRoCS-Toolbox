@@ -32,350 +32,315 @@
 #endif 
 
 #include "TrainfileParameters.hh"
+#include "iRoCSFeatures.hh"
 
-#include <liblabelling_qt4/LabellingMainWidget.hh>
-#include <liblabelling_qt4/NucleusMarker.hh>
-
-TrainLayerAssignmentWorker::TrainLayerAssignmentWorker(
-    TrainingParameters const &parameters,
-    iRoCS::ProgressReporter *progress) 
-        : QThread(), _parameters(parameters), p_progress(progress),
-          _sigmaMin(0.5), _sigmaMax(64.0), _sigmaStep(2.0), _bandMax(5)
+namespace iRoCS
 {
-  p_features = new iRoCS::Features(
-      blitz::TinyVector<double,3>(1.0), p_progress);
-  p_annotation = new AnnotationChannelSpecs(Marker::Sphere);
-}
 
-TrainLayerAssignmentWorker::~TrainLayerAssignmentWorker()
-{
-  delete p_features;
-  delete p_annotation;
-}
-
-void TrainLayerAssignmentWorker::run()
-{
-  if (p_progress != NULL) p_progress->setProgressMin(0);
-  
-  int nFeatures = 0;
-  for (double sigma = _sigmaMin; sigma <= _sigmaMax; sigma *= _sigmaStep)
-      for (int laplace = 0; laplace <= _bandMax / 2; ++laplace)
-          for (int band = 0; band <= _bandMax - 2 * laplace; ++band)
-              nFeatures++;
-  nFeatures += 4; // The hough features
-    
-  std::string sdMagGroup = BlitzH5File::simplifyGroupDescriptor(
-      _parameters.featureGroup() + "/SDmag");
-  for (double sigma = _sigmaMin; sigma <= _sigmaMax; sigma *= _sigmaStep)
-      for (int laplace = 0; laplace <= _bandMax / 2; ++laplace)
-          for (int band = 0; band <= _bandMax - 2 * laplace; ++band)
-              p_features->addFeatureToGroup(
-                  sdMagGroup, p_features->sdFeatureName(
-                      atb::SDMagFeatureIndex(sigma, laplace, band)));
-  p_features->setGroupNormalization(
-      sdMagGroup, _parameters.sdFeatureNormalization());
-  
-  std::string houghGroup = BlitzH5File::simplifyGroupDescriptor(
-      _parameters.featureGroup() + "/hough");
-  for (int i = iRoCS::Features::PositiveMagnitude;
-       i <= iRoCS::Features::NegativeRadius; ++i)
+  void trainLayerAssignment(
+      TrainingParameters const &parameters, ProgressReporter *pr)
   {
-    p_features->addFeatureToGroup(
-        houghGroup, p_features->houghFeatureName(i)); 
-  }
-  p_features->setGroupNormalization(
-      houghGroup, _parameters.houghFeatureNormalization());
+    double sigmaMin = 0.5;
+    double sigmaMax = 64.0;
+    double sigmaStep = 2.0;
+    int bandMax = 5;
 
-  std::string iRoCSGroup = BlitzH5File::simplifyGroupDescriptor(
-      _parameters.featureGroup() + "/intrinsicCoordinates");
-  p_features->addFeatureToGroup(iRoCSGroup, "/phi");
-  p_features->addFeatureToGroup(iRoCSGroup, "/qcDistance_um");
-  p_features->addFeatureToGroup(iRoCSGroup, "/radialDistance_um");
-  p_features->setGroupNormalization(iRoCSGroup, iRoCS::Features::None);
+    Features features(blitz::TinyVector<double,3>(1.0), pr);
+
+    if (pr != NULL) pr->setProgressMin(0);
   
-  std::vector<svt::BasicFV> trainingSet;
-  int trainIndex = 0;
-  // int nEpidermis = 0;
-  // int nNoNucleus = 0;
-  // int nMitoses = 0;
-  // int nOtherNucleus = 0;
-
-  std::vector<TrainfileParameters*> trainFiles(
-      _parameters.trainFiles());
-  if (p_progress != NULL)
-      p_progress->setProgressMax(
-          100 * static_cast<int>(trainFiles.size()) + 10);
-  for (size_t fileIdx = 0; fileIdx < trainFiles.size(); ++fileIdx)
-  {
-    std::cerr << "Processing " << trainFiles[fileIdx]->trainFileName()
-              << std::endl;
-    if (p_progress != NULL && !p_progress->updateProgressMessage(
-            "Processing '" + trainFiles[fileIdx]->trainFileName() + "'"))
-        return;
-    std::cout << "Processing '" << trainFiles[fileIdx]->trainFileName() << "'"
-              << std::endl;
-
-    if (p_progress != NULL &&
-        !p_progress->updateProgress(static_cast<int>(fileIdx) * 100)) return;
-
-    // Read dataset
-    atb::Array<double,3> data;
-    try
-    {
-      std::cout << "  Loading '" << trainFiles[fileIdx]->trainFileName() << ":"
-                << trainFiles[fileIdx]->dataChannelName() << "'... "
-                << std::flush;
-      data.load(
-          trainFiles[fileIdx]->trainFileName(),
-          trainFiles[fileIdx]->dataChannelName());
-      std::cout << "OK" << std::endl;
-    }
-    catch (BlitzH5Error &e)
-    {
-      std::cout << "failed" << std::endl;
-      if (p_progress != NULL)
-          p_progress->abortWithError(
-              QObject::tr("Could not read '%1:%2': %3").arg(
-                  trainFiles[fileIdx]->trainFileName().c_str()).arg(
-                      trainFiles[fileIdx]->dataChannelName().c_str()).arg(
-                          e.what()).toStdString());
-      return;
-    }
-
-    if (p_progress != NULL &&
-        !p_progress->updateProgress(static_cast<int>(fileIdx) * 100 + 3))
-        return;
-
-    // Read markers
-    std::cout << "  Loading '" << trainFiles[fileIdx]->trainFileName() << ":"
-              << trainFiles[fileIdx]->annotationChannelName() << "'... "
-              << std::flush;
-    p_annotation->setName(trainFiles[fileIdx]->annotationChannelName());
-    HDF5DataIO::RetVal res =
-        p_annotation->load(trainFiles[fileIdx]->trainFileName());
-    if (res != HDF5DataIO::Ok)
-    {
-      std::cout << "failed" << std::endl;
-      if (p_progress != NULL)
-          p_progress->abortWithError(
-              tr("Could not read '%1:%2'").arg(
-                  trainFiles[fileIdx]->trainFileName().c_str()).arg(
-                      trainFiles[fileIdx]->annotationChannelName().c_str()).toStdString());
-      return;
-    }
-    std::cout << "OK" << std::endl;
-
-    if (p_progress != NULL &&
-        !p_progress->updateProgress(static_cast<int>(fileIdx) * 100 + 4))
-        return;
-
-    // Generate Random Samples
-    if (_parameters.generateRandomSamples())
-    {
-      std::cout << "Generating random samples... " << std::flush;
-      size_t nMarkers = p_annotation->markers().size();
-      std::vector< blitz::TinyVector<double,3> > markers(nMarkers);
-      for (size_t i = 0; i < nMarkers; ++i)
-          markers[i] = p_annotation->markers()[i]->positionUm();
-      p_features->generateRandomSamples(
-          markers, blitz::TinyVector<double,3>(
-              blitz::TinyVector<double,3>(data.shape()) * data.elementSizeUm()),
-          _parameters.nInRootSamples(), _parameters.nOutRootSamples());
-      for (size_t i = nMarkers; i < markers.size(); ++i)
-      {
-        Marker *marker = p_annotation->addMarker(markers[i]);
-        if (marker != NULL)
-        {
-          marker->setLabel(0);
-          if (marker->inherits(Marker::Sphere))
-              static_cast<SphereMarker*>(marker)->setRadiusUm(2.0);
-        }
-      }
-      std::cout << "OK" << std::endl;
-    }
+    int nFeatures = 0;
+    for (double sigma = sigmaMin; sigma <= sigmaMax; sigma *= sigmaStep)
+        for (int laplace = 0; laplace <= bandMax / 2; ++laplace)
+            for (int band = 0; band <= bandMax - 2 * laplace; ++band)
+                nFeatures++;
+    nFeatures += 4; // The hough features
     
-    if (p_progress != NULL &&
-        !p_progress->updateProgress(static_cast<int>(fileIdx) * 100 + 8))
-        return;
-
-    // Generate Features
-    p_annotation->resizeFeatures(nFeatures + 3);
-
-    int feaIdx = 0;
-    for (double sigma = _sigmaMin; sigma <= _sigmaMax; sigma *= _sigmaStep)
-    {
-      for (int laplace = 0; laplace <= _bandMax / 2; ++laplace)
-      {
-        int maxBand = _bandMax - 2 * laplace;
-        for (int band = 0; band <= maxBand; ++band, ++feaIdx)
-        {  
-          if (p_progress != NULL && !p_progress->updateProgress(
-                  static_cast<int>(fileIdx) * 100 + 8 +
-                  static_cast<int>(82.0 * static_cast<double>(feaIdx) /
-                                   static_cast<double>(nFeatures - 4))))
-              continue;
-          blitz::Array<double,3>& fea = p_features->sdFeature(
-              data, atb::SDMagFeatureIndex(sigma, laplace, band), maxBand,
-              trainFiles[fileIdx]->cacheFileName());
-
-          atb::LinearInterpolator<double,3> ip(atb::ValueBT);
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-          for (ptrdiff_t k = 0;
-               k < static_cast<ptrdiff_t>(p_annotation->markers().size()); ++k)
-          {
-            Marker *marker = (*p_annotation)[k];
-            if (!marker->needsFeatureUpdate() ||
-                (p_progress != NULL && p_progress->isAborted())) continue;
-            blitz::TinyVector<double,3> pos(
-                marker->positionUm() / p_features->elementSizeUm());
-            marker->feature(feaIdx) = ip.get(fea, pos);
-          }
-        }
-        for (int band = 1; band <= _bandMax - 2 * laplace; ++band)
-            p_features->deleteFeature(
-                atb::SDMagFeatureIndex(sigma, laplace, band));
-      }
-      for (int laplace = 0; laplace <= _bandMax / 2; ++laplace)
-          p_features->deleteFeature(atb::SDMagFeatureIndex(sigma, laplace, 0));
-      p_features->deleteFeature(atb::SDMagFeatureIndex(sigma, 0, 0));
-    }
-
-    // Compute hough features
+    std::string sdMagGroup = BlitzH5File::simplifyGroupDescriptor(
+        parameters.featureGroup() + "/SDmag");
+    for (double sigma = sigmaMin; sigma <= sigmaMax; sigma *= sigmaStep)
+        for (int laplace = 0; laplace <= bandMax / 2; ++laplace)
+            for (int band = 0; band <= bandMax - 2 * laplace; ++band)
+                features.addFeatureToGroup(
+                    sdMagGroup, features.sdFeatureName(
+                        atb::SDMagFeatureIndex(sigma, laplace, band)));
+    features.setGroupNormalization(
+        sdMagGroup, parameters.sdFeatureNormalization());
+  
+    std::string houghGroup = BlitzH5File::simplifyGroupDescriptor(
+        parameters.featureGroup() + "/hough");
     for (int i = iRoCS::Features::PositiveMagnitude;
-         i <= iRoCS::Features::NegativeRadius; ++i, ++feaIdx)
-    {
-      if (p_progress != NULL && !p_progress->updateProgress(
-              static_cast<int>(fileIdx) * 100 + 90 + 2 * i)) continue;
-      blitz::Array<double,3>& fea =
-          p_features->houghFeature(
-              data, i, trainFiles[fileIdx]->cacheFileName());
-      if (p_progress->isAborted()) continue;
+         i <= iRoCS::Features::NegativeRadius; ++i)
+        features.addFeatureToGroup(houghGroup, features.houghFeatureName(i)); 
+    features.setGroupNormalization(
+        houghGroup, parameters.houghFeatureNormalization());
 
-      atb::LinearInterpolator<double,3> ip(atb::ValueBT);
+    std::string iRoCSGroup = BlitzH5File::simplifyGroupDescriptor(
+        parameters.featureGroup() + "/intrinsicCoordinates");
+    features.addFeatureToGroup(iRoCSGroup, "/phi");
+    features.addFeatureToGroup(iRoCSGroup, "/qcDistance_um");
+    features.addFeatureToGroup(iRoCSGroup, "/radialDistance_um");
+    features.setGroupNormalization(iRoCSGroup, iRoCS::Features::None);
+  
+    std::vector<svt::BasicFV> trainingSet;
+    int trainIndex = 0;
+
+    std::vector<TrainfileParameters*> trainFiles(parameters.trainFiles());
+    if (pr != NULL)
+        pr->setProgressMax(100 * static_cast<int>(trainFiles.size()) + 10);
+    for (size_t fileIdx = 0; fileIdx < trainFiles.size(); ++fileIdx)
+    {
+      if (pr != NULL)
+      {
+        if (!pr->updateProgressMessage(
+                "Processing '" + trainFiles[fileIdx]->trainFileName() + "'"))
+            return;
+        pr->updateProgress(static_cast<int>(fileIdx) * 100);
+      }
+
+      // Read dataset
+      atb::Array<double,3> data;
+      try
+      {
+        std::cout << "  Loading '" << trainFiles[fileIdx]->trainFileName()
+                  << ":" << trainFiles[fileIdx]->dataChannelName() << "'... "
+                  << std::flush;
+        data.load(
+            trainFiles[fileIdx]->trainFileName(),
+            trainFiles[fileIdx]->dataChannelName());
+        std::cout << "OK" << std::endl;
+      }
+      catch (BlitzH5Error &e)
+      {
+        std::cout << "failed" << std::endl;
+        if (pr != NULL)
+            pr->abortWithError(
+                "Could not read '" + trainFiles[fileIdx]->trainFileName() +
+                ":" + trainFiles[fileIdx]->dataChannelName() + "': " +
+                e.what());
+        else
+            std::cerr << "Could not read '"
+                      << trainFiles[fileIdx]->trainFileName() << ":"
+                      << trainFiles[fileIdx]->dataChannelName() << "': "
+                      << e.what() << std::endl;
+        return;
+      }
+
+      if (pr != NULL &&
+          !pr->updateProgress(static_cast<int>(fileIdx) * 100 + 3)) return;
+
+      // Read markers
+      std::cout << "  Loading '" << trainFiles[fileIdx]->trainFileName() << ":"
+                << trainFiles[fileIdx]->annotationChannelName() << "'... "
+                << std::flush;
+      std::vector<atb::Nucleus> nuclei;
+      try
+      {
+        BlitzH5File inFile(trainFiles[fileIdx]->trainFileName());
+        atb::Nucleus::loadList(
+            nuclei, inFile, trainFiles[fileIdx]->annotationChannelName());
+        std::cout << "OK" << std::endl;
+      }
+      catch (std::exception &e)
+      {
+        std::cout << "failed" << std::endl;
+        if (pr != NULL)
+            pr->abortWithError(
+                "Could not read '" + trainFiles[fileIdx]->trainFileName() +
+                ":" + trainFiles[fileIdx]->annotationChannelName() + "': " +
+                e.what());
+        else
+            std::cerr << "Could not read '"
+                      << trainFiles[fileIdx]->trainFileName() << ":"
+                      << trainFiles[fileIdx]->annotationChannelName() << "': "
+                      << e.what() << std::endl;
+        return;
+      }
+      
+      if (pr != NULL &&
+          !pr->updateProgress(static_cast<int>(fileIdx) * 100 + 4)) return;
+
+      // Generate Random Samples
+      if (parameters.generateRandomSamples())
+      {
+        std::cout << "Generating random samples... " << std::flush;
+        size_t nMarkers = nuclei.size();
+        std::vector< blitz::TinyVector<double,3> > markers(nMarkers);
+        for (size_t i = 0; i < nMarkers; ++i)
+            markers[i] = nuclei[i].positionUm();
+        features.generateRandomSamples(
+            markers, blitz::TinyVector<double,3>(
+                blitz::TinyVector<double,3>(data.shape()) *
+                data.elementSizeUm()), parameters.nInRootSamples(),
+            parameters.nOutRootSamples());
+        for (size_t i = nMarkers; i < markers.size(); ++i)
+        {
+          atb::Nucleus nc;
+          nc.setPositionUm(markers[i]);
+          nc.setRadiusUm(2.0);
+          nc.setLabel(0);
+          nuclei.push_back(nc);
+        }
+        std::cout << "OK" << std::endl;
+      }
+
+      if (pr != NULL &&
+          !pr->updateProgress(static_cast<int>(fileIdx) * 100 + 8)) return;
+
+      // Generate Features
+      for (size_t i = 0; i < nuclei.size(); ++i)
+          nuclei[i].features().resize(nFeatures + 3);
+
+      int feaIdx = 0;
+      for (double sigma = sigmaMin; sigma <= sigmaMax; sigma *= sigmaStep)
+      {
+        for (int laplace = 0; laplace <= bandMax / 2; ++laplace)
+        {
+          int maxBand = bandMax - 2 * laplace;
+          for (int band = 0; band <= maxBand; ++band, ++feaIdx)
+          {  
+            if (pr != NULL && !pr->updateProgress(
+                    static_cast<int>(fileIdx) * 100 + 8 +
+                    static_cast<int>(82.0 * static_cast<double>(feaIdx) /
+                                     static_cast<double>(nFeatures - 4))))
+                continue;
+            blitz::Array<double,3>& fea = features.sdFeature(
+                data, atb::SDMagFeatureIndex(sigma, laplace, band), maxBand,
+                trainFiles[fileIdx]->cacheFileName());
+
+            atb::LinearInterpolator<double,3> ip(atb::ValueBT);
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (ptrdiff_t k = 0;
-           k < static_cast<ptrdiff_t>(p_annotation->markers().size()); ++k)
+            for (ptrdiff_t k = 0; k < static_cast<ptrdiff_t>(nuclei.size());
+                 ++k)
+            {
+              if (!nuclei[k].needsFeatureUpdate() ||
+                  (pr != NULL && pr->isAborted())) continue;
+              blitz::TinyVector<double,3> pos(
+                  nuclei[k].positionUm() / features.elementSizeUm());
+              nuclei[k].features()[feaIdx] = ip.get(fea, pos);
+            }
+          }
+          for (int band = 1; band <= bandMax - 2 * laplace; ++band)
+              features.deleteFeature(
+                  atb::SDMagFeatureIndex(sigma, laplace, band));
+        }
+        for (int laplace = 0; laplace <= bandMax / 2; ++laplace)
+            features.deleteFeature(atb::SDMagFeatureIndex(sigma, laplace, 0));
+        features.deleteFeature(atb::SDMagFeatureIndex(sigma, 0, 0));
+      }
+
+      // Compute hough features
+      for (int i = iRoCS::Features::PositiveMagnitude;
+           i <= iRoCS::Features::NegativeRadius; ++i, ++feaIdx)
       {
-        Marker *marker = (*p_annotation)[k];
-        if (!marker->needsFeatureUpdate() ||
-            (p_progress != NULL && p_progress->isAborted())) continue;
+        if (pr != NULL && !pr->updateProgress(
+                static_cast<int>(fileIdx) * 100 + 90 + 2 * i)) continue;
+        blitz::Array<double,3>& fea =
+            features.houghFeature(
+                data, i, trainFiles[fileIdx]->cacheFileName());
+        if (pr->isAborted()) continue;
+
+        atb::LinearInterpolator<double,3> ip(atb::ValueBT);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (ptrdiff_t k = 0; k < static_cast<ptrdiff_t>(nuclei.size()); ++k)
+        {
+          if (!nuclei[k].needsFeatureUpdate() ||
+              (pr != NULL && pr->isAborted())) continue;
+          blitz::TinyVector<double,3> pos(
+              nuclei[k].positionUm() / features.elementSizeUm());
+          nuclei[k].features()[feaIdx] = ip.get(fea, pos);
+        }
+        features.deleteFeature(i);
+        if (pr != NULL && pr->isAborted()) return;
+      }
+
+      // Append intrinsic coordinates
+      atb::IRoCS rct;
+      rct.load(trainFiles[fileIdx]->trainFileName(),
+               trainFiles[fileIdx]->iRoCSChannelName());
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (ptrdiff_t k = 0; k < static_cast<ptrdiff_t>(nuclei.size()); ++k)
+      {
+        if (pr != NULL && pr->isAborted()) continue;
         blitz::TinyVector<double,3> pos(
-            marker->positionUm() / p_features->elementSizeUm());
-        marker->feature(feaIdx) = ip.get(fea, pos);
-      }
-      p_features->deleteFeature(i);
-      if (p_progress != NULL && p_progress->isAborted()) return;
-    }
+            rct.getCoordinates(nuclei[k].positionUm()));
+        nuclei[k].features()[feaIdx] = pos(2);
+        nuclei[k].features()[feaIdx + 1] = pos(0);
+        nuclei[k].features()[feaIdx + 2] = pos(1);
+      }    
 
-    // Append intrinsic coordinates
-    atb::IRoCS rct;
-    rct.load(trainFiles[fileIdx]->trainFileName(),
-             trainFiles[fileIdx]->iRoCSChannelName());
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (ptrdiff_t k = 0;
-         k < static_cast<ptrdiff_t>(p_annotation->markers().size()); ++k)
-    {
-      Marker *marker = (*p_annotation)[k];
-      if (p_progress != NULL && p_progress->isAborted()) continue;
-      blitz::TinyVector<double,3> pos(rct.getCoordinates(marker->positionUm()));
-      marker->feature(feaIdx) = pos(2);
-      marker->feature(feaIdx + 1) = pos(0);
-      marker->feature(feaIdx + 2) = pos(1);
-    }    
-
-    // Append samples to training set
-    for (std::vector<Marker*>::const_iterator it = p_annotation->begin();
-         it != p_annotation->end(); ++it)
-    {
-      if ((*it)->label() != -1)
+      // Append samples to training set
+      for (size_t k = 0; k < nuclei.size(); ++k)
       {
-        int label = (*it)->label() +
-            (((*it)->markerType() == Marker::Nucleus &&
-              static_cast<NucleusMarker*>(*it)->mitotic()) ? 10 : 0);
-        trainingSet.push_back(
-            svt::BasicFV((*it)->features(), label, trainIndex));
-        trainIndex++;
+        if (nuclei[k].label() != -1)
+        {
+          int label = nuclei[k].label() + ((nuclei[k].mitotic()) ? 10 : 0);
+          trainingSet.push_back(
+              svt::BasicFV(nuclei[k].features(), label, trainIndex));
+          trainIndex++;
+        }
       }
     }
-  }
 
-  // Normalize features
-  if (p_progress != NULL && !p_progress->updateProgressMessage(
-          tr("Normalizing features").toStdString())) return;
-  p_features->normalizeFeatures(trainingSet);
+    // Normalize features
+    if (pr != NULL && !pr->updateProgressMessage("Normalizing features"))
+        return;
+    features.normalizeFeatures(trainingSet);
 
-#define TRAINLAYERASSIGNMENTDEBUG
-#ifdef TRAINLAYERASSIGNMENTDEBUG
-  {
-    // DEBUG save of training set
-    std::ofstream trainFile(
-        (_parameters.modelFileName().substr(
-            0, _parameters.modelFileName().rfind(".")) + ".train").c_str(),
-        std::ios::trunc);
-    for (size_t i = 0; i < trainingSet.size(); ++i)
-    {
-      trainFile << trainingSet[i].getLabel();
-      for (size_t j = 0; j < trainingSet[i].size(); ++j)
-          trainFile << " " << trainingSet[i][static_cast<int>(j)];
-      trainFile << "\n";
-    }
-  }
-#endif
+    if (pr != NULL && !pr->updateProgress(
+            100 * static_cast<int>(trainFiles.size()) + 8)) return;
 
-  if (p_progress != NULL && !p_progress->updateProgress(
-          100 * static_cast<int>(trainFiles.size()) + 8)) return;
-
-  // Create SVM model
-  try
-  {
+    // Create SVM model
     try
     {
-      BlitzH5File modelFile(_parameters.modelFileName(), BlitzH5File::Replace);
+      try
+      {
+        BlitzH5File modelFile(parameters.modelFileName(), BlitzH5File::Replace);
+      }
+      catch (BlitzH5Error &e)
+      {
+        std::cout << "Could not create SVM model file '"
+                  << parameters.modelFileName() << "': " << e.what()
+                  << std::endl;
+        if (pr != NULL) pr->abortWithError(
+            std::string("Error while creating SVM model: ") + e.what());
+      }
+      svt::StDataHdf5 modelMap(
+          parameters.modelFileName().c_str(), H5F_ACC_RDWR);
     }
-    catch (BlitzH5Error &e)
+    catch (std::exception& e)
     {
       std::cout << "Could not create SVM model file '"
-                << _parameters.modelFileName() << "': " << e.what()
-                << std::endl;
-      if (p_progress != NULL) p_progress->abortWithError(
-          tr("Error while creating SVM model: %1").arg(e.what()).toStdString());
+                << parameters.modelFileName() << "': " << e.what() << std::endl;
+      if (pr != NULL) pr->abortWithError(
+          std::string("Error while creating SVM model: ") + e.what());
     }
-    svt::StDataHdf5 modelMap(_parameters.modelFileName().c_str(), H5F_ACC_RDWR);
-  }
-  catch (std::exception& e)
-  {
-    std::cout << "Could not create SVM model file '"
-              << _parameters.modelFileName() << "': " << e.what() << std::endl;
-    if (p_progress != NULL) p_progress->abortWithError(
-        tr("Error while creating SVM model: %1").arg(e.what()).toStdString());
-  }
-  if (p_progress != NULL && p_progress->isAborted()) return;
+    if (pr != NULL && pr->isAborted()) return;
 
-  p_features->saveNormalizationParameters(_parameters.modelFileName());
+    features.saveNormalizationParameters(parameters.modelFileName());
 
-  if (!p_progress->updateProgress(75)) return;
-
-  // Train svm
-  if (p_progress != NULL)
-  {
-    if (!p_progress->updateProgress(
-            100 * static_cast<int>(trainFiles.size()) + 8)) return;
-    p_progress->updateProgressMessage(
-        tr("Training SVM (This may take hours...)").toStdString());
-    p_progress->setProgressMin(0);
-    p_progress->setProgressMax(0);
+    // Train svm
+    if (pr != NULL)
+    {
+      if (!pr->updateProgress(
+              100 * static_cast<int>(trainFiles.size()) + 8)) return;
+      pr->updateProgressMessage(
+          "Training SVM (This may take hours or even days...)");
+      pr->setProgressMin(0);
+      pr->setProgressMax(0);
+    }
+    features.trainMultiClassSVM(
+        trainingSet, parameters.modelFileName(),
+        static_cast<float>(parameters.cost()),
+        static_cast<float>(parameters.gamma()));
   }
 
-  p_features->trainMultiClassSVM(
-      trainingSet, _parameters.modelFileName(),
-      static_cast<float>(_parameters.cost()),
-      static_cast<float>(_parameters.gamma()));
 }

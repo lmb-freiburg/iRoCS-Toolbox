@@ -20,49 +20,40 @@
  *
  **************************************************************************/
 
-#ifndef PLUGINATTACHIROCSTOCELLSEGMENTATION_HH
-#define PLUGINATTACHIROCSTOCELLSEGMENTATION_HH
+#ifndef TRAINLAYERASSIGNMENTTHREAD_HH
+#define TRAINLAYERASSIGNMENTTHREAD_HH
 
 #ifdef HAVE_CONFIG_H
 #include <config.hh>
 #endif
 
-#include <liblabelling_qt4/PluginInterface.hh>
+#include <QtCore/QThread>
 
-#include "AttachIRoCSToCellSegmentationParametersDialog.hh"
+#include <libProgressReporter/ProgressReporter.hh>
 
-#include <libIRoCS/AttachIRoCSToCellSegmentationWorker.hh>
+#include "TrainLayerAssignmentParametersDialog.hh"
 
-#include <QtCore/QtPlugin>
-
-class PluginAttachIRoCSToCellSegmentation
-    : public QObject, public PluginInterface
+class TrainLayerAssignmentThread : public QThread
 {
 
   Q_OBJECT
-  Q_INTERFACES(PluginInterface)
 
-public:
-
-  PluginAttachIRoCSToCellSegmentation();
-  ~PluginAttachIRoCSToCellSegmentation();
+  public:
   
-  QString name() const;
-  void setLabellingMainWidget(LabellingMainWidget* parent);
-  void setParameters(const std::map<std::string,std::string>& parameters);
+  TrainLayerAssignmentThread(
+      TrainLayerAssignmentParametersDialog const &parameters,
+      iRoCS::ProgressReporter *progress = NULL);
+  ~TrainLayerAssignmentThread();
 
   void run();
 
-  void abort();
-
 private:
 
-  LabellingMainWidget* p_mainWidget;
-  AttachIRoCSToCellSegmentationParametersDialog* p_dialog;
-  AttachIRoCSToCellSegmentationWorker* p_workerThread;
-  bool _interactive;
-
-  iRoCS::ProgressReporterQt4 *p_progress;
+  TrainLayerAssignmentParametersDialog const &_parameters;
+  iRoCS::ProgressReporter *p_progress;
+  
+  double _sigmaMin, _sigmaMax, _sigmaStep;
+  int _bandMax;
 
 };
 

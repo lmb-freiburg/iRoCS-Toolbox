@@ -20,49 +20,21 @@
  *
  **************************************************************************/
 
-#ifndef PLUGINMITOSISCLASSIFICATION_HH
-#define PLUGINMITOSISCLASSIFICATION_HH
+#include "TrainLayerAssignmentThread.hh"
 
-#ifdef HAVE_CONFIG_H
-#include <config.hh>
-#endif
+#include <libIRoCS/TrainLayerAssignmentWorker.hh>
 
-#include <liblabelling_qt4/PluginInterface.hh>
+TrainLayerAssignmentThread::TrainLayerAssignmentThread(
+    TrainLayerAssignmentParametersDialog const &parameters,
+    iRoCS::ProgressReporter *progress) 
+        : QThread(), _parameters(parameters), p_progress(progress),
+          _sigmaMin(0.5), _sigmaMax(64.0), _sigmaStep(2.0), _bandMax(5)
+{}
 
-#include "MitosisClassificationParametersDialog.hh"
+TrainLayerAssignmentThread::~TrainLayerAssignmentThread()
+{}
 
-#include <libIRoCS/MitosisClassificationWorker.hh>
-
-#include <QtCore/QtPlugin>
-
-class PluginMitosisClassification : public QObject, public PluginInterface
+void TrainLayerAssignmentThread::run()
 {
-
-  Q_OBJECT
-  Q_INTERFACES(PluginInterface)
-
-public:
-
-  PluginMitosisClassification();
-  ~PluginMitosisClassification();
-  
-  QString name() const;
-  void setLabellingMainWidget(LabellingMainWidget* parent);
-  void setParameters(const std::map<std::string,std::string>& parameters);
-
-  void run();
-
-  void abort();
-
-private:
-
-  LabellingMainWidget* p_mainWidget;
-  MitosisClassificationParametersDialog* p_dialog;
-  MitosisClassificationWorker* p_workerThread;
-  bool _interactive;
-
-  iRoCS::ProgressReporterQt4 *p_progress;
-
-};
-
-#endif
+  iRoCS::trainLayerAssignment(_parameters, p_progress);
+}

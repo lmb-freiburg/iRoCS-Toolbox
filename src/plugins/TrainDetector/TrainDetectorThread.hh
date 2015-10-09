@@ -20,8 +20,8 @@
  *
  **************************************************************************/
 
-#ifndef MITOSISCLASSIFICATIONWORKER_HH
-#define MITOSISCLASSIFICATIONWORKER_HH
+#ifndef TRAINDETECTORTHREAD_HH
+#define TRAINDETECTORTHREAD_HH
 
 #ifdef HAVE_CONFIG_H
 #include <config.hh>
@@ -29,43 +29,31 @@
 
 #include <QtCore/QThread>
 
-#include <liblabelling_qt4/LabellingMainWidget.hh>
-
 #include <libProgressReporter/ProgressReporter.hh>
 
-#include <libsvmtl/BasicFV.hh>
+#include "TrainDetectorParametersDialog.hh"
 
-#include "MitosisClassificationParameters.hh"
-#include "iRoCSFeatures.hh"
-
-class MitosisClassificationWorker : public QThread
+class TrainDetectorThread : public QThread
 {
 
   Q_OBJECT
 
   public:
   
-  MitosisClassificationWorker(
-      MitosisClassificationParameters const &parameters,
-      iRoCS::ProgressReporter *progress = NULL,
-      LabellingMainWidget* mainWidget = NULL,
-      QWidget* parent = NULL);
-  ~MitosisClassificationWorker();
+  TrainDetectorThread(
+      TrainDetectorParametersDialog const &parameters,
+      iRoCS::ProgressReporter *progress = NULL);
+  ~TrainDetectorThread();
 
   void run();
 
 private:
 
-  MitosisClassificationParameters const & _parameters;
+  TrainDetectorParametersDialog const &_parameters;
   iRoCS::ProgressReporter *p_progress;
-  LabellingMainWidget* p_mainWidget;
-
+  
   double _sigmaMin, _sigmaMax, _sigmaStep;
   int _bandMax;
-
-  iRoCS::Features *p_features;
-
-  std::vector<svt::BasicFV> _testVectors;
 
 };
 

@@ -121,10 +121,8 @@ am__installdirs = "$(DESTDIR)$(libdir)" \
 	"$(DESTDIR)$(progressreporterincludedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libProgressReporter_la_LIBADD =
-am__objects_1 = moc_ProgressReporterQt4.lo
 am_libProgressReporter_la_OBJECTS = ProgressReporter.lo \
-	ProgressReporterStream.lo ProgressReporterQt4.lo \
-	$(am__objects_1)
+	ProgressReporterStream.lo
 libProgressReporter_la_OBJECTS = $(am_libProgressReporter_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -200,6 +198,10 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BLITZ_CFLAGS = @BLITZ_CFLAGS@
+BLITZ_LIBS = @BLITZ_LIBS@
+BLITZ_STATIC_CFLAGS = @BLITZ_STATIC_CFLAGS@
+BLITZ_STATIC_LIBS = @BLITZ_STATIC_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -220,13 +222,31 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+FFTW_CFLAGS = @FFTW_CFLAGS@
+FFTW_LIBS = @FFTW_LIBS@
+FFTW_STATIC_CFLAGS = @FFTW_STATIC_CFLAGS@
+FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
+GLU_CFLAGS = @GLU_CFLAGS@
+GLU_LIBS = @GLU_LIBS@
 GREP = @GREP@
+GSL_CFLAGS = @GSL_CFLAGS@
+GSL_LIBS = @GSL_LIBS@
+GSL_STATIC_CFLAGS = @GSL_STATIC_CFLAGS@
+GSL_STATIC_LIBS = @GSL_STATIC_LIBS@
+HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_LIBS = @HDF5_LIBS@
+HDF5_STATIC_CFLAGS = @HDF5_STATIC_CFLAGS@
+HDF5_STATIC_LIBS = @HDF5_STATIC_LIBS@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+JPEG_CFLAGS = @JPEG_CFLAGS@
+JPEG_LIBS = @JPEG_LIBS@
+JPEG_STATIC_CFLAGS = @JPEG_STATIC_CFLAGS@
+JPEG_STATIC_LIBS = @JPEG_STATIC_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
@@ -242,7 +262,12 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OPENCV_CFLAGS = @OPENCV_CFLAGS@
+OPENCV_LIBS = @OPENCV_LIBS@
+OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
+OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
+OPENMP_LIBS = @OPENMP_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -253,8 +278,12 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+QT4_CFLAGS = @QT4_CFLAGS@
+QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
-QT4_QMAKE = @QT4_QMAKE@
 QT4_RCC = @QT4_RCC@
 QT4_UIC = @QT4_UIC@
 RANLIB = @RANLIB@
@@ -262,6 +291,10 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TIFF_CFLAGS = @TIFF_CFLAGS@
+TIFF_LIBS = @TIFF_LIBS@
+TIFF_STATIC_CFLAGS = @TIFF_STATIC_CFLAGS@
+TIFF_STATIC_LIBS = @TIFF_STATIC_LIBS@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -318,26 +351,18 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libProgressReporter.la
 progressreporterincludedir = $(pkgincludedir)/libProgressReporter
-MOC = @QT4_MOC@
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -version-info 1:0:0
 
-# version bump to 2:0:1 pending (Interface extension)
-MOC_GEN_SOURCES = \
-	moc_ProgressReporterQt4.cc
-
+# version bump to 2:0:0 pending (Incompatibel update due to library split)
 libProgressReporter_la_SOURCES = \
 	ProgressReporter.cc \
-	ProgressReporterStream.cc \
-	ProgressReporterQt4.cc \
-	$(MOC_GEN_SOURCES)
+	ProgressReporterStream.cc
 
 progressreporterinclude_HEADERS = \
 	ProgressReporter.hh \
-	ProgressReporterStream.hh \
-	ProgressReporterQt4.hh
+	ProgressReporterStream.hh
 
-MOSTLYCLEANFILES = $(MOC_GEN_SOURCES) 
 all: all-am
 
 .SUFFIXES:
@@ -418,9 +443,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ProgressReporter.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ProgressReporterQt4.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ProgressReporterStream.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_ProgressReporterQt4.Plo@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -582,7 +605,6 @@ install-strip:
 	    "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'" install; \
 	fi
 mostlyclean-generic:
-	-test -z "$(MOSTLYCLEANFILES)" || rm -f $(MOSTLYCLEANFILES)
 
 clean-generic:
 
@@ -683,9 +705,6 @@ uninstall-am: uninstall-libLTLIBRARIES \
 	tags tags-am uninstall uninstall-am uninstall-libLTLIBRARIES \
 	uninstall-progressreporterincludeHEADERS
 
-
-moc_%.cc: %.hh
-	$(MOC) $< -o $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

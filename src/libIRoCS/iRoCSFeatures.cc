@@ -22,8 +22,6 @@
 
 #include "iRoCSFeatures.hh"
 
-#include <liblabelling_qt4/SphereMarker.hh>
-
 #include <libArrayToolbox/Random.hh>
 
 #include <libsvmtl/StDataHdf5.hh>

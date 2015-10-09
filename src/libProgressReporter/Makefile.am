@@ -1,28 +1,15 @@
 lib_LTLIBRARIES = libProgressReporter.la
 progressreporterincludedir = $(pkgincludedir)/libProgressReporter
 
-MOC = @QT4_MOC@
-
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -version-info 1:0:0
 
-# version bump to 2:0:1 pending (Interface extension)
-
-MOC_GEN_SOURCES = \
-	moc_ProgressReporterQt4.cc
+# version bump to 2:0:0 pending (Incompatibel update due to library split)
 
 libProgressReporter_la_SOURCES = \
 	ProgressReporter.cc \
-	ProgressReporterStream.cc \
-	ProgressReporterQt4.cc \
-	$(MOC_GEN_SOURCES)
+	ProgressReporterStream.cc
 
 progressreporterinclude_HEADERS = \
 	ProgressReporter.hh \
-	ProgressReporterStream.hh \
-	ProgressReporterQt4.hh
-
-moc_%.cc: %.hh
-	$(MOC) $< -o $@
-
-MOSTLYCLEANFILES = $(MOC_GEN_SOURCES) 
+	ProgressReporterStream.hh

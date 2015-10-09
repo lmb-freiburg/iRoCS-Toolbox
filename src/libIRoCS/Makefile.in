@@ -119,24 +119,27 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(irocsincludedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libIRoCS_la_LIBADD =
-am__objects_1 = moc_MitosisClassificationWorker.lo \
-	moc_AttachIRoCSToCellSegmentationWorker.lo \
-	moc_TrainDetectorWorker.lo \
-	moc_TrainEpidermisLabellingWorker.lo \
-	moc_TrainLayerAssignmentWorker.lo
+am__DEPENDENCIES_1 =
+libIRoCS_la_DEPENDENCIES =  \
+	$(top_builddir)/src/libsegmentation/libsegmentation.la \
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
+	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libcmdline/libcmdline.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am_libIRoCS_la_OBJECTS = iRoCSFeatures.lo DetectNucleiWorker.lo \
 	EpidermisLabellingWorker.lo AttachIRoCSWorker.lo \
-	LayerAssignmentWorker.lo MitosisClassificationParameters.lo \
-	MitosisClassificationWorker.lo RootSegmentationWorker.lo \
-	AttachIRoCSToCellSegmentationParameters.lo \
-	AttachIRoCSToCellSegmentationWorker.lo \
+	LayerAssignmentWorker.lo RootSegmentationWorker.lo \
 	AttachIRoCSSCTToCellSegmentationWorker.lo \
 	ComputeCellFeaturesWorker.lo \
 	AssignLayersToCellSegmentationWorker.lo TrainfileParameters.lo \
 	TrainingParameters.lo TrainDetectorWorker.lo \
 	TrainEpidermisLabellingWorker.lo TrainLayerAssignmentWorker.lo \
-	DetectSpheresWorker.lo $(am__objects_1)
+	DetectSpheresWorker.lo
 libIRoCS_la_OBJECTS = $(am_libIRoCS_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -212,6 +215,10 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BLITZ_CFLAGS = @BLITZ_CFLAGS@
+BLITZ_LIBS = @BLITZ_LIBS@
+BLITZ_STATIC_CFLAGS = @BLITZ_STATIC_CFLAGS@
+BLITZ_STATIC_LIBS = @BLITZ_STATIC_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -232,13 +239,31 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+FFTW_CFLAGS = @FFTW_CFLAGS@
+FFTW_LIBS = @FFTW_LIBS@
+FFTW_STATIC_CFLAGS = @FFTW_STATIC_CFLAGS@
+FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
+GLU_CFLAGS = @GLU_CFLAGS@
+GLU_LIBS = @GLU_LIBS@
 GREP = @GREP@
+GSL_CFLAGS = @GSL_CFLAGS@
+GSL_LIBS = @GSL_LIBS@
+GSL_STATIC_CFLAGS = @GSL_STATIC_CFLAGS@
+GSL_STATIC_LIBS = @GSL_STATIC_LIBS@
+HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_LIBS = @HDF5_LIBS@
+HDF5_STATIC_CFLAGS = @HDF5_STATIC_CFLAGS@
+HDF5_STATIC_LIBS = @HDF5_STATIC_LIBS@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+JPEG_CFLAGS = @JPEG_CFLAGS@
+JPEG_LIBS = @JPEG_LIBS@
+JPEG_STATIC_CFLAGS = @JPEG_STATIC_CFLAGS@
+JPEG_STATIC_LIBS = @JPEG_STATIC_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
@@ -254,7 +279,12 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OPENCV_CFLAGS = @OPENCV_CFLAGS@
+OPENCV_LIBS = @OPENCV_LIBS@
+OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
+OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
+OPENMP_LIBS = @OPENMP_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -265,8 +295,12 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+QT4_CFLAGS = @QT4_CFLAGS@
+QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
-QT4_QMAKE = @QT4_QMAKE@
 QT4_RCC = @QT4_RCC@
 QT4_UIC = @QT4_UIC@
 RANLIB = @RANLIB@
@@ -274,6 +308,10 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TIFF_CFLAGS = @TIFF_CFLAGS@
+TIFF_LIBS = @TIFF_LIBS@
+TIFF_STATIC_CFLAGS = @TIFF_STATIC_CFLAGS@
+TIFF_STATIC_LIBS = @TIFF_STATIC_LIBS@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -330,23 +368,31 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libIRoCS.la
 irocsincludedir = $(pkgincludedir)/libIRoCS
-MOC = @QT4_MOC@
-AM_CPPFLAGS = -I$(top_srcdir)/src
-AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info 2:0:0
+AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
+	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
 
-# Version bump to 2:1:0 pending (code changes)
+AM_CXXFLAGS = -Wno-long-long
+AM_LDFLAGS = -version-info 2:0:0 -rdynamic
+
+# Version bump to 3:0:0 pending (Interface change - removed liblabelling_qt4 dependencies)
+libIRoCS_la_LIBADD = \
+	$(top_builddir)/src/libsegmentation/libsegmentation.la \
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
+	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libcmdline/libcmdline.la \
+	$(BLITZ_LIBS) $(HDF5_LIBS) $(FFTW_LIBS)
+
 irocsinclude_HEADERS = \
 	iRoCSFeatures.hh iRoCSFeatures.icc \
 	DetectNucleiWorker.hh \
 	EpidermisLabellingWorker.hh \
 	AttachIRoCSWorker.hh \
 	LayerAssignmentWorker.hh \
-	MitosisClassificationParameters.hh \
-	MitosisClassificationWorker.hh \
 	RootSegmentationWorker.hh \
-	AttachIRoCSToCellSegmentationParameters.hh \
-	AttachIRoCSToCellSegmentationWorker.hh \
 	AttachIRoCSSCTToCellSegmentationWorker.hh \
 	ComputeCellFeaturesWorker.hh \
 	AssignLayersToCellSegmentationWorker.hh \
@@ -357,24 +403,13 @@ irocsinclude_HEADERS = \
 	TrainLayerAssignmentWorker.hh \
 	DetectSpheresWorker.hh
 
-MOC_GEN_SOURCES = \
-	moc_MitosisClassificationWorker.cc \
-	moc_AttachIRoCSToCellSegmentationWorker.cc \
-        moc_TrainDetectorWorker.cc \
-        moc_TrainEpidermisLabellingWorker.cc \
-        moc_TrainLayerAssignmentWorker.cc
-
 libIRoCS_la_SOURCES = \
 	iRoCSFeatures.cc \
 	DetectNucleiWorker.cc \
 	EpidermisLabellingWorker.cc \
 	AttachIRoCSWorker.cc \
 	LayerAssignmentWorker.cc \
-	MitosisClassificationParameters.cc \
-	MitosisClassificationWorker.cc \
 	RootSegmentationWorker.cc \
-	AttachIRoCSToCellSegmentationParameters.cc \
-	AttachIRoCSToCellSegmentationWorker.cc \
 	AttachIRoCSSCTToCellSegmentationWorker.cc \
 	ComputeCellFeaturesWorker.cc \
 	AssignLayersToCellSegmentationWorker.cc \
@@ -383,10 +418,8 @@ libIRoCS_la_SOURCES = \
 	TrainDetectorWorker.cc \
 	TrainEpidermisLabellingWorker.cc \
 	TrainLayerAssignmentWorker.cc \
-	DetectSpheresWorker.cc \
-	$(MOC_GEN_SOURCES)
+	DetectSpheresWorker.cc 
 
-MOSTLYCLEANFILES = $(MOC_GEN_SOURCES) 
 all: all-am
 
 .SUFFIXES:
@@ -468,16 +501,12 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AssignLayersToCellSegmentationWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AttachIRoCSSCTToCellSegmentationWorker.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AttachIRoCSToCellSegmentationParameters.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AttachIRoCSToCellSegmentationWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AttachIRoCSWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ComputeCellFeaturesWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DetectNucleiWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DetectSpheresWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EpidermisLabellingWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LayerAssignmentWorker.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MitosisClassificationParameters.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MitosisClassificationWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RootSegmentationWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TrainDetectorWorker.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TrainEpidermisLabellingWorker.Plo@am__quote@
@@ -485,11 +514,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TrainfileParameters.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TrainingParameters.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iRoCSFeatures.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_AttachIRoCSToCellSegmentationWorker.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_MitosisClassificationWorker.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_TrainDetectorWorker.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_TrainEpidermisLabellingWorker.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_TrainLayerAssignmentWorker.Plo@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -651,7 +675,6 @@ install-strip:
 	    "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'" install; \
 	fi
 mostlyclean-generic:
-	-test -z "$(MOSTLYCLEANFILES)" || rm -f $(MOSTLYCLEANFILES)
 
 clean-generic:
 
@@ -751,9 +774,6 @@ uninstall-am: uninstall-irocsincludeHEADERS uninstall-libLTLIBRARIES
 	tags tags-am uninstall uninstall-am \
 	uninstall-irocsincludeHEADERS uninstall-libLTLIBRARIES
 
-
-moc_%.cc: %.hh
-	$(MOC) $(INCLUDES) $< -o $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

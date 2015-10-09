@@ -31,7 +31,7 @@
 
 #include "TrainEpidermisLabellingParametersDialog.hh"
 
-#include <libIRoCS/TrainEpidermisLabellingWorker.hh>
+#include "TrainEpidermisLabellingThread.hh"
 
 #include <QtCore/QtPlugin>
 
@@ -58,7 +58,7 @@ private:
 
   LabellingMainWidget* p_mainWidget;
   TrainEpidermisLabellingParametersDialog* p_dialog;
-  TrainEpidermisLabellingWorker* p_workerThread;
+  TrainEpidermisLabellingThread* p_workerThread;
   bool _interactive;
 
   iRoCS::ProgressReporterQt4 *p_progress;

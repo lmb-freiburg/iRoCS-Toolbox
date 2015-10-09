@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -78,9 +79,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = src/plugins/MitosisClassification
+subdir = src/libProgressReporter_qt4
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/depcomp
+	$(top_srcdir)/depcomp $(progressreporterinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -116,17 +117,16 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(lblplugindir)"
-LTLIBRARIES = $(lblplugin_LTLIBRARIES)
-libPluginMitosisClassification_la_DEPENDENCIES =  \
-	$(top_builddir)/src/libIRoCS/libIRoCS.la
-am__objects_1 = moc_MitosisClassificationParametersDialog.lo \
-	moc_PluginMitosisClassification.lo
-am_libPluginMitosisClassification_la_OBJECTS =  \
-	MitosisClassificationParametersDialog.lo \
-	PluginMitosisClassification.lo $(am__objects_1)
-libPluginMitosisClassification_la_OBJECTS =  \
-	$(am_libPluginMitosisClassification_la_OBJECTS)
+am__installdirs = "$(DESTDIR)$(libdir)" \
+	"$(DESTDIR)$(progressreporterincludedir)"
+LTLIBRARIES = $(lib_LTLIBRARIES)
+am__DEPENDENCIES_1 =
+libProgressReporter_qt4_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am__objects_1 = moc_ProgressReporterQt4.lo
+am_libProgressReporter_qt4_la_OBJECTS = ProgressReporterQt4.lo \
+	$(am__objects_1)
+libProgressReporter_qt4_la_OBJECTS =  \
+	$(am_libProgressReporter_qt4_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -165,13 +165,14 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(libPluginMitosisClassification_la_SOURCES)
-DIST_SOURCES = $(libPluginMitosisClassification_la_SOURCES)
+SOURCES = $(libProgressReporter_qt4_la_SOURCES)
+DIST_SOURCES = $(libProgressReporter_qt4_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+HEADERS = $(progressreporterinclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -200,6 +201,10 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BLITZ_CFLAGS = @BLITZ_CFLAGS@
+BLITZ_LIBS = @BLITZ_LIBS@
+BLITZ_STATIC_CFLAGS = @BLITZ_STATIC_CFLAGS@
+BLITZ_STATIC_LIBS = @BLITZ_STATIC_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -220,13 +225,31 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+FFTW_CFLAGS = @FFTW_CFLAGS@
+FFTW_LIBS = @FFTW_LIBS@
+FFTW_STATIC_CFLAGS = @FFTW_STATIC_CFLAGS@
+FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
+GLU_CFLAGS = @GLU_CFLAGS@
+GLU_LIBS = @GLU_LIBS@
 GREP = @GREP@
+GSL_CFLAGS = @GSL_CFLAGS@
+GSL_LIBS = @GSL_LIBS@
+GSL_STATIC_CFLAGS = @GSL_STATIC_CFLAGS@
+GSL_STATIC_LIBS = @GSL_STATIC_LIBS@
+HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_LIBS = @HDF5_LIBS@
+HDF5_STATIC_CFLAGS = @HDF5_STATIC_CFLAGS@
+HDF5_STATIC_LIBS = @HDF5_STATIC_LIBS@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+JPEG_CFLAGS = @JPEG_CFLAGS@
+JPEG_LIBS = @JPEG_LIBS@
+JPEG_STATIC_CFLAGS = @JPEG_STATIC_CFLAGS@
+JPEG_STATIC_LIBS = @JPEG_STATIC_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
@@ -242,7 +265,12 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OPENCV_CFLAGS = @OPENCV_CFLAGS@
+OPENCV_LIBS = @OPENCV_LIBS@
+OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
+OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
+OPENMP_LIBS = @OPENMP_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -253,8 +281,12 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+QT4_CFLAGS = @QT4_CFLAGS@
+QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
-QT4_QMAKE = @QT4_QMAKE@
 QT4_RCC = @QT4_RCC@
 QT4_UIC = @QT4_UIC@
 RANLIB = @RANLIB@
@@ -262,6 +294,10 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TIFF_CFLAGS = @TIFF_CFLAGS@
+TIFF_LIBS = @TIFF_LIBS@
+TIFF_STATIC_CFLAGS = @TIFF_STATIC_CFLAGS@
+TIFF_STATIC_LIBS = @TIFF_STATIC_LIBS@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -316,23 +352,22 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-lblplugindir = $(pkgdatadir)/plugins
-lblplugin_LTLIBRARIES = libPluginMitosisClassification.la
+lib_LTLIBRARIES = libProgressReporter_qt4.la
+progressreporterincludedir = $(pkgincludedir)/libProgressReporter_qt4
 MOC = @QT4_MOC@
 AM_CPPFLAGS = -I$(top_srcdir)/src
-AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info 1:0:0
-libPluginMitosisClassification_la_LIBADD = \
-	$(top_builddir)/src/libIRoCS/libIRoCS.la
-
+AM_CXXFLAGS = -Wno-long-long $(QT4_CFLAGS)
+AM_LDFLAGS = -version-info 0:0:0
+libProgressReporter_qt4_la_LIBADD = $(QT4_LIBS)
 MOC_GEN_SOURCES = \
-	moc_MitosisClassificationParametersDialog.cc \
-	moc_PluginMitosisClassification.cc
+	moc_ProgressReporterQt4.cc
 
-libPluginMitosisClassification_la_SOURCES = \
-	MitosisClassificationParametersDialog.cc \
-	PluginMitosisClassification.cc \
+libProgressReporter_qt4_la_SOURCES = \
+	ProgressReporterQt4.cc \
 	$(MOC_GEN_SOURCES)
+
+progressreporterinclude_HEADERS = \
+	ProgressReporterQt4.hh
 
 MOSTLYCLEANFILES = $(MOC_GEN_SOURCES) 
 all: all-am
@@ -348,9 +383,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/plugins/MitosisClassification/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/libProgressReporter_qt4/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/plugins/MitosisClassification/Makefile
+	  $(AUTOMAKE) --gnu src/libProgressReporter_qt4/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -370,33 +405,33 @@ $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 
-install-lblpluginLTLIBRARIES: $(lblplugin_LTLIBRARIES)
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
-	@list='$(lblplugin_LTLIBRARIES)'; test -n "$(lblplugindir)" || list=; \
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
 	list2=; for p in $$list; do \
 	  if test -f $$p; then \
 	    list2="$$list2 $$p"; \
 	  else :; fi; \
 	done; \
 	test -z "$$list2" || { \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(lblplugindir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(lblplugindir)" || exit 1; \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(lblplugindir)'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(lblplugindir)"; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libdir)" || exit 1; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
 	}
 
-uninstall-lblpluginLTLIBRARIES:
+uninstall-libLTLIBRARIES:
 	@$(NORMAL_UNINSTALL)
-	@list='$(lblplugin_LTLIBRARIES)'; test -n "$(lblplugindir)" || list=; \
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
 	for p in $$list; do \
 	  $(am__strip_dir) \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(lblplugindir)/$$f'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(lblplugindir)/$$f"; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
 	done
 
-clean-lblpluginLTLIBRARIES:
-	-test -z "$(lblplugin_LTLIBRARIES)" || rm -f $(lblplugin_LTLIBRARIES)
-	@list='$(lblplugin_LTLIBRARIES)'; \
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; \
 	locs=`for p in $$list; do echo $$p; done | \
 	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
 	      sort -u`; \
@@ -405,8 +440,8 @@ clean-lblpluginLTLIBRARIES:
 	  rm -f $${locs}; \
 	}
 
-libPluginMitosisClassification.la: $(libPluginMitosisClassification_la_OBJECTS) $(libPluginMitosisClassification_la_DEPENDENCIES) $(EXTRA_libPluginMitosisClassification_la_DEPENDENCIES) 
-	$(AM_V_CXXLD)$(CXXLINK) -rpath $(lblplugindir) $(libPluginMitosisClassification_la_OBJECTS) $(libPluginMitosisClassification_la_LIBADD) $(LIBS)
+libProgressReporter_qt4.la: $(libProgressReporter_qt4_la_OBJECTS) $(libProgressReporter_qt4_la_DEPENDENCIES) $(EXTRA_libProgressReporter_qt4_la_DEPENDENCIES) 
+	$(AM_V_CXXLD)$(CXXLINK) -rpath $(libdir) $(libProgressReporter_qt4_la_OBJECTS) $(libProgressReporter_qt4_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -414,10 +449,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MitosisClassificationParametersDialog.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/PluginMitosisClassification.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_MitosisClassificationParametersDialog.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_PluginMitosisClassification.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ProgressReporterQt4.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moc_ProgressReporterQt4.Plo@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -448,6 +481,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-progressreporterincludeHEADERS: $(progressreporterinclude_HEADERS)
+	@$(NORMAL_INSTALL)
+	@list='$(progressreporterinclude_HEADERS)'; test -n "$(progressreporterincludedir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(progressreporterincludedir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(progressreporterincludedir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(progressreporterincludedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(progressreporterincludedir)" || exit $$?; \
+	done
+
+uninstall-progressreporterincludeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(progressreporterinclude_HEADERS)'; test -n "$(progressreporterincludedir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(progressreporterincludedir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -533,9 +587,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(LTLIBRARIES) $(HEADERS)
 installdirs:
-	for dir in "$(DESTDIR)$(lblplugindir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(progressreporterincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -571,7 +625,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-lblpluginLTLIBRARIES clean-libtool \
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -592,13 +646,13 @@ info: info-am
 
 info-am:
 
-install-data-am: install-lblpluginLTLIBRARIES
+install-data-am: install-progressreporterincludeHEADERS
 
 install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am:
+install-exec-am: install-libLTLIBRARIES
 
 install-html: install-html-am
 
@@ -638,28 +692,30 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-lblpluginLTLIBRARIES
+uninstall-am: uninstall-libLTLIBRARIES \
+	uninstall-progressreporterincludeHEADERS
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
-	clean-lblpluginLTLIBRARIES clean-libtool cscopelist-am ctags \
+	clean-libLTLIBRARIES clean-libtool cscopelist-am ctags \
 	ctags-am distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-lblpluginLTLIBRARIES install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-lblpluginLTLIBRARIES
+	install-info-am install-libLTLIBRARIES install-man install-pdf \
+	install-pdf-am install-progressreporterincludeHEADERS \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am uninstall-libLTLIBRARIES \
+	uninstall-progressreporterincludeHEADERS
 
 
 moc_%.cc: %.hh
-	$(MOC) $(AM_CPPFLAGS) $< -o $@
+	$(MOC) $< -o $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

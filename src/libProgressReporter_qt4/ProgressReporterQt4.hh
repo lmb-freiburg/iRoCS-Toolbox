@@ -27,7 +27,7 @@
 #include <config.hh>
 #endif
 
-#include "ProgressReporter.hh"
+#include <libProgressReporter/ProgressReporter.hh>
 
 #include <QtGui/QApplication>
 #include <QtGui/QProgressBar>

@@ -10,5 +10,4 @@ SUBDIRS = \
 	TrainDetector \
 	TrainEpidermisLabelling \
 	TrainLayerAssignment \
-	DetectSpheres \
-	MitosisClassification
+	DetectSpheres

@@ -5,11 +5,17 @@ labelling_qt4includedir = $(pkgincludedir)/libLabelling_qt4
 MOC = @QT4_MOC@
 RCC = @QT4_RCC@
 
-AM_CXXFLAGS = -Wno-long-long
-AM_CPPFLAGS = -I$(top_srcdir)/src
-AM_LDFLAGS = -version-info 2:0:1
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) $(FFTW_CFLAGS) \
+	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(QT4_CFLAGS)
+AM_CXXFLAGS = -Wno-long-long 
+AM_LDFLAGS = -version-info 2:0:1 -rdynamic
 
 # version bump to 3:0:2 pending (interface extension)
+
+libLabelling_qt4_la_LIBADD = \
+	$(top_builddir)/src/libsegmentation/libsegmentation.la \
+	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la
 
 lbldata_DATA = liblabelling_qt4.rcc
 

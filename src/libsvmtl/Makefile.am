@@ -4,6 +4,8 @@ svt_checkincludedir=$(pkgincludedir)/libsvmtl/svt_check
 
 AM_LDFLAGS = -version-info 1:0:0
 
+libsvmtl_la_LIBADD = $(HDF5_LIBS)
+
 svmtlinclude_HEADERS =					\
 	AlgorithmLists.hh				\
 	BasicCVAdapter.hh				\

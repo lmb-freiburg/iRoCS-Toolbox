@@ -31,7 +31,7 @@
 
 #include "TrainLayerAssignmentParametersDialog.hh"
 
-#include <libIRoCS/TrainLayerAssignmentWorker.hh>
+#include "TrainLayerAssignmentThread.hh"
 
 #include <QtCore/QtPlugin>
 
@@ -58,7 +58,7 @@ private:
 
   LabellingMainWidget* p_mainWidget;
   TrainLayerAssignmentParametersDialog* p_dialog;
-  TrainLayerAssignmentWorker* p_workerThread;
+  TrainLayerAssignmentThread* p_workerThread;
   bool _interactive;
 
   iRoCS::ProgressReporterQt4 *p_progress;

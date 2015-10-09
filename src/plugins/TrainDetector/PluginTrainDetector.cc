@@ -73,7 +73,7 @@ void PluginTrainDetector::run()
   p_progress->reset();
   p_progress->setVisible(true);
 
-  p_workerThread = new TrainDetectorWorker(*p_dialog, p_progress);
+  p_workerThread = new TrainDetectorThread(*p_dialog, p_progress);
   p_mainWidget->setUserInteractionEnabled(false);
 
   p_workerThread->start();

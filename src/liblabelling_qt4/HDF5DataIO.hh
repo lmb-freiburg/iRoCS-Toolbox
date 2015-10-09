@@ -34,7 +34,7 @@
 #include "ColorMap.hh"
 #include "Marker.hh"
 
-#include <libProgressReporter/ProgressReporterQt4.hh>
+#include <libProgressReporter_qt4/ProgressReporterQt4.hh>
 
 class LabellingMainWidget;
 class MultiChannelModel;

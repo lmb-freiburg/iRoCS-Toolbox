@@ -2,11 +2,18 @@ lib_LTLIBRARIES = libArrayToolbox.la
 arraytoolboxincludedir = $(pkgincludedir)/libArrayToolbox
 arraytoolboxalgoincludedir = $(pkgincludedir)/libArrayToolbox/algo
 
-AM_CPPFLAGS = -I$(top_srcdir)/src
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) $(FFTW_CFLAGS) \
+	$(GSL_CFLAGS) $(OPENCV_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -version-info 2:1:1
 
 # Version bump to 2.0.2 pending (Interface extension)
+
+libArrayToolbox_la_LIBADD = \
+	$(top_builddir)/src/libBlitzFFTW/libBlitzFFTW.la \
+	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(BLITZ_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(OPENCV_LIBS)
 
 arraytoolboxalgoinclude_HEADERS = \
 	algo/DisjointSets.hh \

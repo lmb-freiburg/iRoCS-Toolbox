@@ -27,8 +27,6 @@
 #include <QtGui/QFileDialog>
 #include <QtCore/QSettings>
 
-#include <libProgressReporter/ProgressReporterQt4.hh>
-
 #include "LabellingMainWidget.hh"
 #include "MultiChannelModel.hh"
 #include "DataChannelSpecs.hh"

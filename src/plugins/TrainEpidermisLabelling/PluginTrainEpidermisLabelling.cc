@@ -75,7 +75,7 @@ void PluginTrainEpidermisLabelling::run()
   p_progress->reset();
   p_progress->setVisible(true);
 
-  p_workerThread = new TrainEpidermisLabellingWorker(*p_dialog, p_progress);
+  p_workerThread = new TrainEpidermisLabellingThread(*p_dialog, p_progress);
   p_mainWidget->setUserInteractionEnabled(false);
 
   p_workerThread->start();

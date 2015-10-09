@@ -21,17 +21,20 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `blitz' library (-lblitz). */
+#undef HAVE_LIBBLITZ
+
 /* Define to 1 if you have the `cv' library (-lcv). */
 #undef HAVE_LIBCV
+
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
 
 /* Define to 1 if you have the `fftw3' library (-lfftw3). */
 #undef HAVE_LIBFFTW3
 
 /* Define to 1 if you have the `fftw3f' library (-lfftw3f). */
 #undef HAVE_LIBFFTW3F
-
-/* Define to 1 if you have the `GL' library (-lGL). */
-#undef HAVE_LIBGL
 
 /* Define to 1 if you have the `GLU' library (-lGLU). */
 #undef HAVE_LIBGLU

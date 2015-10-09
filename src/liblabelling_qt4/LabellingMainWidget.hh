@@ -33,7 +33,7 @@
 #include <QtCore/QMap>
 
 #include "StreamBufTextEditQt4.hh"
-#include <libProgressReporter/ProgressReporterQt4.hh>
+#include <libProgressReporter_qt4/ProgressReporterQt4.hh>
 
 class QDockWidget;
 class QTextEdit;

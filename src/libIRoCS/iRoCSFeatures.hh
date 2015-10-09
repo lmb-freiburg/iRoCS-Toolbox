@@ -35,8 +35,6 @@
 #include <libArrayToolbox/SphericalTensor.hh>
 #include <libArrayToolbox/iRoCS.hh>
 
-#include <liblabelling_qt4/AnnotationChannelSpecs.hh>
-
 #include <libsvmtl/BasicFV.hh>
 
 namespace iRoCS

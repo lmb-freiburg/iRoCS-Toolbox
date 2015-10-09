@@ -20,46 +20,40 @@
  *
  **************************************************************************/
 
-#ifndef MITOSISCLASSIFICATIONPARAMETERS_HH
-#define MITOSISCLASSIFICATIONPARAMETERS_HH
+#ifndef TRAINEPIDERMISLABELLINGTHREAD_HH
+#define TRAINEPIDERMISLABELLINGTHREAD_HH
 
 #ifdef HAVE_CONFIG_H
 #include <config.hh>
 #endif
 
-#include <string>
+#include <QtCore/QThread>
 
-#include <liblabelling_qt4/DataChannelSpecs.hh>
-#include <liblabelling_qt4/AnnotationChannelSpecs.hh>
+#include <libProgressReporter/ProgressReporter.hh>
 
-class MitosisClassificationParameters
+#include "TrainEpidermisLabellingParametersDialog.hh"
+
+class TrainEpidermisLabellingThread : public QThread
 {
 
-public:
+  Q_OBJECT
+
+  public:
   
-  MitosisClassificationParameters();
-  virtual ~MitosisClassificationParameters();
+  TrainEpidermisLabellingThread(
+      TrainEpidermisLabellingParametersDialog const &parameters,
+      iRoCS::ProgressReporter *progress = NULL);
+  ~TrainEpidermisLabellingThread();
 
-  virtual DataChannelSpecs *dataChannel() const;
-  virtual void setDataChannel(DataChannelSpecs *channel);
-
-  virtual AnnotationChannelSpecs *annotationChannel() const;
-  virtual void setAnnotationChannel(AnnotationChannelSpecs *channel);
-
-  virtual std::string cacheFileName() const;
-  virtual void setCacheFileName(std::string const &cacheFileName);
-
-  virtual std::string modelFileName() const;
-  virtual void setModelFileName(std::string const &modelFileName);
-
-  std::string check();
+  void run();
 
 private:
+
+  TrainEpidermisLabellingParametersDialog const &_parameters;
+  iRoCS::ProgressReporter *p_progress;
   
-  DataChannelSpecs *p_dataChannel;
-  AnnotationChannelSpecs *p_annotationChannel;
-  std::string _cacheFileName;
-  std::string _modelFileName;
+  double _sigmaMin, _sigmaMax, _sigmaStep;
+  int _bandMax;
 
 };
 

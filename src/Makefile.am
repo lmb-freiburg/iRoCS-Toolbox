@@ -2,6 +2,7 @@ SUBDIRS = \
 	libcmdline \
 	libsvmtl \
 	libProgressReporter \
+	libProgressReporter_qt4 \
 	libBaseFunctions \
 	libBlitzAnalyze \
 	libBlitzHdf5 \

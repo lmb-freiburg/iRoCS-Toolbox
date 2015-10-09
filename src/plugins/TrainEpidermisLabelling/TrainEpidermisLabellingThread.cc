@@ -20,23 +20,21 @@
  *
  **************************************************************************/
 
-#ifndef TRAINEPIDERMISLABELLINGWORKER_HH
-#define TRAINEPIDERMISLABELLINGWORKER_HH
+#include "TrainEpidermisLabellingThread.hh"
 
-#ifdef HAVE_CONFIG_H
-#include <config.hh>
-#endif
+#include <libIRoCS/TrainEpidermisLabellingWorker.hh>
 
-#include <libProgressReporter/ProgressReporter.hh>
+TrainEpidermisLabellingThread::TrainEpidermisLabellingThread(
+    TrainEpidermisLabellingParametersDialog const &parameters,
+    iRoCS::ProgressReporter *progress) 
+        : QThread(), _parameters(parameters), p_progress(progress),
+          _sigmaMin(0.5), _sigmaMax(64.0), _sigmaStep(2.0), _bandMax(5)
+{}
 
-#include "TrainingParameters.hh"
+TrainEpidermisLabellingThread::~TrainEpidermisLabellingThread()
+{}
 
-namespace iRoCS
+void TrainEpidermisLabellingThread::run()
 {
-
-  void trainEpidermisLabelling(
-      TrainingParameters const &parameters, ProgressReporter *pr = NULL);
-
+  iRoCS::trainEpidermisLabelling(_parameters, p_progress);
 }
-
-#endif

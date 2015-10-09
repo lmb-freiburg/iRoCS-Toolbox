@@ -30,8 +30,7 @@
 #include <liblabelling_qt4/PluginInterface.hh>
 
 #include "TrainDetectorParametersDialog.hh"
-
-#include <libIRoCS/TrainDetectorWorker.hh>
+#include "TrainDetectorThread.hh"
 
 #include <QtCore/QtPlugin>
 
@@ -58,7 +57,7 @@ private:
 
   LabellingMainWidget* p_mainWidget;
   TrainDetectorParametersDialog* p_dialog;
-  TrainDetectorWorker* p_workerThread;
+  TrainDetectorThread* p_workerThread;
   bool _interactive;
 
   iRoCS::ProgressReporterQt4 *p_progress;
