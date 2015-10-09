@@ -355,6 +355,7 @@ if test "x$HDF5_LIBS" == "x"; then
     LDFLAGS+="$HDF5_LDFLAGS"
   fi
 
+  AC_CHECK_LIB([z], [compress2], [], AC_MSG_ERROR([libz is missing.]))
   AC_CHECK_HEADER([hdf5.h], [],
     AC_MSG_ERROR([hdf5 headers not found. Check the --with-hdf5 configure option.]))
   AC_CHECK_LIB(hdf5, H5Dcreate2, [],
