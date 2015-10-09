@@ -39,6 +39,9 @@
 /* Define to 1 if you have the `GLU' library (-lGLU). */
 #undef HAVE_LIBGLU
 
+/* Define to 1 if you have the `glu32' library (-lglu32). */
+#undef HAVE_LIBGLU32
+
 /* Define to 1 if you have the `gsl' library (-lgsl). */
 #undef HAVE_LIBGSL
 

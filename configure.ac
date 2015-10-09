@@ -510,7 +510,9 @@ if test "x$GLU_LIBS" == "x"; then
   tmp_LDFLAGS="$LDFLAGS"
   tmp_LIBS="$LIBS"
 
-  AC_CHECK_LIB(GLU,gluLookAt, [], AC_MSG_ERROR([OpenGL utility library (libGLU) not found.]))
+  AC_CHECK_LIB(GLU,gluLookAt, [],
+    [AC_CHECK_LIB(glu32,gluLookAt, [],
+      [AC_MSG_ERROR([OpenGL utility library (libGLU) not found.])])])
 
   GLU_CFLAGS="$CPPFLAGS"
   GLU_LIBS="$LIBS"
