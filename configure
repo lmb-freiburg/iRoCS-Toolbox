@@ -636,7 +636,6 @@ am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
 OPENCV_STATIC_LIBS
-OPENCV_STATIC_CFLAGS
 FFTW_STATIC_LIBS
 FFTW_STATIC_CFLAGS
 HDF5_STATIC_LIBS
@@ -647,6 +646,8 @@ TIFF_STATIC_LIBS
 TIFF_STATIC_CFLAGS
 JPEG_STATIC_LIBS
 JPEG_STATIC_CFLAGS
+PNG_STATIC_LIBS
+PNG_STATIC_CFLAGS
 BLITZ_STATIC_LIBS
 BLITZ_STATIC_CFLAGS
 QT4_UIC
@@ -656,6 +657,8 @@ QT4_LIBS
 QT4_CFLAGS
 GLU_LIBS
 GLU_CFLAGS
+GL_LIBS
+GL_CFLAGS
 OPENCV_LIBS
 OPENCV_CFLAGS
 FFTW_LIBS
@@ -668,12 +671,15 @@ TIFF_LIBS
 TIFF_CFLAGS
 JPEG_LIBS
 JPEG_CFLAGS
+PNG_LIBS
+PNG_CFLAGS
 BLITZ_LIBS
 BLITZ_CFLAGS
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
 PKG_CONFIG
 OPENMP_LIBS
+NONCONSOLE_LDFLAGS
 OPENMP_CXXFLAGS
 CXXCPP
 CPP
@@ -686,8 +692,6 @@ MANIFEST_TOOL
 RANLIB
 ac_ct_AR
 AR
-DLLTOOL
-OBJDUMP
 LN_S
 NM
 ac_ct_DUMPBIN
@@ -698,6 +702,9 @@ EGREP
 GREP
 SED
 LIBTOOL
+OBJDUMP
+DLLTOOL
+AS
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
 CXXDEPMODE
@@ -836,6 +843,8 @@ PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
 BLITZ_CFLAGS
 BLITZ_LIBS
+PNG_CFLAGS
+PNG_LIBS
 JPEG_CFLAGS
 JPEG_LIBS
 TIFF_CFLAGS
@@ -848,12 +857,16 @@ FFTW_CFLAGS
 FFTW_LIBS
 OPENCV_CFLAGS
 OPENCV_LIBS
+GL_CFLAGS
+GL_LIBS
 GLU_CFLAGS
 GLU_LIBS
 QT4_CFLAGS
 QT4_LIBS
 BLITZ_STATIC_CFLAGS
 BLITZ_STATIC_LIBS
+PNG_STATIC_CFLAGS
+PNG_STATIC_LIBS
 JPEG_STATIC_CFLAGS
 JPEG_STATIC_LIBS
 TIFF_STATIC_CFLAGS
@@ -863,9 +876,7 @@ GSL_STATIC_LIBS
 HDF5_STATIC_CFLAGS
 HDF5_STATIC_LIBS
 FFTW_STATIC_CFLAGS
-FFTW_STATIC_LIBS
-OPENCV_STATIC_CFLAGS
-OPENCV_STATIC_LIBS'
+FFTW_STATIC_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1534,6 +1545,8 @@ Some influential environment variables:
   BLITZ_CFLAGS
               C compiler flags for BLITZ, overriding pkg-config
   BLITZ_LIBS  linker flags for BLITZ, overriding pkg-config
+  PNG_CFLAGS  C compiler flags for PNG, overriding pkg-config
+  PNG_LIBS    linker flags for PNG, overriding pkg-config
   JPEG_CFLAGS C compiler flags for JPEG, overriding pkg-config
   JPEG_LIBS   linker flags for JPEG, overriding pkg-config
   TIFF_CFLAGS C compiler flags for TIFF, overriding pkg-config
@@ -1547,6 +1560,8 @@ Some influential environment variables:
   OPENCV_CFLAGS
               C compiler flags for OPENCV, overriding pkg-config
   OPENCV_LIBS linker flags for OPENCV, overriding pkg-config
+  GL_CFLAGS   C compiler flags for GL, overriding pkg-config
+  GL_LIBS     linker flags for GL, overriding pkg-config
   GLU_CFLAGS  C compiler flags for GLU, overriding pkg-config
   GLU_LIBS    linker flags for GLU, overriding pkg-config
   QT4_CFLAGS  C compiler flags for QT4, overriding pkg-config
@@ -1555,6 +1570,10 @@ Some influential environment variables:
               C compiler flags for BLITZ_STATIC, overriding pkg-config
   BLITZ_STATIC_LIBS
               linker flags for BLITZ_STATIC, overriding pkg-config
+  PNG_STATIC_CFLAGS
+              C compiler flags for PNG_STATIC, overriding pkg-config
+  PNG_STATIC_LIBS
+              linker flags for PNG_STATIC, overriding pkg-config
   JPEG_STATIC_CFLAGS
               C compiler flags for JPEG_STATIC, overriding pkg-config
   JPEG_STATIC_LIBS
@@ -1575,10 +1594,6 @@ Some influential environment variables:
               C compiler flags for FFTW_STATIC, overriding pkg-config
   FFTW_STATIC_LIBS
               linker flags for FFTW_STATIC, overriding pkg-config
-  OPENCV_STATIC_CFLAGS
-              C compiler flags for OPENCV_STATIC, overriding pkg-config
-  OPENCV_STATIC_LIBS
-              linker flags for OPENCV_STATIC, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -3075,9 +3090,125 @@ AMTAR='$${TAR-tar}'
 
 
 # We'll loop over all known methods to create a tar archive until one works.
-_am_tools='gnutar  pax cpio none'
+_am_tools='gnutar plaintar pax cpio none'
 
-am__tar='$${TAR-tar} chof - "$$tardir"' am__untar='$${TAR-tar} xf -'
+# The POSIX 1988 'ustar' format is defined with fixed-size fields.
+      # There is notably a 21 bits limit for the UID and the GID.  In fact,
+      # the 'pax' utility can hang on bigger UID/GID (see automake bug#8343
+      # and bug#13588).
+      am_max_uid=2097151 # 2^21 - 1
+      am_max_gid=$am_max_uid
+      # The $UID and $GID variables are not portable, so we need to resort
+      # to the POSIX-mandated id(1) utility.  Errors in the 'id' calls
+      # below are definitely unexpected, so allow the users to see them
+      # (that is, avoid stderr redirection).
+      am_uid=`id -u || echo unknown`
+      am_gid=`id -g || echo unknown`
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether UID '$am_uid' is supported by ustar format" >&5
+$as_echo_n "checking whether UID '$am_uid' is supported by ustar format... " >&6; }
+      if test $am_uid -le $am_max_uid; then
+         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+      else
+         { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+         _am_tools=none
+      fi
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether GID '$am_gid' is supported by ustar format" >&5
+$as_echo_n "checking whether GID '$am_gid' is supported by ustar format... " >&6; }
+      if test $am_gid -le $am_max_gid; then
+         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+      else
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+        _am_tools=none
+      fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to create a ustar tar archive" >&5
+$as_echo_n "checking how to create a ustar tar archive... " >&6; }
+
+  # Go ahead even if we have the value already cached.  We do so because we
+  # need to set the values for the 'am__tar' and 'am__untar' variables.
+  _am_tools=${am_cv_prog_tar_ustar-$_am_tools}
+
+  for _am_tool in $_am_tools; do
+    case $_am_tool in
+    gnutar)
+      for _am_tar in tar gnutar gtar; do
+        { echo "$as_me:$LINENO: $_am_tar --version" >&5
+   ($_am_tar --version) >&5 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); } && break
+      done
+      am__tar="$_am_tar --format=ustar -chf - "'"$$tardir"'
+      am__tar_="$_am_tar --format=ustar -chf - "'"$tardir"'
+      am__untar="$_am_tar -xf -"
+      ;;
+    plaintar)
+      # Must skip GNU tar: if it does not support --format= it doesn't create
+      # ustar tarball either.
+      (tar --version) >/dev/null 2>&1 && continue
+      am__tar='tar chf - "$$tardir"'
+      am__tar_='tar chf - "$tardir"'
+      am__untar='tar xf -'
+      ;;
+    pax)
+      am__tar='pax -L -x ustar -w "$$tardir"'
+      am__tar_='pax -L -x ustar -w "$tardir"'
+      am__untar='pax -r'
+      ;;
+    cpio)
+      am__tar='find "$$tardir" -print | cpio -o -H ustar -L'
+      am__tar_='find "$tardir" -print | cpio -o -H ustar -L'
+      am__untar='cpio -i -H ustar -d'
+      ;;
+    none)
+      am__tar=false
+      am__tar_=false
+      am__untar=false
+      ;;
+    esac
+
+    # If the value was cached, stop now.  We just wanted to have am__tar
+    # and am__untar set.
+    test -n "${am_cv_prog_tar_ustar}" && break
+
+    # tar/untar a dummy directory, and stop if the command works.
+    rm -rf conftest.dir
+    mkdir conftest.dir
+    echo GrepMe > conftest.dir/file
+    { echo "$as_me:$LINENO: tardir=conftest.dir && eval $am__tar_ >conftest.tar" >&5
+   (tardir=conftest.dir && eval $am__tar_ >conftest.tar) >&5 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }
+    rm -rf conftest.dir
+    if test -s conftest.tar; then
+      { echo "$as_me:$LINENO: $am__untar <conftest.tar" >&5
+   ($am__untar <conftest.tar) >&5 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }
+      { echo "$as_me:$LINENO: cat conftest.dir/file" >&5
+   (cat conftest.dir/file) >&5 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }
+      grep GrepMe conftest.dir/file >/dev/null 2>&1 && break
+    fi
+  done
+  rm -rf conftest.dir
+
+  if ${am_cv_prog_tar_ustar+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  am_cv_prog_tar_ustar=$_am_tool
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_prog_tar_ustar" >&5
+$as_echo "$am_cv_prog_tar_ustar" >&6; }
 
 
 
@@ -3140,7 +3271,7 @@ else
   enable_static_tools=no
 fi
 
- if test "x$enable_statictools" != "xno"; then
+ if test "x$enable_static_tools" != "xno"; then
   STATIC_TOOLS_TRUE=
   STATIC_TOOLS_FALSE='#'
 else
@@ -4700,6 +4831,309 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
+enable_win32_dll=yes
+
+case $host in
+*-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-cegcc*)
+  if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}as", so it can be a program name with args.
+set dummy ${ac_tool_prefix}as; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_AS+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$AS"; then
+  ac_cv_prog_AS="$AS" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_AS="${ac_tool_prefix}as"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+AS=$ac_cv_prog_AS
+if test -n "$AS"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AS" >&5
+$as_echo "$AS" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+fi
+if test -z "$ac_cv_prog_AS"; then
+  ac_ct_AS=$AS
+  # Extract the first word of "as", so it can be a program name with args.
+set dummy as; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_ac_ct_AS+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$ac_ct_AS"; then
+  ac_cv_prog_ac_ct_AS="$ac_ct_AS" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_ac_ct_AS="as"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+ac_ct_AS=$ac_cv_prog_ac_ct_AS
+if test -n "$ac_ct_AS"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_ct_AS" >&5
+$as_echo "$ac_ct_AS" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+  if test "x$ac_ct_AS" = x; then
+    AS="false"
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
+$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    AS=$ac_ct_AS
+  fi
+else
+  AS="$ac_cv_prog_AS"
+fi
+
+  if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}dlltool", so it can be a program name with args.
+set dummy ${ac_tool_prefix}dlltool; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_DLLTOOL+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$DLLTOOL"; then
+  ac_cv_prog_DLLTOOL="$DLLTOOL" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_DLLTOOL="${ac_tool_prefix}dlltool"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+DLLTOOL=$ac_cv_prog_DLLTOOL
+if test -n "$DLLTOOL"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $DLLTOOL" >&5
+$as_echo "$DLLTOOL" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+fi
+if test -z "$ac_cv_prog_DLLTOOL"; then
+  ac_ct_DLLTOOL=$DLLTOOL
+  # Extract the first word of "dlltool", so it can be a program name with args.
+set dummy dlltool; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_ac_ct_DLLTOOL+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$ac_ct_DLLTOOL"; then
+  ac_cv_prog_ac_ct_DLLTOOL="$ac_ct_DLLTOOL" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_ac_ct_DLLTOOL="dlltool"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+ac_ct_DLLTOOL=$ac_cv_prog_ac_ct_DLLTOOL
+if test -n "$ac_ct_DLLTOOL"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_ct_DLLTOOL" >&5
+$as_echo "$ac_ct_DLLTOOL" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+  if test "x$ac_ct_DLLTOOL" = x; then
+    DLLTOOL="false"
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
+$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    DLLTOOL=$ac_ct_DLLTOOL
+  fi
+else
+  DLLTOOL="$ac_cv_prog_DLLTOOL"
+fi
+
+  if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}objdump", so it can be a program name with args.
+set dummy ${ac_tool_prefix}objdump; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_OBJDUMP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$OBJDUMP"; then
+  ac_cv_prog_OBJDUMP="$OBJDUMP" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_OBJDUMP="${ac_tool_prefix}objdump"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+OBJDUMP=$ac_cv_prog_OBJDUMP
+if test -n "$OBJDUMP"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OBJDUMP" >&5
+$as_echo "$OBJDUMP" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+fi
+if test -z "$ac_cv_prog_OBJDUMP"; then
+  ac_ct_OBJDUMP=$OBJDUMP
+  # Extract the first word of "objdump", so it can be a program name with args.
+set dummy objdump; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_ac_ct_OBJDUMP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$ac_ct_OBJDUMP"; then
+  ac_cv_prog_ac_ct_OBJDUMP="$ac_ct_OBJDUMP" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_ac_ct_OBJDUMP="objdump"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+ac_ct_OBJDUMP=$ac_cv_prog_ac_ct_OBJDUMP
+if test -n "$ac_ct_OBJDUMP"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_ct_OBJDUMP" >&5
+$as_echo "$ac_ct_OBJDUMP" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+  if test "x$ac_ct_OBJDUMP" = x; then
+    OBJDUMP="false"
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
+$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    OBJDUMP=$ac_ct_OBJDUMP
+  fi
+else
+  OBJDUMP="$ac_cv_prog_OBJDUMP"
+fi
+
+  ;;
+esac
+
+test -z "$AS" && AS=as
+
+
+
+
+
+test -z "$DLLTOOL" && DLLTOOL=dlltool
+
+
+
+
+
+test -z "$OBJDUMP" && OBJDUMP=objdump
+
+
+
+
+
+
+
 case `pwd` in
   *\ * | *\	*)
     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Libtool does not cope well with whitespace in \`pwd\`" >&5
@@ -5832,9 +6266,6 @@ test -z "$OBJDUMP" && OBJDUMP=objdump
 
 
 
-
-
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to recognize dependent libraries" >&5
 $as_echo_n "checking how to recognize dependent libraries... " >&6; }
 if ${lt_cv_deplibs_check_method+:} false; then :
@@ -6168,9 +6599,6 @@ else
 fi
 
 test -z "$DLLTOOL" && DLLTOOL=dlltool
-
-
-
 
 
 
@@ -8234,8 +8662,6 @@ func_stripname_cnf ()
 
         enable_dlopen=no
 
-
-  enable_win32_dll=no
 
 
             # Check whether --enable-shared was given.
@@ -15574,6 +16000,26 @@ $as_echo "$ac_cv_prog_cxx_openmp" >&6; }
 
 
 
+case "$host_os" in
+*linux*)
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: Building for Linux" >&5
+$as_echo "Building for Linux" >&6; }
+  NONCONSOLE_LDFLAGS=""
+     ;;
+*mingw*)
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: Building for Windows using minGW" >&5
+$as_echo "Building for Windows using minGW" >&6; }
+  LIBS+="-lws2_32"
+  NONCONSOLE_LDFLAGS="-mwindows"
+     ;;
+*)
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No configuration for host os '$host_os' available." >&5
+$as_echo "$as_me: WARNING: No configuration for host os '$host_os' available." >&2;}
+  NONCONSOLE_LDFLAGS=""
+     ;;
+esac
+
+
 # Setup build environment
 CFLAGS="-Wall -Wextra -pedantic -fPIC"
 CXXFLAGS="-Wall -Wextra -pedantic -fPIC"
@@ -16046,6 +16492,79 @@ fi
   fi
 
 pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for PNG" >&5
+$as_echo_n "checking for PNG... " >&6; }
+
+if test -n "$PNG_CFLAGS"; then
+    pkg_cv_PNG_CFLAGS="$PNG_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libpng\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "libpng") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_PNG_CFLAGS=`$PKG_CONFIG --cflags "libpng" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$PNG_LIBS"; then
+    pkg_cv_PNG_LIBS="$PNG_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libpng\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "libpng") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_PNG_LIBS=`$PKG_CONFIG --libs "libpng" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        PNG_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "libpng" 2>&1`
+        else
+	        PNG_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "libpng" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$PNG_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for png not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for png not found... Deferring" >&6;}
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for png not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for png not found... Deferring" >&6;}
+else
+	PNG_CFLAGS=$pkg_cv_PNG_CFLAGS
+	PNG_LIBS=$pkg_cv_PNG_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
+
+pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for JPEG" >&5
 $as_echo_n "checking for JPEG... " >&6; }
 
@@ -16475,6 +16994,65 @@ fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$OPENCV_PKG_ERRORS" >&5
 
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENCV" >&5
+$as_echo_n "checking for OPENCV... " >&6; }
+
+if test -n "$OPENCV_CFLAGS"; then
+    pkg_cv_OPENCV_CFLAGS="$OPENCV_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv_core opencv_imgproc\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv_core opencv_imgproc") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_CFLAGS=`$PKG_CONFIG --cflags "opencv_core opencv_imgproc" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$OPENCV_LIBS"; then
+    pkg_cv_OPENCV_LIBS="$OPENCV_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv_core opencv_imgproc\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv_core opencv_imgproc") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_LIBS=`$PKG_CONFIG --libs "opencv_core opencv_imgproc" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "opencv_core opencv_imgproc" 2>&1`
+        else
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "opencv_core opencv_imgproc" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$OPENCV_PKG_ERRORS" >&5
+
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
 $as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
 elif test $pkg_failed = untried; then
@@ -16489,7 +17067,163 @@ else
 $as_echo "yes" >&6; }
 
 fi
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENCV" >&5
+$as_echo_n "checking for OPENCV... " >&6; }
+
+if test -n "$OPENCV_CFLAGS"; then
+    pkg_cv_OPENCV_CFLAGS="$OPENCV_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv_core opencv_imgproc\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv_core opencv_imgproc") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_CFLAGS=`$PKG_CONFIG --cflags "opencv_core opencv_imgproc" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$OPENCV_LIBS"; then
+    pkg_cv_OPENCV_LIBS="$OPENCV_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv_core opencv_imgproc\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv_core opencv_imgproc") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_LIBS=`$PKG_CONFIG --libs "opencv_core opencv_imgproc" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "opencv_core opencv_imgproc" 2>&1`
+        else
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "opencv_core opencv_imgproc" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$OPENCV_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
+else
+	OPENCV_CFLAGS=$pkg_cv_OPENCV_CFLAGS
+	OPENCV_LIBS=$pkg_cv_OPENCV_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
+else
+	OPENCV_CFLAGS=$pkg_cv_OPENCV_CFLAGS
+	OPENCV_LIBS=$pkg_cv_OPENCV_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
   fi
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for GL" >&5
+$as_echo_n "checking for GL... " >&6; }
+
+if test -n "$GL_CFLAGS"; then
+    pkg_cv_GL_CFLAGS="$GL_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gl\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "gl") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_GL_CFLAGS=`$PKG_CONFIG --cflags "gl" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$GL_LIBS"; then
+    pkg_cv_GL_LIBS="$GL_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gl\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "gl") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_GL_LIBS=`$PKG_CONFIG --libs "gl" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        GL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "gl" 2>&1`
+        else
+	        GL_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "gl" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$GL_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for gl not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for gl not found... Deferring" >&6;}
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for gl not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for gl not found... Deferring" >&6;}
+else
+	GL_CFLAGS=$pkg_cv_GL_CFLAGS
+	GL_LIBS=$pkg_cv_GL_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for GLU" >&5
@@ -16564,6 +17298,87 @@ $as_echo "yes" >&6; }
 
 fi
   if test "$with_qt4" == "autodetect"; then
+    if test "x$enable_debug" != "xno"; then
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for QT4" >&5
+$as_echo_n "checking for QT4... " >&6; }
+
+if test -n "$QT4_CFLAGS"; then
+    pkg_cv_QT4_CFLAGS="$QT4_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_QT4_CFLAGS=`$PKG_CONFIG --cflags "QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$QT4_LIBS"; then
+    pkg_cv_QT4_LIBS="$QT4_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_QT4_LIBS=`$PKG_CONFIG --libs "QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        QT4_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0" 2>&1`
+        else
+	        QT4_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$QT4_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for Qt4 debug library not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for Qt4 debug library not found... Deferring" >&6;}
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for Qt4 debug library not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for Qt4 debug library not found... Deferring" >&6;}
+else
+	QT4_CFLAGS=$pkg_cv_QT4_CFLAGS
+	QT4_LIBS=$pkg_cv_QT4_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+        QT4_MOC="`pkg-config --variable=moc_location QtCore`"
+        QT4_RCC="`pkg-config --variable=rcc_location QtCore`"
+        QT4_UIC="`pkg-config --variable=uic_location QtCore`"
+fi
+
+$as_echo "#define QT_DEBUG 1" >>confdefs.h
+
+    else
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for QT4" >&5
@@ -16636,10 +17451,14 @@ else
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
-      QT4_MOC="`pkg-config --variable=moc_location QtCore`"
-      QT4_RCC="`pkg-config --variable=rcc_location QtCore`"
-      QT4_UIC="`pkg-config --variable=uic_location QtCore`"
+        QT4_MOC="`pkg-config --variable=moc_location QtCore`"
+        QT4_RCC="`pkg-config --variable=rcc_location QtCore`"
+        QT4_UIC="`pkg-config --variable=uic_location QtCore`"
 fi
+
+$as_echo "#define QT_NO_DEBUG 1" >>confdefs.h
+
+    fi
 
 
 
@@ -16795,6 +17614,79 @@ $as_echo "yes" >&6; }
 
 fi
       fi
+    fi
+    if test "x$PNG_LIBS" != "x"; then
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for PNG_STATIC" >&5
+$as_echo_n "checking for PNG_STATIC... " >&6; }
+
+if test -n "$PNG_STATIC_CFLAGS"; then
+    pkg_cv_PNG_STATIC_CFLAGS="$PNG_STATIC_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libpng\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "libpng") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_PNG_STATIC_CFLAGS=`$PKG_CONFIG --cflags "libpng" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$PNG_STATIC_LIBS"; then
+    pkg_cv_PNG_STATIC_LIBS="$PNG_STATIC_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libpng\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "libpng") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_PNG_STATIC_LIBS=`$PKG_CONFIG --libs "libpng" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        PNG_STATIC_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "libpng" 2>&1`
+        else
+	        PNG_STATIC_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "libpng" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$PNG_STATIC_PKG_ERRORS" >&5
+
+	as_fn_error $? "No static PNG library available" "$LINENO" 5
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	as_fn_error $? "No static PNG library available" "$LINENO" 5
+else
+	PNG_STATIC_CFLAGS=$pkg_cv_PNG_STATIC_CFLAGS
+	PNG_STATIC_LIBS=$pkg_cv_PNG_STATIC_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
     fi
     if test "x$JPEG_LIBS" != "x"; then
 
@@ -17164,11 +18056,11 @@ fi
     if test "x$OPENCV_LIBS" != "x"; then
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENCV_STATIC" >&5
-$as_echo_n "checking for OPENCV_STATIC... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENCV" >&5
+$as_echo_n "checking for OPENCV... " >&6; }
 
-if test -n "$OPENCV_STATIC_CFLAGS"; then
-    pkg_cv_OPENCV_STATIC_CFLAGS="$OPENCV_STATIC_CFLAGS"
+if test -n "$OPENCV_CFLAGS"; then
+    pkg_cv_OPENCV_CFLAGS="$OPENCV_CFLAGS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
     { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv\""; } >&5
@@ -17176,7 +18068,7 @@ if test -n "$OPENCV_STATIC_CFLAGS"; then
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_OPENCV_STATIC_CFLAGS=`$PKG_CONFIG --cflags "opencv" 2>/dev/null`
+  pkg_cv_OPENCV_CFLAGS=`$PKG_CONFIG --cflags "opencv" 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
 else
   pkg_failed=yes
@@ -17184,8 +18076,8 @@ fi
  else
     pkg_failed=untried
 fi
-if test -n "$OPENCV_STATIC_LIBS"; then
-    pkg_cv_OPENCV_STATIC_LIBS="$OPENCV_STATIC_LIBS"
+if test -n "$OPENCV_LIBS"; then
+    pkg_cv_OPENCV_LIBS="$OPENCV_LIBS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
     { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv\""; } >&5
@@ -17193,7 +18085,7 @@ if test -n "$OPENCV_STATIC_LIBS"; then
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_OPENCV_STATIC_LIBS=`$PKG_CONFIG --libs "opencv" 2>/dev/null`
+  pkg_cv_OPENCV_LIBS=`$PKG_CONFIG --libs "opencv" 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
 else
   pkg_failed=yes
@@ -17214,21 +18106,165 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        OPENCV_STATIC_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "opencv" 2>&1`
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "opencv" 2>&1`
         else
-	        OPENCV_STATIC_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "opencv" 2>&1`
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "opencv" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
-	echo "$OPENCV_STATIC_PKG_ERRORS" >&5
+	echo "$OPENCV_PKG_ERRORS" >&5
 
-	as_fn_error $? "No static OpenCV library available" "$LINENO" 5
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENCV" >&5
+$as_echo_n "checking for OPENCV... " >&6; }
+
+if test -n "$OPENCV_CFLAGS"; then
+    pkg_cv_OPENCV_CFLAGS="$OPENCV_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv_core opencv_imgproc\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv_core opencv_imgproc") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_CFLAGS=`$PKG_CONFIG --cflags "opencv_core opencv_imgproc" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$OPENCV_LIBS"; then
+    pkg_cv_OPENCV_LIBS="$OPENCV_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv_core opencv_imgproc\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv_core opencv_imgproc") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_LIBS=`$PKG_CONFIG --libs "opencv_core opencv_imgproc" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "opencv_core opencv_imgproc" 2>&1`
+        else
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "opencv_core opencv_imgproc" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$OPENCV_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
 elif test $pkg_failed = untried; then
      	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-	as_fn_error $? "No static OpenCV library available" "$LINENO" 5
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
 else
-	OPENCV_STATIC_CFLAGS=$pkg_cv_OPENCV_STATIC_CFLAGS
-	OPENCV_STATIC_LIBS=$pkg_cv_OPENCV_STATIC_LIBS
+	OPENCV_CFLAGS=$pkg_cv_OPENCV_CFLAGS
+	OPENCV_LIBS=$pkg_cv_OPENCV_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENCV" >&5
+$as_echo_n "checking for OPENCV... " >&6; }
+
+if test -n "$OPENCV_CFLAGS"; then
+    pkg_cv_OPENCV_CFLAGS="$OPENCV_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv_core opencv_imgproc\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv_core opencv_imgproc") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_CFLAGS=`$PKG_CONFIG --cflags "opencv_core opencv_imgproc" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$OPENCV_LIBS"; then
+    pkg_cv_OPENCV_LIBS="$OPENCV_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"opencv_core opencv_imgproc\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "opencv_core opencv_imgproc") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_OPENCV_LIBS=`$PKG_CONFIG --libs "opencv_core opencv_imgproc" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "opencv_core opencv_imgproc" 2>&1`
+        else
+	        OPENCV_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "opencv_core opencv_imgproc" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$OPENCV_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for OpenCV not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for OpenCV not found... Deferring" >&6;}
+else
+	OPENCV_CFLAGS=$pkg_cv_OPENCV_CFLAGS
+	OPENCV_LIBS=$pkg_cv_OPENCV_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
+else
+	OPENCV_CFLAGS=$pkg_cv_OPENCV_CFLAGS
+	OPENCV_LIBS=$pkg_cv_OPENCV_LIBS
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -17441,6 +18477,229 @@ $as_echo "no" >&6; }
 fi
 
 #
+# Check for libpng
+#
+if test "x$PNG_LIBS" == "x"; then
+  tmp_CPPFLAGS="$CPPFLAGS"
+  tmp_LDFLAGS="$LDFLAGS"
+  tmp_LIBS="$LIBS"
+
+
+ac_fn_cxx_check_header_mongrel "$LINENO" "png.h" "ac_cv_header_png_h" "$ac_includes_default"
+if test "x$ac_cv_header_png_h" = xyes; then :
+
+else
+  as_fn_error $? "png headers not found." "$LINENO" 5
+fi
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_malloc in -lpng" >&5
+$as_echo_n "checking for png_malloc in -lpng... " >&6; }
+if ${ac_cv_lib_png_png_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpng  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char png_malloc ();
+int
+main ()
+{
+return png_malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_png_png_malloc=yes
+else
+  ac_cv_lib_png_png_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png_png_malloc" >&5
+$as_echo "$ac_cv_lib_png_png_malloc" >&6; }
+if test "x$ac_cv_lib_png_png_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPNG 1
+_ACEOF
+
+  LIBS="-lpng $LIBS"
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_malloc in -lpng12" >&5
+$as_echo_n "checking for png_malloc in -lpng12... " >&6; }
+if ${ac_cv_lib_png12_png_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpng12  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char png_malloc ();
+int
+main ()
+{
+return png_malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_png12_png_malloc=yes
+else
+  ac_cv_lib_png12_png_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png12_png_malloc" >&5
+$as_echo "$ac_cv_lib_png12_png_malloc" >&6; }
+if test "x$ac_cv_lib_png12_png_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPNG12 1
+_ACEOF
+
+  LIBS="-lpng12 $LIBS"
+
+else
+  as_fn_error $? "libpng not found." "$LINENO" 5
+fi
+
+fi
+
+  PNG_CFLAGS="$CPPFLAGS"
+  PNG_LIBS="$LIBS"
+
+
+
+  if test "x$enable_static_tools" != "xno"; then
+    $as_unset ac_cv_lib_png_png_malloc
+    $as_unset ac_cv_lib_png12_png_malloc
+    CPPFLAGS="$tmp_CPPFLAGS"
+    LDFLAGS="-static $tmp_LDFLAGS"
+    LIBS="$tmp_LIBS"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_malloc in -lpng" >&5
+$as_echo_n "checking for png_malloc in -lpng... " >&6; }
+if ${ac_cv_lib_png_png_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpng  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char png_malloc ();
+int
+main ()
+{
+return png_malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_png_png_malloc=yes
+else
+  ac_cv_lib_png_png_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png_png_malloc" >&5
+$as_echo "$ac_cv_lib_png_png_malloc" >&6; }
+if test "x$ac_cv_lib_png_png_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPNG 1
+_ACEOF
+
+  LIBS="-lpng $LIBS"
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_malloc in -lpng12" >&5
+$as_echo_n "checking for png_malloc in -lpng12... " >&6; }
+if ${ac_cv_lib_png12_png_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpng12  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char png_malloc ();
+int
+main ()
+{
+return png_malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_png12_png_malloc=yes
+else
+  ac_cv_lib_png12_png_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png12_png_malloc" >&5
+$as_echo "$ac_cv_lib_png12_png_malloc" >&6; }
+if test "x$ac_cv_lib_png12_png_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPNG12 1
+_ACEOF
+
+  LIBS="-lpng12 $LIBS"
+
+else
+  as_fn_error $? "No static PNG library available." "$LINENO" 5
+fi
+
+fi
+
+    PNG_STATIC_LIBS="$LIBS"
+
+  fi
+
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+fi
+
+#
 # Check for libjpeg
 #
 if test "x$JPEG_LIBS" == "x"; then
@@ -17448,8 +18707,7 @@ if test "x$JPEG_LIBS" == "x"; then
   tmp_LDFLAGS="$LDFLAGS"
   tmp_LIBS="$LIBS"
 
-
-ac_fn_cxx_check_header_mongrel "$LINENO" "jpeglib.h" "ac_cv_header_jpeglib_h" "$ac_includes_default"
+  ac_fn_cxx_check_header_mongrel "$LINENO" "jpeglib.h" "ac_cv_header_jpeglib_h" "$ac_includes_default"
 if test "x$ac_cv_header_jpeglib_h" = xyes; then :
 
 else
@@ -18781,6 +20039,115 @@ fi
     OPENCV_STATIC_LIBS="$OPENCV_LDFLAGS $LIBS"
 
   fi
+
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+fi
+
+if test "x$GL_LIBS" == "x"; then
+  tmp_CPPFLAGS="$CPPFLAGS"
+  tmp_LDFLAGS="$LDFLAGS"
+  tmp_LIBS="$LIBS"
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for glBegin in -lGL" >&5
+$as_echo_n "checking for glBegin in -lGL... " >&6; }
+if ${ac_cv_lib_GL_glBegin+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lGL  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char glBegin ();
+int
+main ()
+{
+return glBegin ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_GL_glBegin=yes
+else
+  ac_cv_lib_GL_glBegin=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_GL_glBegin" >&5
+$as_echo "$ac_cv_lib_GL_glBegin" >&6; }
+if test "x$ac_cv_lib_GL_glBegin" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBGL 1
+_ACEOF
+
+  LIBS="-lGL $LIBS"
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for glBegin in -lopengl32" >&5
+$as_echo_n "checking for glBegin in -lopengl32... " >&6; }
+if ${ac_cv_lib_opengl32_glBegin+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lopengl32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char glBegin ();
+int
+main ()
+{
+return glBegin ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_opengl32_glBegin=yes
+else
+  ac_cv_lib_opengl32_glBegin=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_opengl32_glBegin" >&5
+$as_echo "$ac_cv_lib_opengl32_glBegin" >&6; }
+if test "x$ac_cv_lib_opengl32_glBegin" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBOPENGL32 1
+_ACEOF
+
+  LIBS="-lopengl32 $LIBS"
+
+else
+  as_fn_error $? "OpenGL library (libGL) not found." "$LINENO" 5
+fi
+
+fi
+
+
+  GL_CFLAGS="$CPPFLAGS"
+  GL_LIBS="$LIBS"
+
+
 
   CPPFLAGS="$tmp_CPPFLAGS"
   LDFLAGS="$tmp_LDFLAGS"
@@ -20368,6 +21735,9 @@ AMDEP_TRUE="$AMDEP_TRUE" ac_aux_dir="$ac_aux_dir"
 sed_quote_subst='$sed_quote_subst'
 double_quote_subst='$double_quote_subst'
 delay_variable_subst='$delay_variable_subst'
+AS='`$ECHO "$AS" | $SED "$delay_single_quote_subst"`'
+DLLTOOL='`$ECHO "$DLLTOOL" | $SED "$delay_single_quote_subst"`'
+OBJDUMP='`$ECHO "$OBJDUMP" | $SED "$delay_single_quote_subst"`'
 macro_version='`$ECHO "$macro_version" | $SED "$delay_single_quote_subst"`'
 macro_revision='`$ECHO "$macro_revision" | $SED "$delay_single_quote_subst"`'
 enable_shared='`$ECHO "$enable_shared" | $SED "$delay_single_quote_subst"`'
@@ -20401,12 +21771,10 @@ lt_cv_to_host_file_cmd='`$ECHO "$lt_cv_to_host_file_cmd" | $SED "$delay_single_q
 lt_cv_to_tool_file_cmd='`$ECHO "$lt_cv_to_tool_file_cmd" | $SED "$delay_single_quote_subst"`'
 reload_flag='`$ECHO "$reload_flag" | $SED "$delay_single_quote_subst"`'
 reload_cmds='`$ECHO "$reload_cmds" | $SED "$delay_single_quote_subst"`'
-OBJDUMP='`$ECHO "$OBJDUMP" | $SED "$delay_single_quote_subst"`'
 deplibs_check_method='`$ECHO "$deplibs_check_method" | $SED "$delay_single_quote_subst"`'
 file_magic_cmd='`$ECHO "$file_magic_cmd" | $SED "$delay_single_quote_subst"`'
 file_magic_glob='`$ECHO "$file_magic_glob" | $SED "$delay_single_quote_subst"`'
 want_nocaseglob='`$ECHO "$want_nocaseglob" | $SED "$delay_single_quote_subst"`'
-DLLTOOL='`$ECHO "$DLLTOOL" | $SED "$delay_single_quote_subst"`'
 sharedlib_from_linklib_cmd='`$ECHO "$sharedlib_from_linklib_cmd" | $SED "$delay_single_quote_subst"`'
 AR='`$ECHO "$AR" | $SED "$delay_single_quote_subst"`'
 AR_FLAGS='`$ECHO "$AR_FLAGS" | $SED "$delay_single_quote_subst"`'
@@ -20566,7 +21934,10 @@ _LTECHO_EOF'
 }
 
 # Quote evaled strings.
-for var in SHELL \
+for var in AS \
+DLLTOOL \
+OBJDUMP \
+SHELL \
 ECHO \
 PATH_SEPARATOR \
 SED \
@@ -20579,12 +21950,10 @@ LN_S \
 lt_SP2NL \
 lt_NL2SP \
 reload_flag \
-OBJDUMP \
 deplibs_check_method \
 file_magic_cmd \
 file_magic_glob \
 want_nocaseglob \
-DLLTOOL \
 sharedlib_from_linklib_cmd \
 AR \
 AR_FLAGS \
@@ -21541,6 +22910,15 @@ available_tags="CXX "
 
 # ### BEGIN LIBTOOL CONFIG
 
+# Assembler program.
+AS=$lt_AS
+
+# DLL creation program.
+DLLTOOL=$lt_DLLTOOL
+
+# Object dumper program.
+OBJDUMP=$lt_OBJDUMP
+
 # Which release of libtool.m4 was used?
 macro_version=$macro_version
 macro_revision=$macro_revision
@@ -21621,9 +22999,6 @@ to_host_file_cmd=$lt_cv_to_host_file_cmd
 # convert \$build files to toolchain format.
 to_tool_file_cmd=$lt_cv_to_tool_file_cmd
 
-# An object symbol dumper.
-OBJDUMP=$lt_OBJDUMP
-
 # Method to check whether dependent libraries are shared objects.
 deplibs_check_method=$lt_deplibs_check_method
 
@@ -21635,9 +23010,6 @@ file_magic_glob=$lt_file_magic_glob
 
 # Find potential files using nocaseglob when deplibs_check_method = "file_magic".
 want_nocaseglob=$lt_want_nocaseglob
-
-# DLL creation program.
-DLLTOOL=$lt_DLLTOOL
 
 # Command to associate shared and link libraries.
 sharedlib_from_linklib_cmd=$lt_sharedlib_from_linklib_cmd

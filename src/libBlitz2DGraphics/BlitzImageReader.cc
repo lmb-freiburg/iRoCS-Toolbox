@@ -251,10 +251,7 @@ int BlitzImageReader::readPNG(ImageAccessWrapper &data,
    // you can supply NULL for the last three parameters.  We also supply the
    // the compiler header file version, so that we know if the application
    // was compiled with a compatible version of the library.  REQUIRED 
-   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,
-                                    NULL, 
-                                    NULL, 
-                                    NULL);
+   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
    if (png_ptr == NULL) {
       fclose(fp);
@@ -267,7 +264,7 @@ int BlitzImageReader::readPNG(ImageAccessWrapper &data,
    info_ptr = png_create_info_struct(png_ptr);
    if (info_ptr == NULL) {
       fclose(fp);
-      png_destroy_read_struct(&png_ptr, png_infopp_NULL, png_infopp_NULL);
+      png_destroy_read_struct(&png_ptr, NULL, NULL);
       
       std::cerr << "BlitzImageReader: PNG load error: "
                 << "memory initialization\n";
@@ -281,7 +278,7 @@ int BlitzImageReader::readPNG(ImageAccessWrapper &data,
 
    if (setjmp(png_jmpbuf(png_ptr))) {
       /* Free all of the memory associated with the png_ptr and info_ptr */
-      png_destroy_read_struct(&png_ptr, &info_ptr, png_infopp_NULL);
+      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
       fclose(fp);
 
       /* If we get here, we had a problem reading the file */
@@ -298,7 +295,7 @@ int BlitzImageReader::readPNG(ImageAccessWrapper &data,
 
    // read the image in info structure (must fit in memory all at a time)
    // read without alpha channel
-   png_read_png(png_ptr, info_ptr,PNG_TRANSFORM_STRIP_ALPHA, png_voidp_NULL);
+   png_read_png(png_ptr, info_ptr,PNG_TRANSFORM_STRIP_ALPHA, NULL);
 
    //get row pointers & other info
    png_bytepp row_pointers = png_get_rows(png_ptr, info_ptr);
@@ -355,7 +352,7 @@ int BlitzImageReader::readPNG(ImageAccessWrapper &data,
    }
    
    // clean up after the read, and free any memory allocated - REQUIRED
-   png_destroy_read_struct(&png_ptr, &info_ptr, png_infopp_NULL);
+   png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 
    // close the file
    fclose(fp);

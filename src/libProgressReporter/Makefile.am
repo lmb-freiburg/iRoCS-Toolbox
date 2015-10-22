@@ -2,7 +2,7 @@ lib_LTLIBRARIES = libProgressReporter.la
 progressreporterincludedir = $(pkgincludedir)/libProgressReporter
 
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info 1:0:0
+AM_LDFLAGS = -no-undefined -version-info 1:0:0
 
 # version bump to 2:0:0 pending (Incompatibel update due to library split)
 

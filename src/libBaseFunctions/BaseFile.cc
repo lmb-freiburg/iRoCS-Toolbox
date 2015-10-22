@@ -43,7 +43,7 @@
 #include <dirent.h>
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <direct.h>
 #include <windows.h>
 #else
@@ -54,53 +54,32 @@
 #include <sys/mman.h>
 #endif
 
-
-std::string
-BaseFile::
-BaseName(const std::string& aPathName)
+std::string BaseFile::BaseName(std::string const &aPathName)
 {
-  const size_t vPos = aPathName.rfind('/');
-  if (vPos != std::string::npos) {
-    return aPathName.substr(vPos+1);
-  }
-
+  size_t vPos = aPathName.rfind('/');
+  if (vPos != std::string::npos) return aPathName.substr(vPos + 1);
   return aPathName;
 }
 
 
-std::string
-BaseFile::
-DirName(const std::string& aPathName)
+std::string BaseFile::DirName(std::string const &aPathName)
 {
-  const size_t vPos = aPathName.rfind('/');
-  if (vPos != std::string::npos) {
-    return aPathName.substr(0, vPos);
-  }
-
+  size_t vPos = aPathName.rfind('/');
+  if (vPos != std::string::npos) return aPathName.substr(0, vPos);
   return "";
 }
 
-
-std::string
-BaseFile::
-BaseNamePath(const std::string& aPathName)
+std::string BaseFile::BaseNamePath(std::string const &aPathName)
 {
-  std::string vFullyQualifiedPath;
-
-  // Try to find the fully qualified path
-  char* realpath_res = new char[65535];
-  if (realpath_res == NULL) {
-    return "";
-  }
-
-  if (realpath(aPathName.c_str(), realpath_res) != NULL) {
-    vFullyQualifiedPath = std::string(realpath_res);
-  }
+  char *realpath_res = realpath(aPathName.c_str(), NULL);
+  if (realpath_res == NULL) return std::string();
+  
+  std::string vFullyQualifiedPath(realpath_res);
   free(realpath_res);
-  realpath_res = NULL;
 
-  if (vFullyQualifiedPath.length() > 1) {
-    const size_t vPos = vFullyQualifiedPath.rfind('/');
+  if (vFullyQualifiedPath.length() > 1)
+  {
+    size_t vPos = vFullyQualifiedPath.rfind('/');
     if (vPos != std::string::npos) {
       // truncate the string to only the directory
       // (removing the filename, if it exists)
@@ -111,45 +90,35 @@ BaseNamePath(const std::string& aPathName)
   return vFullyQualifiedPath;
 }
 
-
-bool
-BaseFile::
-Exists(const std::string& aPathName)
+bool BaseFile::Exists(std::string const &aPathName)
 {
   // Attempt to get the file attributes
   struct stat vFileInfo;
   return (stat(aPathName.c_str(), &vFileInfo) == 0);
 }
 
-
-bool
-BaseFile::
-IsFile(const std::string& aPathName)
+bool BaseFile::IsFile(std::string const &aPathName)
 {
   if (IsLink(aPathName)) return false;
   struct stat st;
   if (stat(aPathName.c_str(),&st) == 0)
-      return ((st.st_mode & S_IFREG) == S_IFREG);
+    return ((st.st_mode & S_IFREG) == S_IFREG);
   return false;
 }
 
-
-bool
-BaseFile::
-IsLink(const std::string& aPathName)
+bool BaseFile::IsLink(std::string const &aPathName)
 {
-  char buf;
-  return (readlink(aPathName.c_str(), &buf, 1) != -1);
-  // struct stat st;
-  // if (stat(aPathName.c_str(),&st) == 0)
-  //     return ((st.st_mode & S_IFLNK) == S_IFLNK);
-  // return false;
+#ifdef _WIN32
+  return (GetFileAttributes(aPathName.c_str()) == FILE_ATTRIBUTE_REPARSE_POINT);
+#else
+  struct stat st;
+  if (stat(aPathName.c_str(),&st) == 0)
+    return ((st.st_mode & S_IFLNK) == S_IFLNK);
+  return false;
+#endif
 }
 
-
-bool
-BaseFile::
-IsDirectory(const std::string& aPathName)
+bool BaseFile::IsDirectory(std::string const &aPathName)
 {
   struct stat st;
   if (stat(aPathName.c_str(),&st) == 0)
@@ -157,20 +126,12 @@ IsDirectory(const std::string& aPathName)
   return false;
 }
 
-
-bool
-BaseFile::
-DirectoryCreate(const std::string& aPathName)
+bool BaseFile::DirectoryCreate(std::string const &aPathName)
 {
   const std::string vBeautifyPathName = BaseFile::BeautifyFilePath(aPathName);
 
-  if (BaseFile::IsDirectory(vBeautifyPathName)) {
-    return true;
-  }
-  if (BaseFile::Exists(vBeautifyPathName)) {
-    return false;
-  }
-
+  if (BaseFile::IsDirectory(vBeautifyPathName)) return true;
+  if (BaseFile::Exists(vBeautifyPathName)) return false;
 
   // ignore the drive letter or root directory
 #if defined(_WIN32)
@@ -180,64 +141,53 @@ DirectoryCreate(const std::string& aPathName)
 #endif
 
   vPos = vBeautifyPathName.find_first_of("/\\", vPos);
-  while (vPos != std::string::npos) {
+  while (vPos != std::string::npos)
+  {
     const std::string vPreDirName = vBeautifyPathName.substr(0, vPos);
-    if (!BaseFile::Exists(vPreDirName)) {
-      //Reporter::messageCallback(4, "Creating Directory '"+vPreDirName+"'\n");
-#if defined(_WIN32)
-      if (_mkdir(vPreDirName.c_str()) != 0)
-          return false;
+    if (!BaseFile::Exists(vPreDirName))
+	{
+#ifdef _WIN32
+      if (!CreateDirectory(vPreDirName.c_str(), NULL)) return false;
 #else
-      if (mkdir(vPreDirName.c_str(), 0755) != 0)
-          return false;
+      if (mkdir(vPreDirName.c_str(), 0755) != 0) return false;
 #endif
     }
-    vPos = vBeautifyPathName.find_first_of("/\\", vPos+1);
+    vPos = vBeautifyPathName.find_first_of("/\\", vPos + 1);
   }
 
-  if (!BaseFile::Exists(vBeautifyPathName)) {
-    //Reporter::messageCallback(4, "Creating Directory '"+vBeautifyPathName+"'\n");
+  if (!BaseFile::Exists(vBeautifyPathName))
+  {
 #if defined(_WIN32)
-    if (_mkdir(vBeautifyPathName.c_str()) != 0)
-        return false;
+    if (!CreateDirectory(vBeautifyPathName.c_str(), NULL)) return false;
 #else
-    if (mkdir(vBeautifyPathName.c_str(), 0755) != 0)
-        return false;
+    if (mkdir(vBeautifyPathName.c_str(), 0755) != 0) return false;
 #endif
   }
 
   return true;
 }
 
-
-bool
-BaseFile::
-Remove(const std::string& aPathName)
+bool BaseFile::Remove(std::string const &aPathName)
 {
-  // NOTE: unlink is only for files, remove for files
-  // and directorys.
-
-  if (remove(aPathName.c_str()) == -1)
-      return false;
+  if (remove(aPathName.c_str()) == -1) return false;
   return true;
 }
 
-
-bool
-BaseFile::
-Move(const std::string& aOldName, const std::string& aNewName)
+bool BaseFile::Move(std::string const &aOldName, std::string const &aNewName)
 {
   int vTrie = 0;
   int vStatus = 1;
 
-  while (vStatus != 0 && vTrie < 4) {
+  while (vStatus != 0 && vTrie < 4)
+  {
     vStatus = remove(aNewName.c_str());
     ++vTrie;
   }
 
   vTrie = 0;
   vStatus = 1;
-  while (vStatus != 0 && vTrie < 4) {
+  while (vStatus != 0 && vTrie < 4)
+  {
 #ifdef _WIN32
     // The Windows file system is not very fast
     Sleep(100);
@@ -248,51 +198,11 @@ Move(const std::string& aOldName, const std::string& aNewName)
   return (vStatus == 0);
 }
 
-
-bool
-BaseFile::
-Copy(const std::string& aOldName,
-     const std::string& aNewName)
+bool BaseFile::Copy(std::string const &aOldName, std::string const &aNewName)
 {
-#ifndef _WIN32
-/*
-  int input, output;
-  size_t filesize;
-  void *source, *target;
-
-  if((input = open(aOldName.c_str(), O_RDONLY)) == -1) {
-  fprintf(stderr, "%s: Error: opening file: %s\n", "mmap", aOldName.c_str());
-  return false;
-  }
-
-  if((output = open(aNewName.c_str(), O_RDWR|O_CREAT|O_TRUNC, 0666)) == -1) {
-  fprintf(stderr, "%s: Error: opening file: %s\n", "mmap", aNewName.c_str());
-  return false;
-  }
-
-  filesize = lseek(input, 0, SEEK_END);
-  lseek(output, filesize - 1, SEEK_SET);
-  write(output, '\0', 1);
-
-  if((source = mmap(0, filesize, PROT_READ, MAP_SHARED, input, 0)) == (void *) -1) {
-  fprintf(stderr, "Error mapping input file: %s\n", aOldName.c_str());
-  return false;
-  }
-
-  if((target = mmap(0, filesize, PROT_WRITE, MAP_SHARED, output, 0)) == (void *) -1) {
-  fprintf(stderr, "Error mapping ouput file: %s\n", aNewName.c_str());
-  return false;
-  }
-
-  memcpy(target, source, filesize);
-
-  munmap(source, filesize);
-  munmap(target, filesize);
-
-  close(input);
-  close(output);
-*/
-
+#ifdef _WIN32
+  CopyFile(aOldName.c_str(), aNewName.c_str(), FALSE);
+#else
   struct stat stat_buf;
   off_t offset = 0;
 
@@ -338,65 +248,74 @@ Copy(const std::string& aOldName,
   return true;
 }
 
-
 bool BaseFile::ListDir(
-    const std::string& aInputDir, std::vector<std::string>& aFiles,
-    const std::string& /*aPattern*/)
+  std::string const &aInputDir, std::vector<std::string> &aFiles,
+  std::string const &/*aPattern*/)
 {
-  //Reporter::messageCallback(4, std::string("Opening input directory '") + aInputDir + "'.\n");
-  DIR *dp = opendir(aInputDir.c_str());
-  if (dp == NULL) {
-    //Reporter::messageCallback(2, std::string("Error opening input directory '") + aInputDir + "'.\n");
-    return false;
+#ifdef _WIN32
+  // Remove trailing backslashes and slashes
+  std::string dirName(aInputDir);
+  while (dirName.rfind("\\") == dirName.size() - 1)
+	  dirName = dirName.substr(0, dirName.size() - 2);
+  while (dirName.rfind("/") == dirName.size() - 1)
+	  dirName = dirName.substr(0, dirName.size() - 2);
+  WIN32_FIND_DATA findFileData;
+  HANDLE fileIterator = FindFirstFile(dirName.c_str(), &findFileData);
+  if (fileIterator == INVALID_HANDLE_VALUE) return false;
+  BOOL moreFiles = false;
+  while (moreFiles)
+  {
+    std::string fileName(findFileData.cFileName);
+	if (IsFile(fileName)) aFiles.push_back(fileName);
+	moreFiles = FindNextFile(fileIterator, &findFileData);
   }
+#else
+  DIR *dp = opendir(aInputDir.c_str());
+  if (dp == NULL) return false;
 
   struct dirent* dirp = readdir(dp);
-  while (dirp != NULL) {
-    if (dirp->d_type == DT_REG) {
-      const std::string vFullFilename = BaseFile::BeautifyFilePath(aInputDir + "/" + dirp->d_name);
-      //Reporter::messageCallback(20, "BaseFile::ListDir(): Found file '" + vFullFilename + "'.\n");
+  while (dirp != NULL)
+  {
+    if (dirp->d_type == DT_REG)
+	{
+      std::string vFullFilename =
+	    BaseFile::BeautifyFilePath(aInputDir + "/" + dirp->d_name);
       aFiles.push_back(vFullFilename);
     }
-
     dirp = readdir(dp);
   }
   closedir(dp);
-
+#endif
   std::sort(aFiles.begin(), aFiles.end());
 
   return true;
 }
 
-
-std::string
-BaseFile::
-FindUniqueUnexistingName(const std::string aBaseName, const char aPattern)
+std::string BaseFile::FindUniqueUnexistingName(
+  std::string const &aBaseName, char aPattern)
 {
   srand((unsigned int)time(NULL));
   std::string vUniqueName;
 
-  do {
+  do
+  {
     // String to store file full file name
     vUniqueName = aBaseName;
 
     size_t vSepPos = vUniqueName.find_last_of("/\\");
-    if (vSepPos == std::string::npos) {
-      vSepPos = 0;
+    if (vSepPos == std::string::npos) vSepPos = 0;
+    for (size_t vCurrPos = vSepPos; vCurrPos < vUniqueName.size(); ++vCurrPos)
+	{
+      if (vUniqueName[vCurrPos] == aPattern)
+          vUniqueName[vCurrPos] = static_cast<char>('A' + rand() % 25);
     }
-    for (size_t vCurrPos = vSepPos; vCurrPos < vUniqueName.size(); ++vCurrPos) {
-      if (vUniqueName[vCurrPos] == aPattern) {
-        vUniqueName[vCurrPos] = static_cast<char>('A' + rand() % 25);
-      }
-    }
-  } while (BaseFile::Exists(vUniqueName));
+  }
+  while (BaseFile::Exists(vUniqueName));
 
   return vUniqueName;
 }
 
-
-std::string
-BaseFile::
-BeautifyFilePath(const std::string& aPath)
+std::string BaseFile::BeautifyFilePath(std::string const &aPath)
 {
   std::string vNewPath = aPath;
 #ifdef _WIN32
@@ -406,7 +325,8 @@ BeautifyFilePath(const std::string& aPath)
   // path, which goes '\\server\path\'.
   // Do not replace backslash on Linux, because backslash
   // is used as an escape character on Linux.
-  if (vNewPath.size() > 2) {
+  if (vNewPath.size() > 2)
+  {
     std::replace(vNewPath.begin()+2, vNewPath.end(), '\\',  '/');
 
     // On windows, make the first character uppercase, if
@@ -416,52 +336,156 @@ BeautifyFilePath(const std::string& aPath)
     }
   }
 #else
+  char *realpath_res = NULL;
   // Try to find the fully qualified path
-  char* realpath_res = new char[65535];
-  if (realpath_res == NULL) {
-    return "";
-  }
-
-  if (realpath(vNewPath.c_str(), realpath_res) != NULL) {
+  if ((realpath_res = realpath(vNewPath.c_str(), NULL)) != NULL)
+  {
     vNewPath = std::string(realpath_res);
+    free(realpath_res);
   }
-  free(realpath_res);
-  realpath_res = NULL;
 #endif
   size_t vPos;
 
   // Replace '/./' with '/'
   vPos = vNewPath.find("/./");
-  while (vPos != std::string::npos) {
-    vNewPath.erase(vPos,2);
+  while (vPos != std::string::npos)
+  {
+    vNewPath.erase(vPos, 2);
     vPos = vNewPath.find("/./", vPos);
   }
 
   // Replace all double '//' with a single '/'
   vPos = vNewPath.find("//");
-  while (vPos != std::string::npos) {
-    vNewPath.erase(vPos,1);
+  while (vPos != std::string::npos)
+  {
+    vNewPath.erase(vPos, 1);
     vPos = vNewPath.find("//", vPos);
   }
   return vNewPath;
 }
 
-
 #ifdef _WIN32
-int
-BaseFile::
-realpath(const char *source, char *target)
+char *BaseFile::realpath(const char *path, char resolved_path[PATH_MAX])
 {
-  int r = 0;
-  while (*source) {
-    if (*source == '\\') *target = '/';
-    else *target = *source;
-    source++;
-    target++;
-    if (++r == 65535-1) break;
+  char *return_path = 0;
+
+  if (path) //Else EINVAL
+  {
+    if (resolved_path)
+    {
+      return_path = resolved_path;
+    }
+    else
+    {
+      //Non standard extension that glibc uses
+      return_path = (char*)malloc(PATH_MAX); 
+    }
+
+    if (return_path) //Else EINVAL
+    {
+      //This is a Win32 API function similar to what realpath() is supposed to do
+      size_t size = GetFullPathNameA(path, PATH_MAX, return_path, 0);
+
+      //GetFullPathNameA() returns a size larger than buffer if buffer is too small
+      if (size > PATH_MAX)
+      {
+        if (return_path != resolved_path) //Malloc'd buffer - Unstandard extension retry
+        {
+          size_t new_size;
+          
+          free(return_path);
+          return_path = (char*)malloc(size);
+
+          if (return_path)
+          {
+            new_size = GetFullPathNameA(path, size, return_path, 0); //Try again
+
+            if (new_size > size) //If it's still too large, we have a problem, don't try again
+            {
+              free(return_path);
+              return_path = 0;
+              errno = ENAMETOOLONG;
+            }
+            else
+            {
+              size = new_size;
+            }
+          }
+          else
+          {
+            //I wasn't sure what to return here, but the standard does say to return EINVAL
+            //if resolved_path is null, and in this case we couldn't malloc large enough buffer
+            errno = EINVAL;
+          }  
+        }
+        else //resolved_path buffer isn't big enough
+        {
+          return_path = 0;
+          errno = ENAMETOOLONG;
+        }
+      }
+
+      //GetFullPathNameA() returns 0 if some path resolve problem occured
+      if (!size) 
+      {
+        if (return_path != resolved_path) //Malloc'd buffer
+        {
+          free(return_path);
+        }
+        
+        return_path = 0;
+
+        //Convert MS errors into standard errors
+        switch (GetLastError())
+        {
+          case ERROR_FILE_NOT_FOUND:
+            errno = ENOENT;
+            break;
+
+          case ERROR_PATH_NOT_FOUND: case ERROR_INVALID_DRIVE:
+            errno = ENOTDIR;
+            break;
+
+          case ERROR_ACCESS_DENIED:
+            errno = EACCES;
+            break;
+          
+          default: //Unknown Error
+            errno = EIO;
+            break;
+        }
+      }
+
+      //If we get to here with a valid return_path, we're still doing good
+      if (return_path)
+      {
+        struct stat stat_buffer;
+
+        //Make sure path exists, stat() returns 0 on success
+        if (stat(return_path, &stat_buffer)) 
+        {
+          if (return_path != resolved_path)
+          {
+            free(return_path);
+          }
+        
+          return_path = 0;
+          //stat() will set the correct errno for us
+        }
+        //else we succeeded!
+      }
+    }
+    else
+    {
+      errno = EINVAL;
+    }
   }
-  *target = 0;
-  return r;
+  else
+  {
+    errno = EINVAL;
+  }
+    
+  return return_path;
 }
 #endif
 

@@ -77,7 +77,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-TESTS = testLibBlitzGraphics$(EXEEXT)
+TESTS = testLibBlitz2DGraphics$(EXEEXT)
 check_PROGRAMS = $(am__EXEEXT_1)
 subdir = test/libBlitz2DGraphics
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
@@ -90,11 +90,11 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/src/config.hh
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__EXEEXT_1 = testLibBlitzGraphics$(EXEEXT)
-am_testLibBlitzGraphics_OBJECTS = testLibBlitzGraphics.$(OBJEXT)
-testLibBlitzGraphics_OBJECTS = $(am_testLibBlitzGraphics_OBJECTS)
-testLibBlitzGraphics_LDADD = $(LDADD)
-testLibBlitzGraphics_DEPENDENCIES =  \
+am__EXEEXT_1 = testLibBlitz2DGraphics$(EXEEXT)
+am_testLibBlitz2DGraphics_OBJECTS = testLibBlitzGraphics.$(OBJEXT)
+testLibBlitz2DGraphics_OBJECTS = $(am_testLibBlitz2DGraphics_OBJECTS)
+testLibBlitz2DGraphics_LDADD = $(LDADD)
+testLibBlitz2DGraphics_DEPENDENCIES =  \
 	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -134,8 +134,8 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(testLibBlitzGraphics_SOURCES)
-DIST_SOURCES = $(testLibBlitzGraphics_SOURCES)
+SOURCES = $(testLibBlitz2DGraphics_SOURCES)
+DIST_SOURCES = $(testLibBlitz2DGraphics_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -369,6 +369,7 @@ ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
+AS = @AS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -404,6 +405,8 @@ FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
 GLU_CFLAGS = @GLU_CFLAGS@
 GLU_LIBS = @GLU_LIBS@
+GL_CFLAGS = @GL_CFLAGS@
+GL_LIBS = @GL_LIBS@
 GREP = @GREP@
 GSL_CFLAGS = @GSL_CFLAGS@
 GSL_LIBS = @GSL_LIBS@
@@ -435,11 +438,11 @@ MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NONCONSOLE_LDFLAGS = @NONCONSOLE_LDFLAGS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OPENCV_CFLAGS = @OPENCV_CFLAGS@
 OPENCV_LIBS = @OPENCV_LIBS@
-OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
 OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
 OPENMP_LIBS = @OPENMP_LIBS@
@@ -456,6 +459,10 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+PNG_CFLAGS = @PNG_CFLAGS@
+PNG_LIBS = @PNG_LIBS@
+PNG_STATIC_CFLAGS = @PNG_STATIC_CFLAGS@
+PNG_STATIC_LIBS = @PNG_STATIC_LIBS@
 QT4_CFLAGS = @QT4_CFLAGS@
 QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
@@ -527,7 +534,7 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS = -Wno-long-long
 LDADD = $(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la
-testLibBlitzGraphics_SOURCES = testLibBlitzGraphics.cc
+testLibBlitz2DGraphics_SOURCES = testLibBlitzGraphics.cc
 all: all-am
 
 .SUFFIXES:
@@ -572,9 +579,9 @@ clean-checkPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
-testLibBlitzGraphics$(EXEEXT): $(testLibBlitzGraphics_OBJECTS) $(testLibBlitzGraphics_DEPENDENCIES) $(EXTRA_testLibBlitzGraphics_DEPENDENCIES) 
-	@rm -f testLibBlitzGraphics$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(testLibBlitzGraphics_OBJECTS) $(testLibBlitzGraphics_LDADD) $(LIBS)
+testLibBlitz2DGraphics$(EXEEXT): $(testLibBlitz2DGraphics_OBJECTS) $(testLibBlitz2DGraphics_DEPENDENCIES) $(EXTRA_testLibBlitz2DGraphics_DEPENDENCIES) 
+	@rm -f testLibBlitz2DGraphics$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(testLibBlitz2DGraphics_OBJECTS) $(testLibBlitz2DGraphics_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -807,9 +814,9 @@ recheck: all $(check_PROGRAMS)
 	        am__force_recheck=am--force-recheck \
 	        TEST_LOGS="$$log_list"; \
 	exit $$?
-testLibBlitzGraphics.log: testLibBlitzGraphics$(EXEEXT)
-	@p='testLibBlitzGraphics$(EXEEXT)'; \
-	b='testLibBlitzGraphics'; \
+testLibBlitz2DGraphics.log: testLibBlitz2DGraphics$(EXEEXT)
+	@p='testLibBlitz2DGraphics$(EXEEXT)'; \
+	b='testLibBlitz2DGraphics'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

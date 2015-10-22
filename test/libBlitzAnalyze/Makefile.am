@@ -7,4 +7,6 @@ AM_CXXFLAGS = -Wno-long-long
 
 LDADD = $(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la
 
+noinst_HEADERS = lmbunit.hh
+
 testBlitzAnalyzeFile_SOURCES = testBlitzAnalyzeFile.cc

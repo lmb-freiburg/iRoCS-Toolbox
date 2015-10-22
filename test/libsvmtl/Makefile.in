@@ -118,7 +118,9 @@ am__EXEEXT_1 = testSparseFV$(EXEEXT) testFeatureVectors$(EXEEXT) \
 am_testAccessor_OBJECTS = testAccessor.$(OBJEXT)
 testAccessor_OBJECTS = $(am_testAccessor_OBJECTS)
 testAccessor_LDADD = $(LDADD)
-testAccessor_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la
+am__DEPENDENCIES_1 =
+testAccessor_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -126,121 +128,126 @@ am__v_lt_1 =
 am_testCVFactory_OBJECTS = testCVFactory.$(OBJEXT)
 testCVFactory_OBJECTS = $(am_testCVFactory_OBJECTS)
 testCVFactory_LDADD = $(LDADD)
-testCVFactory_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la
+testCVFactory_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(am__DEPENDENCIES_1)
 am_testClassificationStatistics_OBJECTS =  \
 	testClassificationStatistics.$(OBJEXT)
 testClassificationStatistics_OBJECTS =  \
 	$(am_testClassificationStatistics_OBJECTS)
 testClassificationStatistics_LDADD = $(LDADD)
 testClassificationStatistics_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testCrossValidation_OBJECTS = testCrossValidation.$(OBJEXT)
 testCrossValidation_OBJECTS = $(am_testCrossValidation_OBJECTS)
 testCrossValidation_LDADD = $(LDADD)
 testCrossValidation_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testFeatureVectors_OBJECTS = testFeatureVectors.$(OBJEXT)
 testFeatureVectors_OBJECTS = $(am_testFeatureVectors_OBJECTS)
 testFeatureVectors_LDADD = $(LDADD)
 testFeatureVectors_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testGridAxis_OBJECTS = testGridAxis.$(OBJEXT)
 testGridAxis_OBJECTS = $(am_testGridAxis_OBJECTS)
 testGridAxis_LDADD = $(LDADD)
-testGridAxis_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la
+testGridAxis_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(am__DEPENDENCIES_1)
 am_testGridSearch_OBJECTS = testGridSearch.$(OBJEXT)
 testGridSearch_OBJECTS = $(am_testGridSearch_OBJECTS)
 testGridSearch_LDADD = $(LDADD)
 testGridSearch_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testGroupedTrainingData_OBJECTS =  \
 	testGroupedTrainingData.$(OBJEXT)
 testGroupedTrainingData_OBJECTS =  \
 	$(am_testGroupedTrainingData_OBJECTS)
 testGroupedTrainingData_LDADD = $(LDADD)
 testGroupedTrainingData_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testHelpExtractor_OBJECTS = testHelpExtractor.$(OBJEXT)
 testHelpExtractor_OBJECTS = $(am_testHelpExtractor_OBJECTS)
 testHelpExtractor_LDADD = $(LDADD)
 testHelpExtractor_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testKernel_SCALE_OBJECTS = testKernel_SCALE.$(OBJEXT)
 testKernel_SCALE_OBJECTS = $(am_testKernel_SCALE_OBJECTS)
 testKernel_SCALE_LDADD = $(LDADD)
 testKernel_SCALE_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testKernels_OBJECTS = testKernels.$(OBJEXT)
 testKernels_OBJECTS = $(am_testKernels_OBJECTS)
 testKernels_LDADD = $(LDADD)
-testKernels_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la
+testKernels_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(am__DEPENDENCIES_1)
 am_testMultiClassSVM_OBJECTS = testMultiClassSVM.$(OBJEXT)
 testMultiClassSVM_OBJECTS = $(am_testMultiClassSVM_OBJECTS)
 testMultiClassSVM_LDADD = $(LDADD)
 testMultiClassSVM_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testParamInfo_OBJECTS = testParamInfo.$(OBJEXT)
 testParamInfo_OBJECTS = $(am_testParamInfo_OBJECTS)
 testParamInfo_LDADD = $(LDADD)
-testParamInfo_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la
+testParamInfo_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(am__DEPENDENCIES_1)
 am_testPrettyOptionPrinter_OBJECTS =  \
 	testPrettyOptionPrinter.$(OBJEXT)
 testPrettyOptionPrinter_OBJECTS =  \
 	$(am_testPrettyOptionPrinter_OBJECTS)
 testPrettyOptionPrinter_LDADD = $(LDADD)
 testPrettyOptionPrinter_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testSVMApplication_OBJECTS = testSVMApplication.$(OBJEXT)
 testSVMApplication_OBJECTS = $(am_testSVMApplication_OBJECTS)
 testSVMApplication_LDADD = $(LDADD)
 testSVMApplication_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testSVMFactory_OBJECTS = testSVMFactory.$(OBJEXT)
 testSVMFactory_OBJECTS = $(am_testSVMFactory_OBJECTS)
 testSVMFactory_LDADD = $(LDADD)
 testSVMFactory_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testSparseFV_OBJECTS = testSparseFV.$(OBJEXT)
 testSparseFV_OBJECTS = $(am_testSparseFV_OBJECTS)
 testSparseFV_LDADD = $(LDADD)
-testSparseFV_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la
+testSparseFV_DEPENDENCIES = $(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(am__DEPENDENCIES_1)
 am_testStDataASCII_OBJECTS = testStDataASCII.$(OBJEXT)
 testStDataASCII_OBJECTS = $(am_testStDataASCII_OBJECTS)
 testStDataASCII_LDADD = $(LDADD)
 testStDataASCII_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testStDataASCIIFile_OBJECTS = testStDataASCIIFile.$(OBJEXT)
 testStDataASCIIFile_OBJECTS = $(am_testStDataASCIIFile_OBJECTS)
 testStDataASCIIFile_LDADD = $(LDADD)
 testStDataASCIIFile_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testStDataCmdLine_OBJECTS = testStDataCmdLine.$(OBJEXT)
 testStDataCmdLine_OBJECTS = $(am_testStDataCmdLine_OBJECTS)
 testStDataCmdLine_LDADD = $(LDADD)
 testStDataCmdLine_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testStDataHdf5_OBJECTS = testStDataHdf5.$(OBJEXT)
 testStDataHdf5_OBJECTS = $(am_testStDataHdf5_OBJECTS)
 testStDataHdf5_LDADD = $(LDADD)
 testStDataHdf5_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testTrainClassifyScaled_OBJECTS =  \
 	testTrainClassifyScaled.$(OBJEXT)
 testTrainClassifyScaled_OBJECTS =  \
 	$(am_testTrainClassifyScaled_OBJECTS)
 testTrainClassifyScaled_LDADD = $(LDADD)
 testTrainClassifyScaled_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testTriangularMatrix_OBJECTS = testTriangularMatrix.$(OBJEXT)
 testTriangularMatrix_OBJECTS = $(am_testTriangularMatrix_OBJECTS)
 testTriangularMatrix_LDADD = $(LDADD)
 testTriangularMatrix_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 am_testTwoClassSVM_OBJECTS = testTwoClassSVM.$(OBJEXT)
 testTwoClassSVM_OBJECTS = $(am_testTwoClassSVM_OBJECTS)
 testTwoClassSVM_LDADD = $(LDADD)
 testTwoClassSVM_DEPENDENCIES =  \
-	$(top_builddir)/src/libsvmtl/libsvmtl.la
+	$(top_builddir)/src/libsvmtl/libsvmtl.la $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -534,6 +541,7 @@ ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
+AS = @AS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -569,6 +577,8 @@ FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
 GLU_CFLAGS = @GLU_CFLAGS@
 GLU_LIBS = @GLU_LIBS@
+GL_CFLAGS = @GL_CFLAGS@
+GL_LIBS = @GL_LIBS@
 GREP = @GREP@
 GSL_CFLAGS = @GSL_CFLAGS@
 GSL_LIBS = @GSL_LIBS@
@@ -600,11 +610,11 @@ MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NONCONSOLE_LDFLAGS = @NONCONSOLE_LDFLAGS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OPENCV_CFLAGS = @OPENCV_CFLAGS@
 OPENCV_LIBS = @OPENCV_LIBS@
-OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
 OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
 OPENMP_LIBS = @OPENMP_LIBS@
@@ -621,6 +631,10 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+PNG_CFLAGS = @PNG_CFLAGS@
+PNG_LIBS = @PNG_LIBS@
+PNG_STATIC_CFLAGS = @PNG_STATIC_CFLAGS@
+PNG_STATIC_LIBS = @PNG_STATIC_LIBS@
 QT4_CFLAGS = @QT4_CFLAGS@
 QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
@@ -690,7 +704,9 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/src -DTOP_SRC_DIR="\"$(shell (cd \$(top_srcdir); pwd))\""
-LDADD = $(top_builddir)/src/libsvmtl/libsvmtl.la
+LDADD = $(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(HDF5_LIBS)
+
 testFeatureVectors_SOURCES = testFeatureVectors.cc
 testSparseFV_SOURCES = testSparseFV.cc
 testKernels_SOURCES = testKernels.cc

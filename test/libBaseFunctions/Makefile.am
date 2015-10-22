@@ -7,5 +7,7 @@ AM_CXXFLAGS = -Wno-long-long
 
 LDADD = $(top_builddir)/src/libBaseFunctions/libBaseFunctions.la
 
+noinst_HEADERS = lmbunit.hh
+
 testBaseEnvironment_SOURCES = testBaseEnvironment.cc
 testBaseFile_SOURCES = testBaseFile.cc

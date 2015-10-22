@@ -165,7 +165,7 @@ public:
    * @return A new filename
    */
   static std::string
-  FindUniqueUnexistingName(const std::string aBaseName, const char aPattern);
+  FindUniqueUnexistingName(std::string const &aBaseName, char aPattern);
 
   /**
    * BeautifyFilePath sanitizes a path to a file or directory. It
@@ -179,7 +179,7 @@ public:
 
 private:
 #ifdef _WIN32
-  static int realpath(const char *source, char *target);
+  static char* realpath(const char *source, char *target);
 #endif
 };
 

@@ -2,7 +2,8 @@ lib_LTLIBRARIES = libsvmtl.la
 svmtlincludedir = $(pkgincludedir)/libsvmtl
 svt_checkincludedir=$(pkgincludedir)/libsvmtl/svt_check
 
-AM_LDFLAGS = -version-info 1:0:0
+AM_CPPFLAGS = $(HDF5_CFLAGS)
+AM_LDFLAGS = -no-undefined -version-info 1:0:0
 
 libsvmtl_la_LIBADD = $(HDF5_LIBS)
 

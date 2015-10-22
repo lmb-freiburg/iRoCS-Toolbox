@@ -13,6 +13,7 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -81,7 +82,8 @@ TESTS = testCopyFromToATBNucleus$(EXEEXT)
 check_PROGRAMS = $(am__EXEEXT_1)
 subdir = test/liblabelling_qt4
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/depcomp $(top_srcdir)/test-driver
+	$(top_srcdir)/depcomp $(noinst_HEADERS) \
+	$(top_srcdir)/test-driver
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -149,6 +151,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+HEADERS = $(noinst_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -377,6 +380,7 @@ ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
+AS = @AS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -412,6 +416,8 @@ FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
 GLU_CFLAGS = @GLU_CFLAGS@
 GLU_LIBS = @GLU_LIBS@
+GL_CFLAGS = @GL_CFLAGS@
+GL_LIBS = @GL_LIBS@
 GREP = @GREP@
 GSL_CFLAGS = @GSL_CFLAGS@
 GSL_LIBS = @GSL_LIBS@
@@ -443,11 +449,11 @@ MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NONCONSOLE_LDFLAGS = @NONCONSOLE_LDFLAGS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OPENCV_CFLAGS = @OPENCV_CFLAGS@
 OPENCV_LIBS = @OPENCV_LIBS@
-OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
 OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
 OPENMP_LIBS = @OPENMP_LIBS@
@@ -464,6 +470,10 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+PNG_CFLAGS = @PNG_CFLAGS@
+PNG_LIBS = @PNG_LIBS@
+PNG_STATIC_CFLAGS = @PNG_STATIC_CFLAGS@
+PNG_STATIC_LIBS = @PNG_STATIC_LIBS@
 QT4_CFLAGS = @QT4_CFLAGS@
 QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
@@ -542,6 +552,7 @@ LDADD = $(top_builddir)/src/liblabelling_qt4/libLabelling_qt4.la \
 	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la
 
+noinst_HEADERS = lmbunit.hh
 testCopyFromToATBNucleus_SOURCES = testCopyFromToATBNucleus.cc
 all: all-am
 
@@ -878,7 +889,7 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: check-am
-all-am: Makefile
+all-am: Makefile $(HEADERS)
 installdirs:
 install: install-am
 install-exec: install-exec-am

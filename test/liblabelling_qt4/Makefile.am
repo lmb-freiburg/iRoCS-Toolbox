@@ -13,4 +13,6 @@ LDADD = $(top_builddir)/src/liblabelling_qt4/libLabelling_qt4.la \
 	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la
 
+noinst_HEADERS = lmbunit.hh
+
 testCopyFromToATBNucleus_SOURCES = testCopyFromToATBNucleus.cc

@@ -26,6 +26,8 @@
 #include <BaseEnvironment.hh>
 #include <BaseFile.hh>
 
+#include <iostream>
+
 // standard libraries
 #include <string>
 #include <string.h>
@@ -34,11 +36,13 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#if defined(_WIN32)
+#ifdef _WIN32
 #include <winsock2.h> // for gethostname
 #include <windows.h>  // for RegOpenKeyEx
-//#include <winsock.h>  // for gethostname
 #include <direct.h>   // for mkdir
+#ifdef __MINGW32__
+#include <Shlobj.h> // For SHGetFolderPath
+#endif
 #else
 #include <sys/time.h>
 #include <unistd.h>
@@ -49,9 +53,7 @@
 #endif
 
 
-std::string
-BaseEnvironment::
-UserHomeDirectory()
+std::string BaseEnvironment::UserHomeDirectory()
 {
   std::string vUserHomeDir;
 
@@ -131,16 +133,18 @@ UserHomeDirectory()
 }
 
 
-std::string
-BaseEnvironment::
-UserTempDirectory()
+std::string BaseEnvironment::UserTempDirectory()
 {
   std::string vUserTempDir;
 
-#if defined(_WIN32)
-#if defined(__MINGW32__)
-#error test this on Windows with MinGW
-#endif
+#ifdef _WIN32
+#ifdef __MINGW32__
+  LPTSTR buf = new TCHAR[MAX_PATH];
+  if (GetTempPath(MAX_PATH, buf) == 0) return std::string();
+  vUserTempDir = buf;
+  delete[] buf;
+  std::cout << "TMP = " << vUserTempDir << std::endl;
+#else
   // Try getting the 'tmp' directory
   char* vPath = NULL;
   size_t vStringLen;
@@ -150,6 +154,7 @@ UserTempDirectory()
   }
   free(vPath);
   vPath = NULL;
+#endif
 #else
   // Try getting the 'tmp' directory
   char* vPath = getenv("TMP");
@@ -166,16 +171,19 @@ UserTempDirectory()
 }
 
 
-std::string
-BaseEnvironment::
-UserAppDataDirectory()
+std::string BaseEnvironment::UserAppDataDirectory()
 {
   std::string vUserAppDataDir;
 
-#if defined(_WIN32)
-#if defined(__MINGW32__)
-#error test this on Windows with MinGW
-#endif
+#ifdef _WIN32
+#ifdef __MINGW32__
+  TCHAR *buf = new TCHAR[MAX_PATH];
+  if (!SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, buf)))
+      return std::string();
+  vUserAppDataDir = buf;
+  delete[] buf;
+  std::cout << "APPDATA = " << vUserAppDataDir << std::endl;
+#else
   // Try getting the 'application data' folder
   char* vPath = NULL;
   size_t vStringLen;
@@ -186,14 +194,13 @@ UserAppDataDirectory()
   free(vPath);
   vPath = NULL;
 #endif
+#endif
 
   return vUserAppDataDir;
 }
 
 
-std::string
-BaseEnvironment::
-HostName()
+std::string BaseEnvironment::HostName()
 {
   std::string hostName;
 

@@ -5,19 +5,37 @@ labelling_qt4includedir = $(pkgincludedir)/libLabelling_qt4
 MOC = @QT4_MOC@
 RCC = @QT4_RCC@
 
-AM_CPPFLAGS = \
-	-I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) $(FFTW_CFLAGS) \
-	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(QT4_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/src \
+	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(BLITZ_CFLAGS) $(FFTW_CFLAGS) \
+	$(HDF5_CFLAGS) $(QT4_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long 
-AM_LDFLAGS = -version-info 2:0:1 -rdynamic
+AM_LDFLAGS = -no-undefined -version-info 2:0:1 -rdynamic
 
 # version bump to 3:0:2 pending (interface extension)
 
 libLabelling_qt4_la_LIBADD = \
 	$(top_builddir)/src/libsegmentation/libsegmentation.la \
-	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
+	$(top_builddir)/src/libBlitzFFTW/libBlitzFFTW.la \
+	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(top_builddir)/src/libBaseFunctions/libBaseFunctions.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
+	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la \
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(BLITZ_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(OPENCV_LIBS) \
+	$(QT4_LIBS) $(GL_LIBS) $(GLU_LIBS)
 
 lbldata_DATA = liblabelling_qt4.rcc
+
+EXTRA_DIST = \
+	icons/labellingIcon.svg \
+	icons/oxygen/32x32/actions/document-properties.png \
+	icons/oxygen/32x32/actions/edit-delete.png \
+	icons/oxygen/32x32/actions/process-stop.png \
+	icons/oxygen/32x32/actions/zoom-in.png \
+	icons/oxygen/32x32/actions/zoom-original.png \
+	icons/oxygen/32x32/actions/zoom-out.png
 
 labelling_qt4include_HEADERS = \
     StreamBufTextEditQt4.hh \
@@ -288,7 +306,9 @@ libLabelling_qt4_la_SOURCES = \
 	ColorMap.cc \
 	IColorMapEditor.cc \
 	ColorMapEditorWidget.cc \
-	labelling_qt4.qrc \
+	liblabelling_qt4.qrc
+
+nodist_libLabelling_qt4_la_SOURCES = \
 	$(MOC_GEN_SOURCES)
 
 moc_%.cc: %.hh

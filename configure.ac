@@ -4,13 +4,13 @@ AC_INIT(
   [irocs-toolbox],
   [http://lmb.informatik.uni-freiburg.de/lmbsoft/iRoCS])
 AC_CONFIG_HEADERS([src/config.hh])
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE([subdir-objects filename-length-max=256 tar-ustar])
 
 AC_ARG_ENABLE([debug], [AC_HELP_STRING([--enable-debug], [])],
   [], [enable_debug=no])
 AC_ARG_ENABLE([static-tools], [AC_HELP_STRING([--enable-static-tools], [])],
   [], [enable_static_tools=no])
-AM_CONDITIONAL([STATIC_TOOLS], [test "x$enable_statictools" != "xno"])
+AM_CONDITIONAL([STATIC_TOOLS], [test "x$enable_static_tools" != "xno"])
 
 AC_ARG_WITH([qt4], AC_HELP_STRING([--with-qt4], [QT4 base path]), [],
   [with_qt4=autodetect])
@@ -32,9 +32,27 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG(C++)
 AC_PROG_INSTALL
+AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
 AC_CACHE_SAVE
 AC_OPENMP
+
+case "$host_os" in
+*linux*)
+  AC_MSG_RESULT([Building for Linux])
+  NONCONSOLE_LDFLAGS=""
+     ;;
+*mingw*)
+  AC_MSG_RESULT([Building for Windows using minGW])
+  LIBS+="-lws2_32"
+  NONCONSOLE_LDFLAGS="-mwindows"
+     ;;
+*)
+  AC_MSG_WARN([No configuration for host os '$host_os' available.])
+  NONCONSOLE_LDFLAGS=""
+     ;;
+esac
+AC_SUBST(NONCONSOLE_LDFLAGS)
 
 # Setup build environment
 CFLAGS="-Wall -Wextra -pedantic -fPIC"
@@ -81,6 +99,8 @@ if test "x$PKG_CONFIG" != "x"; then
          AC_MSG_WARN(A blitz++ version < 0.10 was detected. Setting compatibility mode. Future versions will not support older blitz++ versions any more. You need to define HAVE_CONFIG_H and or HAVE_BLITZ_V9 when building tools based on this build of the iRoCS Toolbox libraries.)],
         [AC_MSG_NOTICE(pkgconfig for blitz not found... Deferring)])])
   fi
+  PKG_CHECK_MODULES(PNG, [libpng], [],
+    [AC_MSG_NOTICE(pkgconfig for png not found... Deferring)])
   PKG_CHECK_MODULES(JPEG, [jpeg], [],
     [AC_MSG_NOTICE(pkgconfig for jpeg not found... Deferring)])
   PKG_CHECK_MODULES(TIFF, [libtiff-4], [],
@@ -99,16 +119,29 @@ if test "x$PKG_CONFIG" != "x"; then
   fi
   if test "$with_opencv" == "autodetect"; then
     PKG_CHECK_MODULES(OPENCV, [opencv], [],
-      [AC_MSG_NOTICE(pkgconfig for OpenCV not found... Deferring)])
+      [PKG_CHECK_MODULES(OPENCV, [opencv_core opencv_imgproc], [],
+        [AC_MSG_NOTICE(pkgconfig for OpenCV not found... Deferring)])])
   fi
+  PKG_CHECK_MODULES(GL, [gl], [],
+    [AC_MSG_NOTICE(pkgconfig for gl not found... Deferring)])
   PKG_CHECK_MODULES(GLU, [glu], [],
     [AC_MSG_NOTICE(pkgconfig for glu not found... Deferring)])
   if test "$with_qt4" == "autodetect"; then
-    PKG_CHECK_MODULES(QT4, [QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0], [
-      QT4_MOC="`pkg-config --variable=moc_location QtCore`"
-      QT4_RCC="`pkg-config --variable=rcc_location QtCore`"
-      QT4_UIC="`pkg-config --variable=uic_location QtCore`"],
-      [AC_MSG_NOTICE(pkgconfig for Qt4 not found... Deferring)])
+    if test "x$enable_debug" != "xno"; then
+      PKG_CHECK_MODULES(QT4, [QtCored >= 4.6.0, QtCored < 5.0.0, QtGuid >= 4.6.0, QtGuid < 5.0.0, QtOpenGLd >= 4.6.0, QtOpenGLd < 5.0.0, QtXmld >= 4.6.0, QtXmld < 5.0.0, QtSvgd >= 4.6.0, QtSvgd < 5.0.0], [
+        QT4_MOC="`pkg-config --variable=moc_location QtCore`"
+        QT4_RCC="`pkg-config --variable=rcc_location QtCore`"
+        QT4_UIC="`pkg-config --variable=uic_location QtCore`"],
+        [AC_MSG_NOTICE(pkgconfig for Qt4 debug library not found... Deferring)])
+      AC_DEFINE([QT_DEBUG], [1], [Enable Qt debugging])
+    else
+      PKG_CHECK_MODULES(QT4, [QtCore >= 4.6.0, QtCore < 5.0.0, QtGui >= 4.6.0, QtGui < 5.0.0, QtOpenGL >= 4.6.0, QtOpenGL < 5.0.0, QtXml >= 4.6.0, QtXml < 5.0.0, QtSvg >= 4.6.0, QtSvg < 5.0.0], [
+        QT4_MOC="`pkg-config --variable=moc_location QtCore`"
+        QT4_RCC="`pkg-config --variable=rcc_location QtCore`"
+        QT4_UIC="`pkg-config --variable=uic_location QtCore`"],
+        [AC_MSG_NOTICE(pkgconfig for Qt4 not found... Deferring)])
+      AC_DEFINE([QT_NO_DEBUG], [1], [Disable Qt debugging])
+    fi
     AC_SUBST(QT4_MOC)
     AC_SUBST(QT4_RCC)
     AC_SUBST(QT4_UIC)
@@ -126,6 +159,10 @@ if test "x$PKG_CONFIG" != "x"; then
         PKG_CHECK_MODULES(BLITZ_STATIC, [blitz >= 0.9],
           [], [AC_MSG_ERROR(No static blitz++ 0.9 library available)])
       fi
+    fi
+    if test "x$PNG_LIBS" != "x"; then
+      PKG_CHECK_MODULES(PNG_STATIC, [libpng], [],
+        [AC_MSG_ERROR(No static PNG library available)])
     fi
     if test "x$JPEG_LIBS" != "x"; then
       PKG_CHECK_MODULES(JPEG_STATIC, [jpeg], [],
@@ -148,8 +185,9 @@ if test "x$PKG_CONFIG" != "x"; then
         [AC_MSG_ERROR(No static FFTW library available)])
     fi
     if test "x$OPENCV_LIBS" != "x"; then
-      PKG_CHECK_MODULES(OPENCV_STATIC, [opencv], [],
-        [AC_MSG_ERROR(No static OpenCV library available)])
+    PKG_CHECK_MODULES(OPENCV, [opencv], [],
+      [PKG_CHECK_MODULES(OPENCV, [opencv_core opencv_imgproc], [],
+        [AC_MSG_NOTICE(pkgconfig for OpenCV not found... Deferring)])])
     fi
     PKG_CONFIG="$tmp_PKG_CONFIG"
   fi
@@ -220,6 +258,42 @@ if test "x$BLITZ_LIBS" == "x"; then
     fi
     BLITZ_STATIC_LIBS="$BLITZ_LDFLAGS $LIBS"
     AC_SUBST(BLITZ_STATIC_LIBS)
+  fi
+
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+fi
+
+#
+# Check for libpng
+#
+if test "x$PNG_LIBS" == "x"; then
+  tmp_CPPFLAGS="$CPPFLAGS"
+  tmp_LDFLAGS="$LDFLAGS"
+  tmp_LIBS="$LIBS"
+
+  AC_CHECK_HEADER([png.h], [], AC_MSG_ERROR(
+    [png headers not found.]))
+  AC_CHECK_LIB([png], [png_malloc], [],
+    [AC_CHECK_LIB([png12], [png_malloc], [],
+      AC_MSG_ERROR([libpng not found.]))])
+  PNG_CFLAGS="$CPPFLAGS"
+  PNG_LIBS="$LIBS"
+  AC_SUBST(PNG_CFLAGS)
+  AC_SUBST(PNG_LIBS)
+
+  if test "x$enable_static_tools" != "xno"; then
+    $as_unset ac_cv_lib_png_png_malloc
+    $as_unset ac_cv_lib_png12_png_malloc
+    CPPFLAGS="$tmp_CPPFLAGS"
+    LDFLAGS="-static $tmp_LDFLAGS"
+    LIBS="$tmp_LIBS"
+  AC_CHECK_LIB([png], [png_malloc], [],
+    [AC_CHECK_LIB([png12], [png_malloc], [],
+      [AC_MSG_ERROR([No static PNG library available.])])])
+    PNG_STATIC_LIBS="$LIBS"
+    AC_SUBST(PNG_STATIC_LIBS)
   fi
 
   CPPFLAGS="$tmp_CPPFLAGS"
@@ -496,6 +570,25 @@ if test "x$OPENCV_LIBS" == "x"; then
     OPENCV_STATIC_LIBS="$OPENCV_LDFLAGS $LIBS"
     AC_SUBST(OPENCV_STATIC_LIBS)
   fi
+
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+fi
+
+if test "x$GL_LIBS" == "x"; then
+  tmp_CPPFLAGS="$CPPFLAGS"
+  tmp_LDFLAGS="$LDFLAGS"
+  tmp_LIBS="$LIBS"
+
+  AC_CHECK_LIB(GL,glBegin, [],
+    [AC_CHECK_LIB(opengl32,glBegin, [],
+      [AC_MSG_ERROR([OpenGL library (libGL) not found.])])])
+
+  GL_CFLAGS="$CPPFLAGS"
+  GL_LIBS="$LIBS"
+  AC_SUBST(GL_CFLAGS)
+  AC_SUBST(GL_LIBS)
 
   CPPFLAGS="$tmp_CPPFLAGS"
   LDFLAGS="$tmp_LDFLAGS"

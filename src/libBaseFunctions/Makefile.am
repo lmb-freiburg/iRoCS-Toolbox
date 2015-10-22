@@ -2,7 +2,7 @@ lib_LTLIBRARIES = libBaseFunctions.la
 basefunctionsincludedir = $(pkgincludedir)/libBaseFunctions
 
 AM_CPPFLAGS = -I$(top_srcdir)/src
-AM_LDFLAGS = -version-info 1:0:0
+AM_LDFLAGS = -no-undefined -version-info 1:0:0
 
 basefunctionsinclude_HEADERS = \
     BaseFile.hh \

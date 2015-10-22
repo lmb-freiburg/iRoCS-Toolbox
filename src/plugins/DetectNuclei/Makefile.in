@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -80,7 +81,7 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = src/plugins/DetectNuclei
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/depcomp
+	$(top_srcdir)/depcomp $(noinst_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -118,14 +119,32 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(lblplugindir)"
 LTLIBRARIES = $(lblplugin_LTLIBRARIES)
+am__DEPENDENCIES_1 =
 libPluginDetectNuclei_la_DEPENDENCIES =  \
-	$(top_builddir)/src/libIRoCS/libIRoCS.la
+	$(top_builddir)/src/libIRoCS/libIRoCS.la \
+	$(top_builddir)/src/liblabelling_qt4/libLabelling_qt4.la \
+	$(top_builddir)/src/libsegmentation/libsegmentation.la \
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
+	$(top_builddir)/src/libBlitzFFTW/libBlitzFFTW.la \
+	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(top_builddir)/src/libBaseFunctions/libBaseFunctions.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
+	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la \
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(top_builddir)/src/libcmdline/libcmdline.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+am_libPluginDetectNuclei_la_OBJECTS = DetectNucleiParametersDialog.lo \
+	DetectNucleiThread.lo PluginDetectNuclei.lo
 am__objects_1 = moc_DetectNucleiParametersDialog.lo \
 	moc_DetectNucleiThread.lo moc_PluginDetectNuclei.lo
-am_libPluginDetectNuclei_la_OBJECTS = DetectNucleiParametersDialog.lo \
-	DetectNucleiThread.lo PluginDetectNuclei.lo $(am__objects_1)
+nodist_libPluginDetectNuclei_la_OBJECTS = $(am__objects_1)
 libPluginDetectNuclei_la_OBJECTS =  \
-	$(am_libPluginDetectNuclei_la_OBJECTS)
+	$(am_libPluginDetectNuclei_la_OBJECTS) \
+	$(nodist_libPluginDetectNuclei_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -164,13 +183,15 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(libPluginDetectNuclei_la_SOURCES)
+SOURCES = $(libPluginDetectNuclei_la_SOURCES) \
+	$(nodist_libPluginDetectNuclei_la_SOURCES)
 DIST_SOURCES = $(libPluginDetectNuclei_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+HEADERS = $(noinst_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -195,6 +216,7 @@ ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
+AS = @AS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -230,6 +252,8 @@ FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
 GLU_CFLAGS = @GLU_CFLAGS@
 GLU_LIBS = @GLU_LIBS@
+GL_CFLAGS = @GL_CFLAGS@
+GL_LIBS = @GL_LIBS@
 GREP = @GREP@
 GSL_CFLAGS = @GSL_CFLAGS@
 GSL_LIBS = @GSL_LIBS@
@@ -261,11 +285,11 @@ MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NONCONSOLE_LDFLAGS = @NONCONSOLE_LDFLAGS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OPENCV_CFLAGS = @OPENCV_CFLAGS@
 OPENCV_LIBS = @OPENCV_LIBS@
-OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
 OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
 OPENMP_LIBS = @OPENMP_LIBS@
@@ -282,6 +306,10 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+PNG_CFLAGS = @PNG_CFLAGS@
+PNG_LIBS = @PNG_LIBS@
+PNG_STATIC_CFLAGS = @PNG_STATIC_CFLAGS@
+PNG_STATIC_LIBS = @PNG_STATIC_LIBS@
 QT4_CFLAGS = @QT4_CFLAGS@
 QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
@@ -357,8 +385,28 @@ AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
 	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS) $(QT4_CFLAGS)
 
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info 1:0:0
-libPluginDetectNuclei_la_LIBADD = $(top_builddir)/src/libIRoCS/libIRoCS.la
+AM_LDFLAGS = -no-undefined -version-info 1:0:0
+libPluginDetectNuclei_la_LIBADD = \
+	$(top_builddir)/src/libIRoCS/libIRoCS.la \
+	$(top_builddir)/src/liblabelling_qt4/libLabelling_qt4.la \
+	$(top_builddir)/src/libsegmentation/libsegmentation.la \
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
+	$(top_builddir)/src/libBlitzFFTW/libBlitzFFTW.la \
+	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(top_builddir)/src/libBaseFunctions/libBaseFunctions.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
+	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la \
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(top_builddir)/src/libcmdline/libcmdline.la \
+	$(BLITZ_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(OPENCV_LIBS) \
+	$(QT4_LIBS) $(GL_LIBS) $(GLU_LIBS)
+
+noinst_HEADERS = \
+	DetectNucleiParametersDialog.hh \
+	DetectNucleiThread.hh \
+	PluginDetectNuclei.hh
+
 MOC_GEN_SOURCES = \
 	moc_DetectNucleiParametersDialog.cc \
 	moc_DetectNucleiThread.cc \
@@ -367,7 +415,9 @@ MOC_GEN_SOURCES = \
 libPluginDetectNuclei_la_SOURCES = \
 	DetectNucleiParametersDialog.cc \
 	DetectNucleiThread.cc \
-	PluginDetectNuclei.cc \
+	PluginDetectNuclei.cc
+
+nodist_libPluginDetectNuclei_la_SOURCES = \
 	$(MOC_GEN_SOURCES)
 
 MOSTLYCLEANFILES = $(MOC_GEN_SOURCES) 
@@ -571,7 +621,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(LTLIBRARIES) $(HEADERS)
 installdirs:
 	for dir in "$(DESTDIR)$(lblplugindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \

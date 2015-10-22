@@ -28,7 +28,8 @@ check_PROGRAMS = $(TESTS)
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -DTOP_SRC_DIR="\"$(shell (cd \$(top_srcdir); pwd))\""
 
-LDADD = $(top_builddir)/src/libsvmtl/libsvmtl.la
+LDADD = $(top_builddir)/src/libsvmtl/libsvmtl.la \
+	$(HDF5_LIBS)
 
 testFeatureVectors_SOURCES = testFeatureVectors.cc
 testSparseFV_SOURCES = testSparseFV.cc

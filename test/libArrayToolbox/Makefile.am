@@ -13,6 +13,8 @@ LDADD = $(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
 	$(top_builddir)/src/libBaseFunctions/libBaseFunctions.la
 
+noinst_HEADERS = lmbunit.hh
+
 testATBLinAlg_SOURCES = testATBLinAlg.cc
 testArray_SOURCES = testArray.cc
 

@@ -734,17 +734,15 @@ void Marker::load(
     }
     if (m != NULL)
     {
-      channel->addMarker(m);
-      
       std::stringstream idStream;
       idStream.fill('0');
       idStream << "marker_" << std::setw(8) << i;
-      channel->markers().back()->setId(idStream.str());
-      channel->markers().back()->setRelativePositionUm(positions(i));
-      channel->markers().back()->setLabel(labels(i));
-      channel->markers().back()->setPredictedLabel(predictedLabels(i));
-      channel->markers().back()->setManual(manuals(i));
-      channel->markers().back()->setNeedsFeatureUpdate(needsFeatureUpdates(i));
+      m->setId(idStream.str());
+      m->setRelativePositionUm(positions(i));
+      m->setLabel(labels(i));
+      m->setPredictedLabel(predictedLabels(i));
+      m->setManual(manuals(i));
+      m->setNeedsFeatureUpdate(needsFeatureUpdates(i));
       if (features.size() != 0)
       {
         if (nFeatures(i) == -1)
@@ -752,14 +750,14 @@ void Marker::load(
           std::vector<double> feavec(features.extent(1));
           for (atb::BlitzIndexT j = 0; j < features.extent(1); ++j)
               feavec[j] = features(i, j);
-          channel->markers().back()->setFeatures(feavec);
+          m->setFeatures(feavec);
         }
         else
         {
           std::vector<double> feavec(nFeatures(i));
           for (atb::BlitzIndexT j = 0; j < nFeatures(i); ++j)
               feavec[j] = features(i, j);
-          channel->markers().back()->setFeatures(feavec);
+          m->setFeatures(feavec);
         }
       }
       if (probabilities.size() != 0)
@@ -769,11 +767,13 @@ void Marker::load(
         {
           prob[static_cast<int>(classes(j))] = probabilities(i, j);
         }
-        channel->markers().back()->setProbabilityMap(prob);
+        m->setProbabilityMap(prob);
       }
-      channel->markers().back()->setQcDistanceUm(qcdistances(i));
-      channel->markers().back()->setRadialDistanceUm(radialdistances(i));
-      channel->markers().back()->setPhi(phis(i));
+      m->setQcDistanceUm(qcdistances(i));
+      m->setRadialDistanceUm(radialdistances(i));
+      m->setPhi(phis(i));
+
+      channel->addMarker(m);
     }
   }
 }

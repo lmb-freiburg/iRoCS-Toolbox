@@ -17,6 +17,8 @@ AM_CXXFLAGS = -Wno-long-long
 LDADD = $(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la
 
+noinst_HEADERS = lmbunit.hh
+
 testSimplifyGroupDescriptor_SOURCES = testSimplifyGroupDescriptor.cc
 testH5FileConstructor_SOURCES = testH5FileConstructor.cc
 testH5FileReadDataset_SOURCES = testH5FileReadDataset.cc

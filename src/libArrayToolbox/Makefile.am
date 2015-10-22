@@ -2,17 +2,19 @@ lib_LTLIBRARIES = libArrayToolbox.la
 arraytoolboxincludedir = $(pkgincludedir)/libArrayToolbox
 arraytoolboxalgoincludedir = $(pkgincludedir)/libArrayToolbox/algo
 
-AM_CPPFLAGS = \
-	-I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) $(FFTW_CFLAGS) \
-	$(GSL_CFLAGS) $(OPENCV_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/src \
+	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(BLITZ_CFLAGS) $(FFTW_CFLAGS) \
+	$(HDF5_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -version-info 2:1:1
+AM_LDFLAGS = -no-undefined -version-info 2:1:1
 
 # Version bump to 2.0.2 pending (Interface extension)
 
 libArrayToolbox_la_LIBADD = \
 	$(top_builddir)/src/libBlitzFFTW/libBlitzFFTW.la \
 	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(top_builddir)/src/libBaseFunctions/libBaseFunctions.la \
 	$(BLITZ_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(OPENCV_LIBS)
 
 arraytoolboxalgoinclude_HEADERS = \

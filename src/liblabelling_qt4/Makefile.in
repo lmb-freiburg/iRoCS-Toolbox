@@ -121,9 +121,80 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(lbldatadir)" \
 	"$(DESTDIR)$(labelling_qt4includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
+am__DEPENDENCIES_1 =
 libLabelling_qt4_la_DEPENDENCIES =  \
 	$(top_builddir)/src/libsegmentation/libsegmentation.la \
-	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
+	$(top_builddir)/src/libBlitzFFTW/libBlitzFFTW.la \
+	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(top_builddir)/src/libBaseFunctions/libBaseFunctions.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
+	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la \
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+am_libLabelling_qt4_la_OBJECTS = StreamBufTextEditQt4.lo \
+	AbstractControlElement.lo BoolControlElement.lo \
+	IntControlElement.lo Int3ControlElement.lo \
+	IntVectorControlElement.lo DoubleControlElement.lo \
+	Double3ControlElement.lo DoubleVectorControlElement.lo \
+	Double4x4ControlElement.lo DoubleRangeControlElement.lo \
+	StringControlElement.lo StringSelectionControlElement.lo \
+	IntDoubleMapControlElement.lo \
+	ChannelSelectionControlElement.lo \
+	FileNameSelectionControlElement.lo \
+	HDF5SelectionControlElement.lo ColorControlElement.lo \
+	Marker.lo MarkerPresetWidget.lo MarkerControlWidget.lo \
+	PointMarker.lo SphereMarker.lo SHSurfaceMarker.lo \
+	NucleusMarker.lo CylinderMarker.lo SurfaceMarker.lo \
+	CellMarker.lo UserInteractionEvent.lo \
+	OrthoViewUserInteractionEvent.lo ChannelSpecs.lo \
+	DataChannelSpecs.lo RGBChannelSpecs.lo \
+	VisualizationChannelSpecs.lo AnnotationChannelSpecs.lo \
+	SplineCurveChannelSpecs.lo IRoCSChannelSpecs.lo \
+	IRoCSSCTChannelSpecs.lo ViewWidget.lo MarkerRenderer.lo \
+	ChannelSpecsRenderer.lo OrthoViewPlane.lo OrthoViewWidget.lo \
+	ChannelSpecsOrthoViewRenderer.lo MarkerOrthoViewRenderer.lo \
+	PointMarkerOrthoViewRenderer.lo \
+	SphereMarkerOrthoViewRenderer.lo \
+	SHSurfaceMarkerOrthoViewRenderer.lo \
+	NucleusMarkerOrthoViewRenderer.lo \
+	CylinderMarkerOrthoViewRenderer.lo \
+	SurfaceMarkerOrthoViewRenderer.lo \
+	CellMarkerOrthoViewRenderer.lo \
+	DataChannelSpecsOrthoViewRenderer.lo \
+	RGBChannelSpecsOrthoViewRenderer.lo \
+	VisualizationChannelSpecsOrthoViewRenderer.lo \
+	AnnotationChannelSpecsOrthoViewRenderer.lo \
+	SplineCurveChannelSpecsOrthoViewRenderer.lo \
+	IRoCSChannelSpecsOrthoViewRenderer.lo \
+	IRoCSSCTChannelSpecsOrthoViewRenderer.lo \
+	OpenGlRenderingWidget.lo OpenGlRenderingViewWidget.lo \
+	OpenGlRenderingSettingsWidget.lo \
+	ChannelSpecsOpenGlRenderingViewRenderer.lo \
+	DataChannelSpecsOpenGlRenderingViewRenderer.lo \
+	RGBChannelSpecsOpenGlRenderingViewRenderer.lo \
+	VisualizationChannelSpecsOpenGlRenderingViewRenderer.lo \
+	AnnotationChannelSpecsOpenGlRenderingViewRenderer.lo \
+	SplineCurveChannelSpecsOpenGlRenderingViewRenderer.lo \
+	IRoCSChannelSpecsOpenGlRenderingViewRenderer.lo \
+	IRoCSSCTChannelSpecsOpenGlRenderingViewRenderer.lo \
+	MarkerOpenGlRenderingViewRenderer.lo \
+	PointMarkerOpenGlRenderingViewRenderer.lo \
+	SphereMarkerOpenGlRenderingViewRenderer.lo \
+	NucleusMarkerOpenGlRenderingViewRenderer.lo \
+	SHSurfaceMarkerOpenGlRenderingViewRenderer.lo \
+	SurfaceMarkerOpenGlRenderingViewRenderer.lo \
+	CellMarkerOpenGlRenderingViewRenderer.lo \
+	CylinderMarkerOpenGlRenderingViewRenderer.lo \
+	MultiChannelModel.lo HDF5SelectionDialog.lo SVGDataIO.lo \
+	AnalyzeAndSTLDataIO.lo HDF5DataIO.lo CSVDataIO.lo \
+	LabellingMainWidget.lo ExceptionAwareApplication.lo \
+	OrthoViewOverlay.lo ColorMap.lo IColorMapEditor.lo \
+	ColorMapEditorWidget.lo
 am__objects_1 = moc_StreamBufTextEditQt4.lo \
 	moc_AbstractControlElement.lo moc_BoolControlElement.lo \
 	moc_IntControlElement.lo moc_Int3ControlElement.lo \
@@ -184,66 +255,9 @@ am__objects_1 = moc_StreamBufTextEditQt4.lo \
 	moc_MultiChannelModel.lo moc_HDF5SelectionDialog.lo \
 	moc_SVGDataIO.lo moc_HDF5DataIO.lo moc_ColorMapEditorWidget.lo \
 	moc_ExceptionAwareApplication.lo moc_LabellingMainWidget.lo
-am_libLabelling_qt4_la_OBJECTS = StreamBufTextEditQt4.lo \
-	AbstractControlElement.lo BoolControlElement.lo \
-	IntControlElement.lo Int3ControlElement.lo \
-	IntVectorControlElement.lo DoubleControlElement.lo \
-	Double3ControlElement.lo DoubleVectorControlElement.lo \
-	Double4x4ControlElement.lo DoubleRangeControlElement.lo \
-	StringControlElement.lo StringSelectionControlElement.lo \
-	IntDoubleMapControlElement.lo \
-	ChannelSelectionControlElement.lo \
-	FileNameSelectionControlElement.lo \
-	HDF5SelectionControlElement.lo ColorControlElement.lo \
-	Marker.lo MarkerPresetWidget.lo MarkerControlWidget.lo \
-	PointMarker.lo SphereMarker.lo SHSurfaceMarker.lo \
-	NucleusMarker.lo CylinderMarker.lo SurfaceMarker.lo \
-	CellMarker.lo UserInteractionEvent.lo \
-	OrthoViewUserInteractionEvent.lo ChannelSpecs.lo \
-	DataChannelSpecs.lo RGBChannelSpecs.lo \
-	VisualizationChannelSpecs.lo AnnotationChannelSpecs.lo \
-	SplineCurveChannelSpecs.lo IRoCSChannelSpecs.lo \
-	IRoCSSCTChannelSpecs.lo ViewWidget.lo MarkerRenderer.lo \
-	ChannelSpecsRenderer.lo OrthoViewPlane.lo OrthoViewWidget.lo \
-	ChannelSpecsOrthoViewRenderer.lo MarkerOrthoViewRenderer.lo \
-	PointMarkerOrthoViewRenderer.lo \
-	SphereMarkerOrthoViewRenderer.lo \
-	SHSurfaceMarkerOrthoViewRenderer.lo \
-	NucleusMarkerOrthoViewRenderer.lo \
-	CylinderMarkerOrthoViewRenderer.lo \
-	SurfaceMarkerOrthoViewRenderer.lo \
-	CellMarkerOrthoViewRenderer.lo \
-	DataChannelSpecsOrthoViewRenderer.lo \
-	RGBChannelSpecsOrthoViewRenderer.lo \
-	VisualizationChannelSpecsOrthoViewRenderer.lo \
-	AnnotationChannelSpecsOrthoViewRenderer.lo \
-	SplineCurveChannelSpecsOrthoViewRenderer.lo \
-	IRoCSChannelSpecsOrthoViewRenderer.lo \
-	IRoCSSCTChannelSpecsOrthoViewRenderer.lo \
-	OpenGlRenderingWidget.lo OpenGlRenderingViewWidget.lo \
-	OpenGlRenderingSettingsWidget.lo \
-	ChannelSpecsOpenGlRenderingViewRenderer.lo \
-	DataChannelSpecsOpenGlRenderingViewRenderer.lo \
-	RGBChannelSpecsOpenGlRenderingViewRenderer.lo \
-	VisualizationChannelSpecsOpenGlRenderingViewRenderer.lo \
-	AnnotationChannelSpecsOpenGlRenderingViewRenderer.lo \
-	SplineCurveChannelSpecsOpenGlRenderingViewRenderer.lo \
-	IRoCSChannelSpecsOpenGlRenderingViewRenderer.lo \
-	IRoCSSCTChannelSpecsOpenGlRenderingViewRenderer.lo \
-	MarkerOpenGlRenderingViewRenderer.lo \
-	PointMarkerOpenGlRenderingViewRenderer.lo \
-	SphereMarkerOpenGlRenderingViewRenderer.lo \
-	NucleusMarkerOpenGlRenderingViewRenderer.lo \
-	SHSurfaceMarkerOpenGlRenderingViewRenderer.lo \
-	SurfaceMarkerOpenGlRenderingViewRenderer.lo \
-	CellMarkerOpenGlRenderingViewRenderer.lo \
-	CylinderMarkerOpenGlRenderingViewRenderer.lo \
-	MultiChannelModel.lo HDF5SelectionDialog.lo SVGDataIO.lo \
-	AnalyzeAndSTLDataIO.lo HDF5DataIO.lo CSVDataIO.lo \
-	LabellingMainWidget.lo ExceptionAwareApplication.lo \
-	OrthoViewOverlay.lo ColorMap.lo IColorMapEditor.lo \
-	ColorMapEditorWidget.lo $(am__objects_1)
-libLabelling_qt4_la_OBJECTS = $(am_libLabelling_qt4_la_OBJECTS)
+nodist_libLabelling_qt4_la_OBJECTS = $(am__objects_1)
+libLabelling_qt4_la_OBJECTS = $(am_libLabelling_qt4_la_OBJECTS) \
+	$(nodist_libLabelling_qt4_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -282,7 +296,8 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(libLabelling_qt4_la_SOURCES)
+SOURCES = $(libLabelling_qt4_la_SOURCES) \
+	$(nodist_libLabelling_qt4_la_SOURCES)
 DIST_SOURCES = $(libLabelling_qt4_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -315,6 +330,7 @@ ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
+AS = @AS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -350,6 +366,8 @@ FFTW_STATIC_LIBS = @FFTW_STATIC_LIBS@
 FGREP = @FGREP@
 GLU_CFLAGS = @GLU_CFLAGS@
 GLU_LIBS = @GLU_LIBS@
+GL_CFLAGS = @GL_CFLAGS@
+GL_LIBS = @GL_LIBS@
 GREP = @GREP@
 GSL_CFLAGS = @GSL_CFLAGS@
 GSL_LIBS = @GSL_LIBS@
@@ -381,11 +399,11 @@ MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NONCONSOLE_LDFLAGS = @NONCONSOLE_LDFLAGS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OPENCV_CFLAGS = @OPENCV_CFLAGS@
 OPENCV_LIBS = @OPENCV_LIBS@
-OPENCV_STATIC_CFLAGS = @OPENCV_STATIC_CFLAGS@
 OPENCV_STATIC_LIBS = @OPENCV_STATIC_LIBS@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
 OPENMP_LIBS = @OPENMP_LIBS@
@@ -402,6 +420,10 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+PNG_CFLAGS = @PNG_CFLAGS@
+PNG_LIBS = @PNG_LIBS@
+PNG_STATIC_CFLAGS = @PNG_STATIC_CFLAGS@
+PNG_STATIC_LIBS = @PNG_STATIC_LIBS@
 QT4_CFLAGS = @QT4_CFLAGS@
 QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
@@ -475,19 +497,37 @@ lbldatadir = $(pkgdatadir)
 labelling_qt4includedir = $(pkgincludedir)/libLabelling_qt4
 MOC = @QT4_MOC@
 RCC = @QT4_RCC@
-AM_CPPFLAGS = \
-	-I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) $(FFTW_CFLAGS) \
-	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(QT4_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/src \
+	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(BLITZ_CFLAGS) $(FFTW_CFLAGS) \
+	$(HDF5_CFLAGS) $(QT4_CFLAGS)
 
 AM_CXXFLAGS = -Wno-long-long 
-AM_LDFLAGS = -version-info 2:0:1 -rdynamic
+AM_LDFLAGS = -no-undefined -version-info 2:0:1 -rdynamic
 
 # version bump to 3:0:2 pending (interface extension)
 libLabelling_qt4_la_LIBADD = \
 	$(top_builddir)/src/libsegmentation/libsegmentation.la \
-	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la
+	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
+	$(top_builddir)/src/libBlitzFFTW/libBlitzFFTW.la \
+	$(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
+	$(top_builddir)/src/libBaseFunctions/libBaseFunctions.la \
+	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la \
+	$(top_builddir)/src/libBlitzAnalyze/libBlitzAnalyze.la \
+	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la \
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(BLITZ_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(OPENCV_LIBS) \
+	$(QT4_LIBS) $(GL_LIBS) $(GLU_LIBS)
 
 lbldata_DATA = liblabelling_qt4.rcc
+EXTRA_DIST = \
+	icons/labellingIcon.svg \
+	icons/oxygen/32x32/actions/document-properties.png \
+	icons/oxygen/32x32/actions/edit-delete.png \
+	icons/oxygen/32x32/actions/process-stop.png \
+	icons/oxygen/32x32/actions/zoom-in.png \
+	icons/oxygen/32x32/actions/zoom-original.png \
+	icons/oxygen/32x32/actions/zoom-out.png
+
 labelling_qt4include_HEADERS = \
     StreamBufTextEditQt4.hh \
     AbstractControlElement.hh \
@@ -757,7 +797,9 @@ libLabelling_qt4_la_SOURCES = \
 	ColorMap.cc \
 	IColorMapEditor.cc \
 	ColorMapEditorWidget.cc \
-	labelling_qt4.qrc \
+	liblabelling_qt4.qrc
+
+nodist_libLabelling_qt4_la_SOURCES = \
 	$(MOC_GEN_SOURCES)
 
 MOSTLYCLEANFILES = $(MOC_GEN_SOURCES)

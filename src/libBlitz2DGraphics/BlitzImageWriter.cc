@@ -285,8 +285,7 @@ int BlitzImageWriter::writePNG(const ImageAccessWrapper &data,
   }
   
   png_structp png_ptr = png_create_write_struct
-      (PNG_LIBPNG_VER_STRING, png_voidp_NULL,
-       NULL, NULL);
+      (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
   if (!png_ptr) {
     std::cerr << "BlitzImageWriter::writePNG: " 
@@ -299,8 +298,7 @@ int BlitzImageWriter::writePNG(const ImageAccessWrapper &data,
   png_infop info_ptr = png_create_info_struct(png_ptr);
 
   if (!info_ptr) {
-    png_destroy_write_struct(&png_ptr,
-                             (png_infopp)NULL);
+    png_destroy_write_struct(&png_ptr, NULL);
     std::cerr << "BlitzImageWriter::writePNG: " 
               << "png_create_info_struct() failed" << std::endl;
     return(-1);
