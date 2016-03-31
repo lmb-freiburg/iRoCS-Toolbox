@@ -44,6 +44,28 @@ void const *BlitzH5Traits<unsigned char>::data(DataT const &array)
   return reinterpret_cast<void const*>(&array);
 }
 
+std::vector<hsize_t> BlitzH5Traits<signed char>::h5Dims(DataT const &)
+{
+  std::vector<hsize_t> dims(1);
+  dims[0] = 1;
+  return dims;
+}
+
+hid_t BlitzH5Traits<signed char>::h5Type()
+{
+  return H5T_NATIVE_UCHAR;
+}
+    
+void *BlitzH5Traits<signed char>::data(DataT &array)
+{
+  return reinterpret_cast<void*>(&array);
+}
+
+void const *BlitzH5Traits<signed char>::data(DataT const &array)
+{
+  return reinterpret_cast<void const*>(&array);
+}
+
 std::vector<hsize_t> BlitzH5Traits<char>::h5Dims(DataT const &)
 {
   std::vector<hsize_t> dims(1);

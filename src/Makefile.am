@@ -17,4 +17,8 @@ SUBDIRS = \
 	plugins \
 	tools
 
+if BUILD_QT5
+SUBDIRS += libProgressReporter_qt5
+endif
+
 pkginclude_HEADERS = config.hh

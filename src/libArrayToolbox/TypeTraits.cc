@@ -41,6 +41,14 @@ namespace atb
   bool const traits<unsigned char>::isComplex = false;
 
 
+  signed char const traits<signed char>::smallest = -128;
+  signed char const traits<signed char>::greatest = 127;
+  signed char const traits<signed char>::zero = 0;
+  signed char const traits<signed char>::one = 1;
+  signed char const traits<signed char>::saturated = 127;
+  bool const traits<signed char>::isComplex = false;
+
+
   char const traits<char>::smallest = -128;
   char const traits<char>::greatest = 127;
   char const traits<char>::zero = 0;

@@ -65,19 +65,23 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
   // Disable error stacks
   H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 
-  htri_t isHDF5;
+  htri_t isHDF5 = 0;
   std::ifstream ifile(fileName.c_str());
-  if (ifile) isHDF5 = H5Fis_hdf5(fileName.c_str());
-  else isHDF5 = -1;
+  bool exists = ifile.good();
+  ifile.close();
+  if (exists) isHDF5 = H5Fis_hdf5(fileName.c_str());
   
   switch (mode)
   {
   case ReadOnly:
   {
-    if (isHDF5 == -1)
+    if (!exists)
         throw BlitzH5Error()
             << "Could not open file '" << fileName
-            << "'. File not found.";
+            << "'. File not found or no read permissions";
+    if (isHDF5 < 0)
+        throw BlitzH5Error()
+            << "Could not open file '" << fileName << "'. FileIO error.";
     if (isHDF5 == 0)
         throw BlitzH5Error()
             << "Could not open file '" << fileName << "'. No HDF5 file.";
@@ -101,10 +105,13 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
   }
   case Write:
   {
-    if (isHDF5 == -1)
+    if (!exists)
         throw BlitzH5Error()
             << "Could not open file '" << fileName
-            << "'. File not found.";
+            << "'. File not found or no read permission.";
+    if (isHDF5 < 0)
+        throw BlitzH5Error()
+            << "Could not open file '" << fileName << "'. FileIO error.";
     if (isHDF5 == 0)
         throw BlitzH5Error()
             << "Could not open file '" << fileName << "'. No HDF5 file.";
@@ -113,7 +120,7 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
     if (_fileId < 0)
     {
       hid_t fileId = H5Fopen(
-        fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+          fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
       if (fileId < 0)
           throw BlitzH5Error()
               << "Could not open file '" << fileName
@@ -137,25 +144,33 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
       {
         hid_t fileId = H5Fopen(fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         if (fileId < 0)
-            fileId = H5Fopen(fileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-        if (fileId >= 0)
         {
+          fileId = H5Fopen(fileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+          if (fileId < 0)
+              throw BlitzH5Error()
+                  << "Could not replace file '" << fileName
+                  << "'. Insufficient permissions.";
           H5Fclose(fileId);
           throw BlitzH5Error()
               << "Could not replace file '" << fileName
-              << "'. It is already opened in ReadOnly mode from another "
+              << "'. It is already opened in ReadWrite mode from another "
               << "location.";        
         }
+        H5Fclose(fileId);
+        throw BlitzH5Error()
+            << "Could not replace file '" << fileName
+            << "'. It is already opened in ReadOnly mode from another "
+            << "location.";        
       }
       throw BlitzH5Error()
           << "Could not replace file '" << fileName
-          << "'. Insufficient file permissions.";        
+          << "'. Insufficient permissions.";        
     }
     break;
   }
   case New:
   {
-    if (isHDF5 != -1)
+    if (exists)
         throw BlitzH5Error()
             << "Could not create file '" << fileName
             << "'. A file with that name already exists.";
@@ -170,11 +185,11 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
   }
   case WriteOrNew:
   {
-    if (isHDF5 == 0)
+    if (exists && isHDF5 == 0)
         throw BlitzH5Error()
             << "Could not create or open file '" << fileName
             << "'. A non-HDF5 file with that name already exists.";        
-    if (isHDF5 == -1)
+    if (!exists)
     {
       _fileId = H5Fcreate(
           fileName.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
@@ -185,12 +200,11 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
               << "you have write permission.";   
       return;
     }
-    _fileId = H5Fopen(
-        fileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    _fileId = H5Fopen(fileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     if (_fileId < 0)
     {
       hid_t fileId = H5Fopen(
-        fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+          fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
       if (fileId < 0)
           throw BlitzH5Error()
               << "Could not open file '" << fileName

@@ -58,6 +58,17 @@ struct BlitzH5Traits<unsigned char>
 };
 
 template<>
+struct BlitzH5Traits<signed char>
+{
+  typedef signed char DataT;
+  typedef signed char BasicT;
+  static std::vector<hsize_t> h5Dims(DataT const &);
+  static hid_t h5Type();
+  static void *data(DataT &array);
+  static void const *data(DataT const &array);
+};
+
+template<>
 struct BlitzH5Traits<char>
 {
   typedef char DataT;

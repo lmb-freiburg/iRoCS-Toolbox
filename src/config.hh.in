@@ -75,6 +75,24 @@
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
+/* Define to 1 if you have the `Qt5Core' library (-lQt5Core). */
+#undef HAVE_LIBQT5CORE
+
+/* Define to 1 if you have the `Qt5Gui' library (-lQt5Gui). */
+#undef HAVE_LIBQT5GUI
+
+/* Define to 1 if you have the `Qt5OpenGL' library (-lQt5OpenGL). */
+#undef HAVE_LIBQT5OPENGL
+
+/* Define to 1 if you have the `Qt5Svg' library (-lQt5Svg). */
+#undef HAVE_LIBQT5SVG
+
+/* Define to 1 if you have the `Qt5Widgets' library (-lQt5Widgets). */
+#undef HAVE_LIBQT5WIDGETS
+
+/* Define to 1 if you have the `Qt5Xml' library (-lQt5Xml). */
+#undef HAVE_LIBQT5XML
+
 /* Define to 1 if you have the `QtCore' library (-lQtCore). */
 #undef HAVE_LIBQTCORE
 
@@ -150,6 +168,12 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
+
+/* Enable Qt5 debugging */
+#undef QT5_DEBUG
+
+/* Disable Qt5 debugging */
+#undef QT5_NO_DEBUG
 
 /* Enable Qt debugging */
 #undef QT_DEBUG

@@ -78,6 +78,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@BUILD_QT5_TRUE@am__append_1 = libProgressReporter_qt5
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(srcdir)/config.hh.in $(pkginclude_HEADERS)
@@ -173,7 +174,11 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = libcmdline libsvmtl libProgressReporter \
+	libProgressReporter_qt4 libBaseFunctions libBlitzAnalyze \
+	libBlitzHdf5 libBlitzFFTW libBlitz2DGraphics lmbs2kit \
+	libArrayToolbox libsegmentation liblabelling_qt4 labelling \
+	libIRoCS plugins tools libProgressReporter_qt5
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
   dir0=`pwd`; \
@@ -303,6 +308,11 @@ QT4_LIBS = @QT4_LIBS@
 QT4_MOC = @QT4_MOC@
 QT4_RCC = @QT4_RCC@
 QT4_UIC = @QT4_UIC@
+QT5_CFLAGS = @QT5_CFLAGS@
+QT5_LIBS = @QT5_LIBS@
+QT5_MOC = @QT5_MOC@
+QT5_RCC = @QT5_RCC@
+QT5_UIC = @QT5_UIC@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -366,25 +376,11 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = \
-	libcmdline \
-	libsvmtl \
-	libProgressReporter \
-	libProgressReporter_qt4 \
-	libBaseFunctions \
-	libBlitzAnalyze \
-	libBlitzHdf5 \
-	libBlitzFFTW \
-	libBlitz2DGraphics \
-	lmbs2kit \
-	libArrayToolbox \
-	libsegmentation \
-	liblabelling_qt4 \
-	labelling \
-	libIRoCS \
-	plugins \
-	tools
-
+SUBDIRS = libcmdline libsvmtl libProgressReporter \
+	libProgressReporter_qt4 libBaseFunctions libBlitzAnalyze \
+	libBlitzHdf5 libBlitzFFTW libBlitz2DGraphics lmbs2kit \
+	libArrayToolbox libsegmentation liblabelling_qt4 labelling \
+	libIRoCS plugins tools $(am__append_1)
 pkginclude_HEADERS = config.hh
 all: config.hh
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive

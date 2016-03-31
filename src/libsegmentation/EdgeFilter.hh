@@ -48,14 +48,14 @@ namespace segmentation
       blitz::TinyVector<double,3> const &lbUm = 0.0,
       blitz::TinyVector<double,3> const &ubUm =
       (std::numeric_limits<double>::infinity()),
-      ATB::ProgressReporter *progress = NULL);
+      iRoCS::ProgressReporter *progress = NULL);
 
   template<class DataT>
   blitz::Array<DataT,3> _calculateGradients(
       blitz::Array<DataT,3> const &data,
       blitz::TinyVector<double,3> const &elSize,
       int direction, double scaling,
-      ATB::ProgressReporter *progress = NULL);
+      iRoCS::ProgressReporter *progress = NULL);
 
 }
 

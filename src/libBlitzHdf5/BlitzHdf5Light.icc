@@ -1214,9 +1214,9 @@ void BlitzH5File::_loadAttribute(hid_t attributeId, DestT *target) const
   herr_t err = H5Aread(attributeId, datatypeId, buf.data());
   H5Tclose(datatypeId);
   if (err < 0) throw BlitzH5Error() << "H5Aread failed.";
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+// #ifdef _OPENMP
+// #pragma omp parallel for
+// #endif
   for (int i = 0; i < nElements; ++i)
       target[i] = static_cast<DestT>(buf[i]);
 }
@@ -1382,17 +1382,17 @@ void BlitzH5File::_loadChunkedDataset(
     // Copy buffer contents to output Array
     if (contiguous)
     {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+// #ifdef _OPENMP
+// #pragma omp parallel for
+// #endif
       for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(nElements); ++i)
           target[chunk * chunkSize + i] = static_cast<DestT>(buf[i]);
     }
     else
     {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+// #ifdef _OPENMP
+// #pragma omp parallel for
+// #endif
       for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(nElements); ++i)
       {
         // Compute position in chunk and output array

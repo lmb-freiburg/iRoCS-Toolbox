@@ -73,7 +73,7 @@ namespace segmentation
   template<class DataT>
   double _KMeans<DataT>::cluster(const ArrayPointT &points,
                                  ArrayPointT &best_means,
-                                 std::vector<ptrdiff_t> &labels)
+                                 std::vector<int> &labels)
   {
     num_points_ = points.extent(0);
     point_dim_ = points.extent(1);
@@ -96,7 +96,7 @@ namespace segmentation
 
     // restart multiple times and return lowest variance result
     best_means.resize(k_, point_dim_);
-    std::vector<ptrdiff_t> &best_labels = labels;
+    std::vector<int> &best_labels = labels;
     best_labels.resize(k_);
     double min_variance = std::numeric_limits<double>::max();
     double last_variance = min_variance;
@@ -182,7 +182,7 @@ namespace segmentation
     {
       const PointT& point = points_(point_idx, all);
       double min_dist = std::numeric_limits<DataT>::max();
-      ptrdiff_t old_label = labels_[point_idx];
+      int old_label = labels_[point_idx];
       // find nearest mean
       for (ptrdiff_t mean_idx = 0; mean_idx < k_; ++mean_idx)
       {
@@ -216,7 +216,7 @@ namespace segmentation
   double kmeans(const unsigned int k,
                 const blitz::Array<DataT, 2 > &points,
                 blitz::Array<DataT, 2 > &means,
-                std::vector<ptrdiff_t> &labels
+                std::vector<int> &labels
                 )
   {
     // shortcut for point

@@ -55,7 +55,7 @@ public:
   virtual ~_KMeans();
   double cluster(const ArrayPointT &points,
                  ArrayPointT &means,
-                 std::vector<ptrdiff_t> &labels);
+                 std::vector<int> &labels);
 
   /*!
    * set maximum number of restarts to perform for variance minimization
@@ -118,7 +118,7 @@ private:
   const Distance* distance_;
   ArrayPointT points_;
   ArrayPointT means_;
-  std::vector<ptrdiff_t> labels_;
+  std::vector<int> labels_;
   blitz::Range all;
   
   //upper and lower boundary of points
@@ -135,7 +135,7 @@ template<class DataT, int Dim>
 double kmeans(const unsigned int k,
               const blitz::Array<DataT, 2 > &points,
               blitz::Array<DataT, 2 > &means,
-              std::vector<ptrdiff_t> &labels
+              std::vector<int> &labels
              );
 }
 

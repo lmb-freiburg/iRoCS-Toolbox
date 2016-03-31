@@ -40,6 +40,22 @@ namespace atb
   };
 
   template<>
+  struct traits<signed char>
+  {
+    
+    typedef double HighPrecisionT;
+    typedef std::complex<signed char> ComplexT;
+    typedef signed char BasicT;
+    static signed char const smallest;
+    static signed char const greatest;
+    static signed char const zero;
+    static signed char const one;
+    static signed char const saturated;
+    static bool const isComplex;
+    
+  };
+
+  template<>
   struct traits<unsigned char>
   {
     

@@ -14,6 +14,8 @@ AM_CONDITIONAL([STATIC_TOOLS], [test "x$enable_static_tools" != "xno"])
 
 AC_ARG_WITH([qt4], AC_HELP_STRING([--with-qt4], [QT4 base path]), [],
   [with_qt4=autodetect])
+AC_ARG_WITH([qt5], AC_HELP_STRING([--with-qt5], [QT5 base path]), [],
+  [with_qt5=autodetect])
 AC_ARG_WITH([blitz], AC_HELP_STRING([--with-blitz], [blitz++ base path]), [],
   [with_blitz=autodetect])
 AC_ARG_WITH([hdf5], AC_HELP_STRING([--with-hdf5], [HDF5 base path]), [],
@@ -145,6 +147,26 @@ if test "x$PKG_CONFIG" != "x"; then
     AC_SUBST(QT4_MOC)
     AC_SUBST(QT4_RCC)
     AC_SUBST(QT4_UIC)
+  fi
+  if test "$with_qt5" == "autodetect"; then
+    if test "x$enable_debug" != "xno"; then
+      PKG_CHECK_MODULES(QT5, [Qt5Cored, Qt5Guid, Qt5Widgetsd, Qt5OpenGLd, Qt5Xmld, Qt5Svgd], [
+        QT5_MOC="`pkg-config --variable=host_bins Qt5Core`/moc"
+        QT5_RCC="`pkg-config --variable=host_bins Qt5Core`/rcc"
+        QT5_UIC="`pkg-config --variable=host_bins Qt5Core`/uic"],
+        [AC_MSG_NOTICE(pkgconfig for Qt5 debug library not found... Deferring)])
+      AC_DEFINE([QT5_DEBUG], [1], [Enable Qt5 debugging])
+    else
+      PKG_CHECK_MODULES(QT5, [Qt5Core, Qt5Gui, Qt5Widgets, Qt5OpenGL, Qt5Xml, Qt5Svg], [
+        QT5_MOC="`pkg-config --variable=host_bins Qt5Core`/moc"
+        QT5_RCC="`pkg-config --variable=host_bins Qt5Core`/rcc"
+        QT5_UIC="`pkg-config --variable=host_bins Qt5Core`/uic"],
+        [AC_MSG_NOTICE(pkgconfig for Qt5 not found... Deferring)])
+      AC_DEFINE([QT5_NO_DEBUG], [1], [Disable Qt5 debugging])
+    fi
+    AC_SUBST(QT5_MOC)
+    AC_SUBST(QT5_RCC)
+    AC_SUBST(QT5_UIC)
   fi
 
   # Also export static variants for non-gui modules if static-tools are enabled
@@ -692,7 +714,89 @@ if test "x$QT4_LIBS" == "x"; then
   AC_SUBST(QT4_UIC)
 fi
 
+#
+# Check for QT5
+#   (Linux X11 specific, for Windows make sure pkg-config does the
+#    configuration!!!)
+#
+if test "x$QT5_LIBS" == "x"; then
+  tmp_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS=""
+  tmp_LDFLAGS="$LDFLAGS"
+  LDFLAGS=""
+  tmp_LIBS="$LIBS"
+  LIBS=""
+  if test "$with_qt5" != "autodetect"; then
+    CPPFLAGS="-I$with_qt5/include/"
+    LDFLAGS="-L$with_qt5/lib -L/usr/X11R6/lib"
+    BINPATH="$with_qt5/bin"
+  fi
+ 
+  AC_CHECK_HEADER(Qt5Core/QString,[],
+    AC_MSG_ERROR([QT5 headers not found in $with_qt5/include]))
+ 
+  # Check Qt5 version (should be >= 5.2.0)
+  AC_MSG_CHECKING([for suitable Qt 5 version])
+  AC_COMPILE_IFELSE(
+    [AC_LANG_SOURCE(
+      [[#include <Qt/qglobal.h>
+        #if (QT_VERSION < QT_VERSION_CHECK(5, 2, 0))
+        #error Qt too old (Qt >= 5.2.0 required)
+        #endif
+      ]])], [AC_MSG_RESULT([yes])],
+      [AC_MSG_RESULT([no])
+       AC_MSG_ERROR([Your Qt 5 version is too old. Qt >= 5.2 required.])])
+
+#  AC_CHECK_LIB(png, png_malloc, [],
+#    AC_MSG_ERROR([libpng is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(pthread, pthread_join, [],
+#    AC_MSG_ERROR([libpthread is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(m, sin, [],
+#    AC_MSG_ERROR([libm is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(X11, XDrawPoint, [],
+#    AC_MSG_ERROR([libX11 is missing (Needed for QT4)]))
+#  AC_CHECK_LIB(Xext, DPMSInfo, [],
+#    AC_MSG_ERROR([libXext is missing (Needed for QT4)]))
+  AC_CHECK_LIB(Qt5Core,main,[],
+    AC_MSG_ERROR([QT5 libraries not found in $with_qt5/lib]))
+  AC_CHECK_LIB(Qt5Widgets,main,[],
+    AC_MSG_ERROR([QT5 libraries not found in $with_qt5/lib]))
+  AC_CHECK_LIB(Qt5Gui,main,[],
+    AC_MSG_ERROR([QT5 libraries not found in $with_qt5/lib]))
+  AC_CHECK_LIB(Qt5OpenGL,main,[],
+    AC_MSG_ERROR([QT5 libraries not found in $with_qt5/lib]))
+  AC_CHECK_LIB(Qt5Xml,main,[],
+    AC_MSG_ERROR([QT5 libraries not found in $with_qt5/lib]))
+  AC_CHECK_LIB(Qt5Svg,main,[],
+    AC_MSG_ERROR([QT5 libraries not found in $with_qt5/lib]))
+  
+  AC_PATH_PROG(QT5_MOC, moc,
+    AC_MSG_ERROR(
+      [Could not find $with_qt5/bin/moc. Please correct your QT5 path]),
+    [$BINPATH])
+  AC_PATH_PROG(QT5_UIC, uic,
+    AC_MSG_ERROR(
+      [Could not find $with_qt5/bin/uic. Please correct your QT5 path]),
+    [$BINPATH])
+  AC_PATH_PROG(QT4_RCC, rcc,
+    AC_MSG_ERROR(
+      [Could not find $with_qt5/bin/rcc. Please correct your QT5 path]),
+    [$BINPATH])
+  QT5_CFLAGS="$CPPFLAGS"
+  QT5_LIBS="$LDFLAGS $LIBS"
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+  AC_SUBST(QT5_CFLAGS)
+  AC_SUBST(QT5_LIBS)
+  AC_SUBST(QT5_MOC)
+  AC_SUBST(QT5_RCC)
+  AC_SUBST(QT5_UIC)
+fi
+
 LIBS+=" $OPENMP_LIBS"
+
+AM_CONDITIONAL([BUILD_QT5], [test x$QT5_MOC != x])
 
 if test "x$enable_static_tools" != "xno"; then
     toollinktype="static"
@@ -706,6 +810,7 @@ AC_CONFIG_FILES([src/libcmdline/Makefile])
 AC_CONFIG_FILES([src/libsvmtl/Makefile])
 AC_CONFIG_FILES([src/libProgressReporter/Makefile])
 AC_CONFIG_FILES([src/libProgressReporter_qt4/Makefile])
+AC_CONFIG_FILES([src/libProgressReporter_qt5/Makefile])
 AC_CONFIG_FILES([src/libBaseFunctions/Makefile])
 AC_CONFIG_FILES([src/libBlitzAnalyze/Makefile])
 AC_CONFIG_FILES([src/libBlitzHdf5/Makefile])

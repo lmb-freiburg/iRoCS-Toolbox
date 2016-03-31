@@ -29,7 +29,8 @@
 
 #include "EdgeFilter.hh"
 
-#include <libArrayToolbox/ArrayToolbox.hh>
+#include <libArrayToolbox/GaussianFilter.hh>
+#include <libArrayToolbox/CentralGradientFilter.hh>
 #include <omp.h>
 #include <list>
 
@@ -43,7 +44,7 @@ namespace segmentation
       blitz::Array<DataT,3> &result,
       blitz::TinyVector<double,3> const &lbUm,
       blitz::TinyVector<double,3> const &ubUm,
-      ATB::ProgressReporter *progress)
+      iRoCS::ProgressReporter *progress)
   {
     // Cut out ROI
     blitz::TinyVector<ptrdiff_t,3> lb(lbUm / elSize);
@@ -60,16 +61,16 @@ namespace segmentation
     cropped = data(roi);
 
     // Smooth ROI
-    blitz::TinyVector<DataT,3> sigma(static_cast<DataT>(elSize(1)));
-    blitz::Array<DataT,3> gaussKernel;
-    ATB::gaussian<DataT,3>(gaussKernel, sigma, elSize);
-    ATB::convolve(
-        cropped, gaussKernel, cropped, ATB::SAME, ATB::REPEATBORDER);
+    blitz::TinyVector<double,3> sigma(elSize(1));
+    atb::GaussianFilter<DataT,3>::apply(
+        cropped, elSize, cropped, sigma, atb::BlitzIndexT(0), atb::RepeatBT);
 
     // Compute gradient
     blitz::Array<blitz::TinyVector<DataT,3>,3> dCropped;
+    atb::CentralGradientFilter<DataT,3>(
+        cropped, elSize, dCropped,
+        atb::CentralGradientFilter<DataT,3>::SecondOrder, atb::MirrorBT);
     blitz::Array<DataT,3> dCroppedMag(cropped.shape());
-    ATB::gradient(cropped, elSize, dCropped, ATB::MIRRORBORDER);
 
     // Split up into magnitude and direction
 #ifdef _OPENMP
@@ -92,6 +93,8 @@ namespace segmentation
     if (progress != NULL)
         progressUpdate = cropped.size() /
             (progress->taskProgressMax() - progress->taskProgressMin());
+
+    atb::LinearInterpolator<DataT,3> ip(atb::RepeatBT);
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -123,11 +126,9 @@ namespace segmentation
           blitz::TinyVector<double,3>(p) - dCropped(p));
       blitz::TinyVector<double,3> pu(
           blitz::TinyVector<double,3>(p) + dCropped(p));
-        
-      if (dCroppedMag.data()[i] > ATB::interpolate(
-              dCroppedMag, pl, ATB::NOWRAPAROUND) &&
-          dCroppedMag.data()[i] > ATB::interpolate(
-              dCroppedMag, pu, ATB::NOWRAPAROUND))
+      
+      if (dCroppedMag.data()[i] > ip.get(dCroppedMag, pl) &&
+          dCroppedMag.data()[i] > ip.get(dCroppedMag, pu))
           result(blitz::TinyVector<ptrdiff_t,3>(p + lb)) =
               dCroppedMag.data()[i];
     }
@@ -138,7 +139,7 @@ namespace segmentation
       blitz::Array<DataT, 3> const &data,
       blitz::TinyVector<double,3> const &elSize,
       int direction, double scaling,
-      ATB::ProgressReporter *progress)
+      iRoCS::ProgressReporter *progress)
   {
     //mit Randbehandlung
     blitz::TinyVector<ptrdiff_t,3> dataShape(data.shape());
