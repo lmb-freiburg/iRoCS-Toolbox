@@ -1,7 +1,7 @@
 bin_PROGRAMS = assignLayers
 
 AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
-	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
+	$(HDF5_CPP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
 
 assignLayers_LDADD = \
@@ -17,9 +17,9 @@ assignLayers_LDADD = \
 
 if STATIC_TOOLS
 assignLayers_LDFLAGS = -all-static
-assignLayers_LDADD += $(HDF5_STATIC_LIBS)
+assignLayers_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
 else
-assignLayers_LDADD += $(HDF5_LIBS)
+assignLayers_LDADD += $(HDF5_CPP_LIBS) $(HDF5_LIBS)
 endif
 
 assignLayers_SOURCES = assignLayers.cc

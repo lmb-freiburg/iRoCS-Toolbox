@@ -79,8 +79,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = detectSpheres$(EXEEXT)
-@STATIC_TOOLS_TRUE@am__append_1 = $(HDF5_STATIC_LIBS)
-@STATIC_TOOLS_FALSE@am__append_2 = $(HDF5_LIBS)
+@STATIC_TOOLS_TRUE@am__append_1 = $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
+@STATIC_TOOLS_FALSE@am__append_2 = $(HDF5_CPP_LIBS) $(HDF5_LIBS)
 subdir = src/tools/detectSpheres
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/depcomp
@@ -97,8 +97,10 @@ PROGRAMS = $(bin_PROGRAMS)
 am_detectSpheres_OBJECTS = detectSpheres.$(OBJEXT)
 detectSpheres_OBJECTS = $(am_detectSpheres_OBJECTS)
 am__DEPENDENCIES_1 =
-@STATIC_TOOLS_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
-@STATIC_TOOLS_FALSE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1)
+@STATIC_TOOLS_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) \
+@STATIC_TOOLS_TRUE@	$(am__DEPENDENCIES_1)
+@STATIC_TOOLS_FALSE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1) \
+@STATIC_TOOLS_FALSE@	$(am__DEPENDENCIES_1)
 detectSpheres_DEPENDENCIES = $(top_builddir)/src/libIRoCS/libIRoCS.la \
 	$(top_builddir)/src/libsegmentation/libsegmentation.la \
 	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
@@ -226,6 +228,10 @@ GSL_LIBS = @GSL_LIBS@
 GSL_STATIC_CFLAGS = @GSL_STATIC_CFLAGS@
 GSL_STATIC_LIBS = @GSL_STATIC_LIBS@
 HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_CPP_CFLAGS = @HDF5_CPP_CFLAGS@
+HDF5_CPP_LIBS = @HDF5_CPP_LIBS@
+HDF5_CPP_STATIC_CFLAGS = @HDF5_CPP_STATIC_CFLAGS@
+HDF5_CPP_STATIC_LIBS = @HDF5_CPP_STATIC_LIBS@
 HDF5_LIBS = @HDF5_LIBS@
 HDF5_STATIC_CFLAGS = @HDF5_STATIC_CFLAGS@
 HDF5_STATIC_LIBS = @HDF5_STATIC_LIBS@
@@ -350,7 +356,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
-	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
+	$(HDF5_CPP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
 
 AM_CXXFLAGS = -Wno-long-long
 detectSpheres_LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \

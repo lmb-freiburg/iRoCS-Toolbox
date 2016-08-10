@@ -1,7 +1,7 @@
 bin_PROGRAMS = trainLayerAssignmentForSegmentation
 
 AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
-	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
+	$(HDF5_CPP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
 
 trainLayerAssignmentForSegmentation_LDADD = \
@@ -17,9 +17,10 @@ trainLayerAssignmentForSegmentation_LDADD = \
 
 if STATIC_TOOLS
 trainLayerAssignmentForSegmentation_LDFLAGS = -all-static
-trainLayerAssignmentForSegmentation_LDADD += $(HDF5_STATIC_LIBS)
+trainLayerAssignmentForSegmentation_LDADD += \
+	$(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
 else
-trainLayerAssignmentForSegmentation_LDADD += $(HDF5_LIBS)
+trainLayerAssignmentForSegmentation_LDADD += $(HDF5_CPP_LIBS) $(HDF5_LIBS)
 endif
 
 trainLayerAssignmentForSegmentation_SOURCES = \

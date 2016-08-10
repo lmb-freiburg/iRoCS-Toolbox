@@ -15,7 +15,7 @@ AM_CONDITIONAL([STATIC_TOOLS], [test "x$enable_static_tools" != "xno"])
 AC_ARG_WITH([qt4], AC_HELP_STRING([--with-qt4], [QT4 base path]), [],
   [with_qt4=autodetect])
 AC_ARG_WITH([qt5], AC_HELP_STRING([--with-qt5], [QT5 base path]), [],
-  [with_qt5=autodetect])
+  [with_qt5=no])
 AC_ARG_WITH([blitz], AC_HELP_STRING([--with-blitz], [blitz++ base path]), [],
   [with_blitz=autodetect])
 AC_ARG_WITH([hdf5], AC_HELP_STRING([--with-hdf5], [HDF5 base path]), [],
@@ -114,6 +114,8 @@ if test "x$PKG_CONFIG" != "x"; then
   if test "$with_hdf5" == "autodetect"; then
     PKG_CHECK_MODULES(HDF5, [hdf5], [],
       [AC_MSG_NOTICE(pkgconfig for hdf5 not found... Deferring)])
+    PKG_CHECK_MODULES(HDF5_CPP, [hdf5_cpp], [],
+      [AC_MSG_NOTICE(pkgconfig for hdf5_cpp not found... Deferring)])
   fi
   if test "$with_fftw" == "autodetect"; then
     PKG_CHECK_MODULES(FFTW, [fftw3 fftw3f], [],
@@ -201,6 +203,10 @@ if test "x$PKG_CONFIG" != "x"; then
     if test "x$HDF5_LIBS" != "x"; then
       PKG_CHECK_MODULES(HDF5_STATIC, [hdf5], [],
         [AC_MSG_ERROR(No static HDF5 library available)])
+    fi
+    if test "x$HDF5_CPP_LIBS" != "x"; then
+      PKG_CHECK_MODULES(HDF5_CPP_STATIC, [hdf5_cpp], [],
+        [AC_MSG_ERROR(No static HDF5 C++ library available)])
     fi
     if test "x$FFTW_LIBS" != "x"; then
       PKG_CHECK_MODULES(FFTW_STATIC, [fftw3 fftw3f], [],
@@ -453,20 +459,6 @@ if test "x$HDF5_LIBS" == "x"; then
     AC_MSG_ERROR([hdf5 headers not found. Check the --with-hdf5 configure option.]))
   AC_CHECK_LIB(hdf5, H5Dcreate2, [],
     AC_MSG_ERROR([hdf5 library not found. Check the --with-hdf5 configure option.]))
-  AC_CHECK_HEADER([H5Cpp.h], [],
-    AC_MSG_ERROR([hdf5 c++ headers not found. Check the --with-hdf5 configure option.]))
-  AC_MSG_CHECKING([for H5::FileCreatPropList in -lhdf5_cpp])
-  LIBS="-lhdf5_cpp $LIBS"
-  AC_LINK_IFELSE(
-    [AC_LANG_PROGRAM(
-      [[#include <H5Cpp.h>]], [[H5::FileCreatPropList plist]])],
-      [HAVE_HDF5_CPP=1], [HAVE_HDF5_CPP=0])
-  if test "x$HAVE_HDF5_CPP" == "x1"; then
-    AC_MSG_RESULT([yes])
-  else
-    AC_MSG_RESULT([no])
-    AC_MSG_ERROR([HDF5 C++ library (libhdf5_cpp) not found. Check the --with-hdf5 configure option.])
-  fi
   HDF5_CFLAGS="$CPPFLAGS"
   HDF5_LIBS="$HDF5_LDFLAGS $LIBS"
   AC_SUBST(HDF5_CFLAGS)
@@ -482,6 +474,53 @@ if test "x$HDF5_LIBS" == "x"; then
       AC_MSG_ERROR([Dynamic link library -ldl not found.]))
     AC_CHECK_LIB(hdf5, H5Dcreate2, [],
       AC_MSG_ERROR([Static hdf5 library not found.]))
+    HDF5_STATIC_LIBS="$HDF5_LDFLAGS $LIBS"
+    AC_SUBST(HDF5_STATIC_LIBS)    
+  fi
+
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+fi
+
+#
+# Check for HDF5 C++ Interface
+#
+if test "x$HDF5_CPP_LIBS" == "x"; then
+  tmp_CPPFLAGS="$CPPFLAGS"
+  tmp_LDFLAGS="$LDFLAGS"
+  tmp_LIBS="$LIBS"
+
+  if test "$with_hdf5" != "autodetect"; then
+    HDF5_CPP_LDFLAGS="-L$with_hdf5/lib"
+    CPPFLAGS+="-I$with_hdf5/include"
+    LDFLAGS+="$HDF5_CPP_LDFLAGS"
+  elif test "x$HDF5_CFLAGS" != "x"; then
+    HDF5_CPP_LDFLAGS=""
+    CPPFLAGS+="$HDF5_CFLAGS"
+    LDFLAGS+="$HDF5_CPP_LDFLAGS"
+  fi
+
+  AC_CHECK_HEADER([H5Cpp.h], [],
+    AC_MSG_ERROR([hdf5 c++ headers not found. Check the --with-hdf5 configure option.]))
+  AC_MSG_CHECKING([for H5::FileCreatPropList in -lhdf5_cpp])
+  LIBS="-lhdf5_cpp $LIBS"
+  AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM(
+      [[#include <H5Cpp.h>]], [[H5::FileCreatPropList plist]])],
+      [HAVE_HDF5_CPP=1], [HAVE_HDF5_CPP=0])
+  if test "x$HAVE_HDF5_CPP" == "x1"; then
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([HDF5 C++ library (libhdf5_cpp) not found. Check the --with-hdf5 configure option.])
+  fi
+  HDF5_CPP_CFLAGS="$CPPFLAGS"
+  HDF5_CPP_LIBS="$HDF5_CPP_LDFLAGS $LIBS"
+  AC_SUBST(HDF5_CPP_CFLAGS)
+  AC_SUBST(HDF5_CPP_LIBS)
+
+  if test "x$enable_static_tools" != "xno"; then
     AC_MSG_CHECKING([for H5::FileCreatPropList in -lhdf5_cpp])
     LIBS="-lhdf5_cpp $LIBS"
     AC_LINK_IFELSE(
@@ -494,8 +533,8 @@ if test "x$HDF5_LIBS" == "x"; then
       AC_MSG_RESULT([no])
       AC_MSG_ERROR([Static HDF5 C++ library (libhdf5_cpp) not found.])
     fi
-    HDF5_STATIC_LIBS="$HDF5_LDFLAGS $LIBS"
-    AC_SUBST(HDF5_STATIC_LIBS)    
+    HDF5_CPP_STATIC_LIBS="$HDF5_CPP_LDFLAGS $LIBS"
+    AC_SUBST(HDF5_CPP_STATIC_LIBS)    
   fi
 
   CPPFLAGS="$tmp_CPPFLAGS"
@@ -648,7 +687,7 @@ if test "x$QT4_LIBS" == "x"; then
   LDFLAGS=""
   tmp_LIBS="$LIBS"
   LIBS=""
-  if test "$with_qt4" != "autodetect"; then
+  if test "x$with_qt4" != "xautodetect"; then
     CPPFLAGS="-I$with_qt4/include/"
     LDFLAGS="-L$with_qt4/lib -L/usr/X11R6/lib"
     BINPATH="$with_qt4/bin"
@@ -719,14 +758,14 @@ fi
 #   (Linux X11 specific, for Windows make sure pkg-config does the
 #    configuration!!!)
 #
-if test "x$QT5_LIBS" == "x"; then
+if test "x$QT5_LIBS" == "x" && test "x$with_qt5" != "xno"; then
   tmp_CPPFLAGS="$CPPFLAGS"
   CPPFLAGS=""
   tmp_LDFLAGS="$LDFLAGS"
   LDFLAGS=""
   tmp_LIBS="$LIBS"
   LIBS=""
-  if test "$with_qt5" != "autodetect"; then
+  if test "x$with_qt5" != "xautodetect"; then
     CPPFLAGS="-I$with_qt5/include/"
     LDFLAGS="-L$with_qt5/lib -L/usr/X11R6/lib"
     BINPATH="$with_qt5/bin"
@@ -796,7 +835,7 @@ fi
 
 LIBS+=" $OPENMP_LIBS"
 
-AM_CONDITIONAL([BUILD_QT5], [test x$QT5_MOC != x])
+AM_CONDITIONAL([BUILD_QT5], [test "x$QT5_MOC" != "x"])
 
 if test "x$enable_static_tools" != "xno"; then
     toollinktype="static"
@@ -877,6 +916,8 @@ Using
   GSL_CFLAGS="$GSL_CFLAGS"  GSL_LIBS="$GSL_LIBS"  GSL_STATIC_LIBS="$GSL_STATIC_LIBS"
   hdf5:                                $with_hdf5
   HDF5_CFLAGS="$HDF5_CFLAGS"  HDF5_LIBS="$HDF5_LIBS"  HDF5_STATIC_LIBS="$HDF5_STATIC_LIBS"
+  hdf5_cpp:                                $with_hdf5
+  HDF5_CPP_CFLAGS="$HDF5_CPP_CFLAGS"  HDF5_CPP_LIBS="$HDF5_CPP_LIBS"  HDF5_CPP_STATIC_LIBS="$HDF5_CPP_STATIC_LIBS"
   fftw:                                $with_fftw
   FFTW_CFLAGS="$FFTW_CFLAGS"  FFTW_LIBS="$FFTW_LIBS"  FFTW_STATIC_LIBS="$FFTW_STATIC_LIBS"
   OpenCV:                              $with_opencv

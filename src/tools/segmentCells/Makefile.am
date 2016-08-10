@@ -1,7 +1,7 @@
 bin_PROGRAMS = segmentCells
 
 AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
-	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
+	$(HDF5_CPP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
 
 segmentCells_LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \
@@ -16,9 +16,9 @@ segmentCells_LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \
 
 if STATIC_TOOLS
 segmentCells_LDFLAGS = -all-static
-segmentCells_LDADD += $(HDF5_STATIC_LIBS)
+segmentCells_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
 else
-segmentCells_LDADD += $(HDF5_LIBS)
+segmentCells_LDADD += $(HDF5_CPP_LIBS) $(HDF5_LIBS)
 endif
 
 segmentCells_SOURCES = segmentCells.cc

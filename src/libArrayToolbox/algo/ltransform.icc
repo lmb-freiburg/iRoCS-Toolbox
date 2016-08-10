@@ -26,7 +26,8 @@ void randomColorMapping(
     blitz::Array<unsigned char,Dim+1> &randomColor)
 {
   LabelT maxLabel = blitz::max(L);
-  blitz::TinyVector<unsigned char, 3> colorMap[maxLabel + 1];
+  blitz::TinyVector<unsigned char, 3> *colorMap =
+      new blitz::TinyVector<unsigned char, 3>[maxLabel + 1];
   colorMap[0] = blitz::TinyVector<unsigned char, 3>(10, 10, 10);
   colorMap[1] = blitz::TinyVector<unsigned char, 3>(0, 0, 0);
   for (int i = 2; i < maxLabel + 1; i++)
@@ -46,4 +47,5 @@ void randomColorMapping(
     *it++ = (colorMap[*it2])(1);
     *it++ = (colorMap[*it2])(2);
   }
+  delete[] colorMap;
 }

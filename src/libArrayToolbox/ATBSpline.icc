@@ -873,13 +873,13 @@ namespace atb
     if (_controlPoints.size() > 0)
     {
       blitz::Array<ControlPointT,1> tmp(_controlPoints.size());
-      for (ptrdiff_t i = 0; i < tmp.size(); ++i) tmp(i) = _controlPoints[i];
+      for (size_t i = 0; i < tmp.size(); ++i) tmp(i) = _controlPoints[i];
       outFile.writeDataset(tmp, groupName + "/controlPoints");
     }
     if (_knots.size() > 0)
     {
       blitz::Array<double,1> tmp(_knots.size());
-      for (ptrdiff_t i = 0; i < tmp.size(); ++i) tmp(i) = _knots[i];
+      for (size_t i = 0; i < tmp.size(); ++i) tmp(i) = _knots[i];
       outFile.writeDataset(tmp, groupName + "/knots");
     }
 #ifdef ATBSPLINE_PROFILE
@@ -907,7 +907,7 @@ namespace atb
     {
       inFile.readDataset(tmp, groupName + "/controlPoints");
       _controlPoints.resize(tmp.size());
-      for (ptrdiff_t i = 0; i < tmp.size(); ++i) _controlPoints[i] = tmp(i);
+      for (size_t i = 0; i < tmp.size(); ++i) _controlPoints[i] = tmp(i);
     }
     catch (BlitzH5Error &)
     {
@@ -918,7 +918,7 @@ namespace atb
       blitz::Array<double,1> tmp;
       inFile.readDataset(tmp, groupName + "/knots");
       _knots.resize(tmp.size());
-      for (ptrdiff_t i = 0; i < tmp.size(); ++i) _knots[i] = tmp(i);
+      for (size_t i = 0; i < tmp.size(); ++i) _knots[i] = tmp(i);
     }
     catch (BlitzH5Error &)
     {

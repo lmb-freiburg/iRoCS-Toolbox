@@ -640,6 +640,8 @@ BUILD_QT5_TRUE
 OPENCV_STATIC_LIBS
 FFTW_STATIC_LIBS
 FFTW_STATIC_CFLAGS
+HDF5_CPP_STATIC_LIBS
+HDF5_CPP_STATIC_CFLAGS
 HDF5_STATIC_LIBS
 HDF5_STATIC_CFLAGS
 GSL_STATIC_LIBS
@@ -670,6 +672,8 @@ OPENCV_LIBS
 OPENCV_CFLAGS
 FFTW_LIBS
 FFTW_CFLAGS
+HDF5_CPP_LIBS
+HDF5_CPP_CFLAGS
 HDF5_LIBS
 HDF5_CFLAGS
 GSL_LIBS
@@ -861,6 +865,8 @@ GSL_CFLAGS
 GSL_LIBS
 HDF5_CFLAGS
 HDF5_LIBS
+HDF5_CPP_CFLAGS
+HDF5_CPP_LIBS
 FFTW_CFLAGS
 FFTW_LIBS
 OPENCV_CFLAGS
@@ -885,6 +891,8 @@ GSL_STATIC_CFLAGS
 GSL_STATIC_LIBS
 HDF5_STATIC_CFLAGS
 HDF5_STATIC_LIBS
+HDF5_CPP_STATIC_CFLAGS
+HDF5_CPP_STATIC_LIBS
 FFTW_STATIC_CFLAGS
 FFTW_STATIC_LIBS'
 
@@ -1566,6 +1574,10 @@ Some influential environment variables:
   GSL_LIBS    linker flags for GSL, overriding pkg-config
   HDF5_CFLAGS C compiler flags for HDF5, overriding pkg-config
   HDF5_LIBS   linker flags for HDF5, overriding pkg-config
+  HDF5_CPP_CFLAGS
+              C compiler flags for HDF5_CPP, overriding pkg-config
+  HDF5_CPP_LIBS
+              linker flags for HDF5_CPP, overriding pkg-config
   FFTW_CFLAGS C compiler flags for FFTW, overriding pkg-config
   FFTW_LIBS   linker flags for FFTW, overriding pkg-config
   OPENCV_CFLAGS
@@ -1603,6 +1615,10 @@ Some influential environment variables:
               C compiler flags for HDF5_STATIC, overriding pkg-config
   HDF5_STATIC_LIBS
               linker flags for HDF5_STATIC, overriding pkg-config
+  HDF5_CPP_STATIC_CFLAGS
+              C compiler flags for HDF5_CPP_STATIC, overriding pkg-config
+  HDF5_CPP_STATIC_LIBS
+              linker flags for HDF5_CPP_STATIC, overriding pkg-config
   FFTW_STATIC_CFLAGS
               C compiler flags for FFTW_STATIC, overriding pkg-config
   FFTW_STATIC_LIBS
@@ -3306,7 +3322,7 @@ fi
 if test "${with_qt5+set}" = set; then :
   withval=$with_qt5;
 else
-  with_qt5=autodetect
+  with_qt5=no
 fi
 
 
@@ -16879,6 +16895,79 @@ else
 $as_echo "yes" >&6; }
 
 fi
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for HDF5_CPP" >&5
+$as_echo_n "checking for HDF5_CPP... " >&6; }
+
+if test -n "$HDF5_CPP_CFLAGS"; then
+    pkg_cv_HDF5_CPP_CFLAGS="$HDF5_CPP_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5_cpp\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "hdf5_cpp") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_HDF5_CPP_CFLAGS=`$PKG_CONFIG --cflags "hdf5_cpp" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$HDF5_CPP_LIBS"; then
+    pkg_cv_HDF5_CPP_LIBS="$HDF5_CPP_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5_cpp\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "hdf5_cpp") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_HDF5_CPP_LIBS=`$PKG_CONFIG --libs "hdf5_cpp" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        HDF5_CPP_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "hdf5_cpp" 2>&1`
+        else
+	        HDF5_CPP_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "hdf5_cpp" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$HDF5_CPP_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for hdf5_cpp not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for hdf5_cpp not found... Deferring" >&6;}
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: pkgconfig for hdf5_cpp not found... Deferring" >&5
+$as_echo "$as_me: pkgconfig for hdf5_cpp not found... Deferring" >&6;}
+else
+	HDF5_CPP_CFLAGS=$pkg_cv_HDF5_CPP_CFLAGS
+	HDF5_CPP_LIBS=$pkg_cv_HDF5_CPP_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
   fi
   if test "$with_fftw" == "autodetect"; then
 
@@ -18162,6 +18251,79 @@ $as_echo "no" >&6; }
 else
 	HDF5_STATIC_CFLAGS=$pkg_cv_HDF5_STATIC_CFLAGS
 	HDF5_STATIC_LIBS=$pkg_cv_HDF5_STATIC_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
+    fi
+    if test "x$HDF5_CPP_LIBS" != "x"; then
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for HDF5_CPP_STATIC" >&5
+$as_echo_n "checking for HDF5_CPP_STATIC... " >&6; }
+
+if test -n "$HDF5_CPP_STATIC_CFLAGS"; then
+    pkg_cv_HDF5_CPP_STATIC_CFLAGS="$HDF5_CPP_STATIC_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5_cpp\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "hdf5_cpp") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_HDF5_CPP_STATIC_CFLAGS=`$PKG_CONFIG --cflags "hdf5_cpp" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$HDF5_CPP_STATIC_LIBS"; then
+    pkg_cv_HDF5_CPP_STATIC_LIBS="$HDF5_CPP_STATIC_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5_cpp\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "hdf5_cpp") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_HDF5_CPP_STATIC_LIBS=`$PKG_CONFIG --libs "hdf5_cpp" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        HDF5_CPP_STATIC_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "hdf5_cpp" 2>&1`
+        else
+	        HDF5_CPP_STATIC_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "hdf5_cpp" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$HDF5_CPP_STATIC_PKG_ERRORS" >&5
+
+	as_fn_error $? "No static HDF5 C++ library available" "$LINENO" 5
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	as_fn_error $? "No static HDF5 C++ library available" "$LINENO" 5
+else
+	HDF5_CPP_STATIC_CFLAGS=$pkg_cv_HDF5_CPP_STATIC_CFLAGS
+	HDF5_CPP_STATIC_LIBS=$pkg_cv_HDF5_CPP_STATIC_LIBS
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -19540,43 +19702,6 @@ else
   as_fn_error $? "hdf5 library not found. Check the --with-hdf5 configure option." "$LINENO" 5
 fi
 
-  ac_fn_cxx_check_header_mongrel "$LINENO" "H5Cpp.h" "ac_cv_header_H5Cpp_h" "$ac_includes_default"
-if test "x$ac_cv_header_H5Cpp_h" = xyes; then :
-
-else
-  as_fn_error $? "hdf5 c++ headers not found. Check the --with-hdf5 configure option." "$LINENO" 5
-fi
-
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for H5::FileCreatPropList in -lhdf5_cpp" >&5
-$as_echo_n "checking for H5::FileCreatPropList in -lhdf5_cpp... " >&6; }
-  LIBS="-lhdf5_cpp $LIBS"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <H5Cpp.h>
-int
-main ()
-{
-H5::FileCreatPropList plist
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  HAVE_HDF5_CPP=1
-else
-  HAVE_HDF5_CPP=0
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-  if test "x$HAVE_HDF5_CPP" == "x1"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-  else
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-    as_fn_error $? "HDF5 C++ library (libhdf5_cpp) not found. Check the --with-hdf5 configure option." "$LINENO" 5
-  fi
   HDF5_CFLAGS="$CPPFLAGS"
   HDF5_LIBS="$HDF5_LDFLAGS $LIBS"
 
@@ -19728,6 +19853,76 @@ else
   as_fn_error $? "Static hdf5 library not found." "$LINENO" 5
 fi
 
+    HDF5_STATIC_LIBS="$HDF5_LDFLAGS $LIBS"
+
+  fi
+
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+fi
+
+#
+# Check for HDF5 C++ Interface
+#
+if test "x$HDF5_CPP_LIBS" == "x"; then
+  tmp_CPPFLAGS="$CPPFLAGS"
+  tmp_LDFLAGS="$LDFLAGS"
+  tmp_LIBS="$LIBS"
+
+  if test "$with_hdf5" != "autodetect"; then
+    HDF5_CPP_LDFLAGS="-L$with_hdf5/lib"
+    CPPFLAGS+="-I$with_hdf5/include"
+    LDFLAGS+="$HDF5_CPP_LDFLAGS"
+  elif test "x$HDF5_CFLAGS" != "x"; then
+    HDF5_CPP_LDFLAGS=""
+    CPPFLAGS+="$HDF5_CFLAGS"
+    LDFLAGS+="$HDF5_CPP_LDFLAGS"
+  fi
+
+  ac_fn_cxx_check_header_mongrel "$LINENO" "H5Cpp.h" "ac_cv_header_H5Cpp_h" "$ac_includes_default"
+if test "x$ac_cv_header_H5Cpp_h" = xyes; then :
+
+else
+  as_fn_error $? "hdf5 c++ headers not found. Check the --with-hdf5 configure option." "$LINENO" 5
+fi
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for H5::FileCreatPropList in -lhdf5_cpp" >&5
+$as_echo_n "checking for H5::FileCreatPropList in -lhdf5_cpp... " >&6; }
+  LIBS="-lhdf5_cpp $LIBS"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <H5Cpp.h>
+int
+main ()
+{
+H5::FileCreatPropList plist
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  HAVE_HDF5_CPP=1
+else
+  HAVE_HDF5_CPP=0
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  if test "x$HAVE_HDF5_CPP" == "x1"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+    as_fn_error $? "HDF5 C++ library (libhdf5_cpp) not found. Check the --with-hdf5 configure option." "$LINENO" 5
+  fi
+  HDF5_CPP_CFLAGS="$CPPFLAGS"
+  HDF5_CPP_LIBS="$HDF5_CPP_LDFLAGS $LIBS"
+
+
+
+  if test "x$enable_static_tools" != "xno"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for H5::FileCreatPropList in -lhdf5_cpp" >&5
 $as_echo_n "checking for H5::FileCreatPropList in -lhdf5_cpp... " >&6; }
     LIBS="-lhdf5_cpp $LIBS"
@@ -19757,7 +19952,7 @@ $as_echo "yes" >&6; }
 $as_echo "no" >&6; }
       as_fn_error $? "Static HDF5 C++ library (libhdf5_cpp) not found." "$LINENO" 5
     fi
-    HDF5_STATIC_LIBS="$HDF5_LDFLAGS $LIBS"
+    HDF5_CPP_STATIC_LIBS="$HDF5_CPP_LDFLAGS $LIBS"
 
   fi
 
@@ -20462,7 +20657,7 @@ if test "x$QT4_LIBS" == "x"; then
   LDFLAGS=""
   tmp_LIBS="$LIBS"
   LIBS=""
-  if test "$with_qt4" != "autodetect"; then
+  if test "x$with_qt4" != "xautodetect"; then
     CPPFLAGS="-I$with_qt4/include/"
     LDFLAGS="-L$with_qt4/lib -L/usr/X11R6/lib"
     BINPATH="$with_qt4/bin"
@@ -21079,14 +21274,14 @@ fi
 #   (Linux X11 specific, for Windows make sure pkg-config does the
 #    configuration!!!)
 #
-if test "x$QT5_LIBS" == "x"; then
+if test "x$QT5_LIBS" == "x" && test "x$with_qt5" != "xno"; then
   tmp_CPPFLAGS="$CPPFLAGS"
   CPPFLAGS=""
   tmp_LDFLAGS="$LDFLAGS"
   LDFLAGS=""
   tmp_LIBS="$LIBS"
   LIBS=""
-  if test "$with_qt5" != "autodetect"; then
+  if test "x$with_qt5" != "xautodetect"; then
     CPPFLAGS="-I$with_qt5/include/"
     LDFLAGS="-L$with_qt5/lib -L/usr/X11R6/lib"
     BINPATH="$with_qt5/bin"
@@ -21516,7 +21711,7 @@ fi
 
 LIBS+=" $OPENMP_LIBS"
 
- if test x$QT5_MOC != x; then
+ if test "x$QT5_MOC" != "x"; then
   BUILD_QT5_TRUE=
   BUILD_QT5_FALSE='#'
 else
@@ -24355,6 +24550,8 @@ Using
   GSL_CFLAGS=\"$GSL_CFLAGS\"  GSL_LIBS=\"$GSL_LIBS\"  GSL_STATIC_LIBS=\"$GSL_STATIC_LIBS\"
   hdf5:                                $with_hdf5
   HDF5_CFLAGS=\"$HDF5_CFLAGS\"  HDF5_LIBS=\"$HDF5_LIBS\"  HDF5_STATIC_LIBS=\"$HDF5_STATIC_LIBS\"
+  hdf5_cpp:                                $with_hdf5
+  HDF5_CPP_CFLAGS=\"$HDF5_CPP_CFLAGS\"  HDF5_CPP_LIBS=\"$HDF5_CPP_LIBS\"  HDF5_CPP_STATIC_LIBS=\"$HDF5_CPP_STATIC_LIBS\"
   fftw:                                $with_fftw
   FFTW_CFLAGS=\"$FFTW_CFLAGS\"  FFTW_LIBS=\"$FFTW_LIBS\"  FFTW_STATIC_LIBS=\"$FFTW_STATIC_LIBS\"
   OpenCV:                              $with_opencv
@@ -24391,6 +24588,8 @@ Using
   GSL_CFLAGS=\"$GSL_CFLAGS\"  GSL_LIBS=\"$GSL_LIBS\"  GSL_STATIC_LIBS=\"$GSL_STATIC_LIBS\"
   hdf5:                                $with_hdf5
   HDF5_CFLAGS=\"$HDF5_CFLAGS\"  HDF5_LIBS=\"$HDF5_LIBS\"  HDF5_STATIC_LIBS=\"$HDF5_STATIC_LIBS\"
+  hdf5_cpp:                                $with_hdf5
+  HDF5_CPP_CFLAGS=\"$HDF5_CPP_CFLAGS\"  HDF5_CPP_LIBS=\"$HDF5_CPP_LIBS\"  HDF5_CPP_STATIC_LIBS=\"$HDF5_CPP_STATIC_LIBS\"
   fftw:                                $with_fftw
   FFTW_CFLAGS=\"$FFTW_CFLAGS\"  FFTW_LIBS=\"$FFTW_LIBS\"  FFTW_STATIC_LIBS=\"$FFTW_STATIC_LIBS\"
   OpenCV:                              $with_opencv

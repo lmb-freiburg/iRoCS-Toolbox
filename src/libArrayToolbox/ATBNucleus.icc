@@ -358,7 +358,8 @@ namespace atb
         else
         {
           nuclei.back().shCoefficients().resize(bandwidths(i) * bandwidths(i));
-          for (int j = 0; j < nuclei.back().shCoefficients().size(); ++j)
+          for (int j = 0; j < static_cast<int>(
+                   nuclei.back().shCoefficients().size()); ++j)
               nuclei.back().shCoefficients()(j) = coefficients(i, j);
         }
       }

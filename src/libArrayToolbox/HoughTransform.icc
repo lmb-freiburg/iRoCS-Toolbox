@@ -416,7 +416,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (BlitzIndexT i = 0; i < data.size(); ++i)
+        for (size_t i = 0; i < data.size(); ++i)
             ddata.dataFirst()[i](d) = tmp.dataFirst()[i];
       }
     }
@@ -432,7 +432,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (ptrdiff_t i = 0; i < ddata.size(); ++i)
+    for (size_t i = 0; i < ddata.size(); ++i)
     {
       ddataMag.dataFirst()[i] =
           std::sqrt(blitz::dot(ddata.dataFirst()[i], ddata.dataFirst()[i]));

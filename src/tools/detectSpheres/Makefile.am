@@ -1,7 +1,7 @@
 bin_PROGRAMS = detectSpheres
 
 AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
-	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
+	$(HDF5_CPP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
 
 detectSpheres_LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \
@@ -16,9 +16,9 @@ detectSpheres_LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \
 
 if STATIC_TOOLS
 detectSpheres_LDFLAGS = -all-static
-detectSpheres_LDADD += $(HDF5_STATIC_LIBS)
+detectSpheres_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
 else
-detectSpheres_LDADD += $(HDF5_LIBS)
+detectSpheres_LDADD += $(HDF5_CPP_LIBS) $(HDF5_LIBS)
 endif
 
 detectSpheres_SOURCES = detectSpheres.cc

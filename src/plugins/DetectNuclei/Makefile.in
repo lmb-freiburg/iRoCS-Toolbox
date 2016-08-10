@@ -136,7 +136,8 @@ libPluginDetectNuclei_la_DEPENDENCIES =  \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am_libPluginDetectNuclei_la_OBJECTS = DetectNucleiParametersDialog.lo \
 	DetectNucleiThread.lo PluginDetectNuclei.lo
 am__objects_1 = moc_DetectNucleiParametersDialog.lo \
@@ -260,6 +261,10 @@ GSL_LIBS = @GSL_LIBS@
 GSL_STATIC_CFLAGS = @GSL_STATIC_CFLAGS@
 GSL_STATIC_LIBS = @GSL_STATIC_LIBS@
 HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_CPP_CFLAGS = @HDF5_CPP_CFLAGS@
+HDF5_CPP_LIBS = @HDF5_CPP_LIBS@
+HDF5_CPP_STATIC_CFLAGS = @HDF5_CPP_STATIC_CFLAGS@
+HDF5_CPP_STATIC_LIBS = @HDF5_CPP_STATIC_LIBS@
 HDF5_LIBS = @HDF5_LIBS@
 HDF5_STATIC_CFLAGS = @HDF5_STATIC_CFLAGS@
 HDF5_STATIC_LIBS = @HDF5_STATIC_LIBS@
@@ -387,7 +392,8 @@ lblplugindir = $(pkgdatadir)/plugins
 lblplugin_LTLIBRARIES = libPluginDetectNuclei.la
 MOC = @QT4_MOC@
 AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
-	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS) $(QT4_CFLAGS)
+	$(HDF5_CPP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS) \
+	$(QT4_CFLAGS)
 
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -no-undefined -version-info 1:0:0
@@ -404,8 +410,8 @@ libPluginDetectNuclei_la_LIBADD = \
 	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
 	$(top_builddir)/src/libcmdline/libcmdline.la \
-	$(BLITZ_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(OPENCV_LIBS) \
-	$(QT4_LIBS) $(GL_LIBS) $(GLU_LIBS)
+	$(BLITZ_LIBS) $(HDF5_CPP_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) \
+	$(OPENCV_LIBS) $(QT4_LIBS) $(GL_LIBS) $(GLU_LIBS)
 
 noinst_HEADERS = \
 	DetectNucleiParametersDialog.hh \

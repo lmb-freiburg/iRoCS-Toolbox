@@ -136,7 +136,8 @@ libPluginTrainDetector_la_DEPENDENCIES =  \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am_libPluginTrainDetector_la_OBJECTS =  \
 	TrainDetectorTrainfileParametersItem.lo \
 	TrainDetectorParametersDialog.lo TrainDetectorThread.lo \
@@ -263,6 +264,10 @@ GSL_LIBS = @GSL_LIBS@
 GSL_STATIC_CFLAGS = @GSL_STATIC_CFLAGS@
 GSL_STATIC_LIBS = @GSL_STATIC_LIBS@
 HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_CPP_CFLAGS = @HDF5_CPP_CFLAGS@
+HDF5_CPP_LIBS = @HDF5_CPP_LIBS@
+HDF5_CPP_STATIC_CFLAGS = @HDF5_CPP_STATIC_CFLAGS@
+HDF5_CPP_STATIC_LIBS = @HDF5_CPP_STATIC_LIBS@
 HDF5_LIBS = @HDF5_LIBS@
 HDF5_STATIC_CFLAGS = @HDF5_STATIC_CFLAGS@
 HDF5_STATIC_LIBS = @HDF5_STATIC_LIBS@
@@ -390,7 +395,8 @@ lblplugindir = $(pkgdatadir)/plugins
 lblplugin_LTLIBRARIES = libPluginTrainDetector.la
 MOC = @QT4_MOC@
 AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
-	$(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS) $(QT4_CFLAGS)
+	$(HDF5_CPP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS) \
+	$(QT4_CFLAGS)
 
 AM_CXXFLAGS = -Wno-long-long
 AM_LDFLAGS = -no-undefined -version-info 1:0:0
@@ -409,8 +415,8 @@ libPluginTrainDetector_la_LIBADD = \
 	$(top_builddir)/src/libProgressReporter_qt4/libProgressReporter_qt4.la \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
 	$(top_builddir)/src/libcmdline/libcmdline.la \
-	$(BLITZ_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(OPENCV_LIBS) \
-	$(QT4_LIBS) $(GL_LIBS) $(GLU_LIBS)
+	$(BLITZ_LIBS) $(HDF5_CPP_LIBS) $(HDF5_LIBS) $(FFTW_LIBS) $(GSL_LIBS) \
+	$(OPENCV_LIBS) $(QT4_LIBS) $(GL_LIBS) $(GLU_LIBS)
 
 noinst_HEADERS = \
 	TrainDetectorTrainfileParametersItem.hh \

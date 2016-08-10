@@ -75,7 +75,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (ptrdiff_t i = 0; i < data.size() / n; ++i)
+    for (size_t i = 0; i < data.size() / n; ++i)
     {
       if (pr != NULL)
       {
@@ -174,7 +174,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (ptrdiff_t i = 0; i < data.size(); ++i)
+    for (size_t i = 0; i < data.size(); ++i)
         filtered.data()[i](dim) = tmp.data()[i];
     if (pr != NULL) pr->setProgress(pr->taskProgressMax());
   }
