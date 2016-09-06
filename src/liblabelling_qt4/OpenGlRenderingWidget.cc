@@ -197,9 +197,13 @@ void OpenGlRenderingWidget::mouseMoveEvent(QMouseEvent *e)
         glLoadMatrixd(_rotation.data());
         blitz::TinyVector<double,3> axis(-offset(1), offset(0), 0.0);
         double angle = std::sqrt(blitz::dot(axis, axis));
-        axis /= angle;
-        glRotated(angle, axis(0), axis(1), axis(2));
-        glGetDoublev(GL_MODELVIEW_MATRIX, _rotation.data());
+        if (angle != 0.0)
+        {
+          axis /= angle;
+          glRotated(angle, axis(0), axis(1), axis(2));
+          glGetDoublev(GL_MODELVIEW_MATRIX, _rotation.data());
+          std::cout << "Rotation matrix = " << _rotation << std::endl;
+        }
       }
     }
     _lastMousePosition = e->pos();

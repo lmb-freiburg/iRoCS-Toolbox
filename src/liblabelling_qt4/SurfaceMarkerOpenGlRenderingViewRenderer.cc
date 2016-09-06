@@ -69,7 +69,7 @@ void SurfaceMarkerOpenGlRenderingViewRenderer::render(QPainter*) const
   {
     std::cerr << "SurfaceMarkerOpenGlRenderingViewRenderer::render(): "
               << "ERROR: Marker at position " << p_marker->positionUm()
-              << " has no asociated channel!" << std::endl;
+              << " has no associated channel!" << std::endl;
     return;
   }
 

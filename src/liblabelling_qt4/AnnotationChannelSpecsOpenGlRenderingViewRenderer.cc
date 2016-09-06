@@ -45,7 +45,6 @@ AnnotationChannelSpecsOpenGlRenderingViewRenderer::
 void AnnotationChannelSpecsOpenGlRenderingViewRenderer::render(
     QPainter* painter) const
 {
-  if (painter == NULL || !painter->isActive()) return;
   if (p_view != NULL && !p_view->isVisible()) return;
   if (p_channel != NULL && !p_channel->visible()) return;
 
