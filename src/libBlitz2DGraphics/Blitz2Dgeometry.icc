@@ -39,7 +39,7 @@ template <typename T>
 void Blitz2Dgeometry::scale(const blitz::Array<T,2>& origImage, 
                             blitz::Array<T,2>& scaledImage, 
                             float facY, float facX, 
-                            scaleType type=BILINEAR) {
+                            scaleType type) {
 
     if (facX <=0 || facY <=0) {
         std::cout << "Not a valid scaling factor!" << std::endl;
