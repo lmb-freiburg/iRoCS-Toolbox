@@ -68,7 +68,7 @@ namespace atb
          i < static_cast<ptrdiff_t>(data.size()) / data.extent(dim); ++i)
     {
       blitz::TinyVector<BlitzIndexT,Dim> pos;
-      BlitzIndexT resid = satic_cast<BlitzIndexT>(i);
+      BlitzIndexT resid = static_cast<BlitzIndexT>(i);
       for (int d = Dim - 1; d >= 0; --d)
       {
         if (d != dim)
