@@ -93,17 +93,15 @@ std::string BaseFile::BaseNamePath(std::string const &aPathName)
 bool BaseFile::Exists(std::string const &aPathName)
 {
   // Attempt to get the file attributes
-  struct stat vFileInfo;
-  return (stat(aPathName.c_str(), &vFileInfo) == 0);
+  struct stat st;
+  return (stat(aPathName.c_str(), &st) == 0);
 }
 
 bool BaseFile::IsFile(std::string const &aPathName)
 {
-  if (IsLink(aPathName)) return false;
   struct stat st;
-  if (stat(aPathName.c_str(),&st) == 0)
-    return ((st.st_mode & S_IFREG) == S_IFREG);
-  return false;
+  if (lstat(aPathName.c_str(),&st) != 0) return false;
+  return (S_ISREG(st.st_mode) != 0);
 }
 
 bool BaseFile::IsLink(std::string const &aPathName)
@@ -112,18 +110,16 @@ bool BaseFile::IsLink(std::string const &aPathName)
   return (GetFileAttributes(aPathName.c_str()) == FILE_ATTRIBUTE_REPARSE_POINT);
 #else
   struct stat st;
-  if (stat(aPathName.c_str(),&st) == 0)
-    return ((st.st_mode & S_IFLNK) == S_IFLNK);
-  return false;
+  if (lstat(aPathName.c_str(),&st) != 0) return false;
+  return (S_ISLNK(st.st_mode) != 0);
 #endif
 }
 
 bool BaseFile::IsDirectory(std::string const &aPathName)
 {
   struct stat st;
-  if (stat(aPathName.c_str(),&st) == 0)
-      return ((st.st_mode & S_IFDIR) == S_IFDIR);
-  return false;
+  if (lstat(aPathName.c_str(),&st) != 0) return false;
+  return (S_ISDIR(st.st_mode) != 0);
 }
 
 bool BaseFile::DirectoryCreate(std::string const &aPathName)
