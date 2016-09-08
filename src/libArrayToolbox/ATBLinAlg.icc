@@ -38,8 +38,8 @@ namespace atb
   euclideanToHomogeneous(blitz::TinyVector<DataT,Dim> const &pos)
   {
     blitz::TinyVector<DataT,Dim+1> res;
-    for (int d = 0; d < Dim; ++d) res(d) = pos(d);
-    res(Dim) = 1;
+    std::memcpy(res.dataFirst(), pos.dataFirst(), Dim * sizeof(DataT));
+    res(Dim) = DataT(1);
     return res;
   }
   
@@ -48,8 +48,10 @@ namespace atb
   homogeneousToEuclidean(blitz::TinyVector<DataT,Dim> const &pos)
   {
     blitz::TinyVector<DataT,Dim-1> res;
-    for (int d = 0; d < Dim-1; ++d) res(d) = pos(d);
-    res /= pos(Dim-1);
+    for (int d = 0; d < Dim - 1; ++d)
+        res(d) = static_cast<DataT>(
+            static_cast<typename traits<DataT>::HighPrecisionT>(pos(d)) /
+            static_cast<typename traits<DataT>::HighPrecisionT>(pos(Dim - 1)));
     return res;
   }
 

@@ -34,6 +34,7 @@
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_permutation.h>
 
+#include "TypeTraits.hh"
 #include "ATBGSLWrapper.hh"
 #include "Quaternion.hh"
 
