@@ -1,6 +1,6 @@
 #include "lmbunit.hh"
 
-#include <libProgressReporter/ProgressReporterQt4.hh>
+#include <libProgressReporter_qt4/ProgressReporterQt4.hh>
 
 static void testConstructor()
 {

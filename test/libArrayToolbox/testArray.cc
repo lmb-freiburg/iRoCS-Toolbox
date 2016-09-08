@@ -1,6 +1,7 @@
 #include "lmbunit.hh"
 
 #include <libArrayToolbox/Array.hh>
+#include <libArrayToolbox/ATBTiming.hh>
 #include <libArrayToolbox/TinyMatrixOperators.hh>
 
 template<typename DataT, int Dim>
@@ -187,23 +188,47 @@ static void testArrayLoadSaveTinyVector()
 template<typename DataT, int Dim>
 static void testFilterDeriche()
 {
+  // std::stringstream ofname;
+  // ofname << TOP_BUILD_DIR
+  //        << "/test/libArrayToolbox/testArray_testFilterDeriche_";
+  // if (std::numeric_limits<DataT>::is_specialized)
+  // {
+  //   if (std::numeric_limits<DataT>::is_integer)
+  //       ofname << (std::numeric_limits<DataT>::is_signed ? "int" : "uint");
+  //   else ofname << "float";
+  // }
+  // else ofname << "unknown";
+  // ofname << 8 * sizeof(DataT) << "_" << Dim << ".h5";
+
   blitz::TinyVector<atb::BlitzIndexT,Dim> dataShape;
   blitz::TinyVector<double,Dim> elSize;
+  double avgDim = std::pow(1000000.0, 1.0 / static_cast<double>(Dim));
   for (int d = 0; d < Dim; ++d) 
   {
     dataShape(d) = static_cast<atb::BlitzIndexT>(
-        10 + std::rand() / (RAND_MAX / 100));
-    elSize(d) = 2.0 * static_cast<double>(std::rand()) /
-        static_cast<double>(RAND_MAX);
+        avgDim + 0.5 * avgDim * (static_cast<double>(std::rand()) /
+                                 static_cast<double>(RAND_MAX) - 0.5));
+    elSize(d) = 1.0 + (static_cast<double>(std::rand()) /
+                       static_cast<double>(RAND_MAX) - 0.5);
   }
   
   atb::Array<DataT,Dim> data(dataShape, elSize);
   std::memset(data.data(), 0, data.size() * sizeof(DataT));
   data(blitz::TinyVector<atb::BlitzIndexT,Dim>(dataShape / 2)) =
-      static_cast<DataT>(100) * atb::traits<DataT>::one;
-  
-  data.filterDeriche(3.0, 0);
-  LMBUNIT_ASSERT(blitz::all(blitz::maxIndex(data) == dataShape / 2));
+      atb::traits<DataT>::saturated;
+  // data.save(ofname.str(), "/data", 3);
+
+  atb::Profiler timer;
+  timer.tic();
+  for (int d = 0; d < Dim; ++d) data.filterDeriche(3.0, d);
+  long long elapsed_mus = timer.toc();
+  std::cout << "t [1 / 100 Megapixels]: "
+            << atb::MyDateTime::prettyTime(
+                elapsed_mus * 100000000 / Dim / blitz::product(dataShape))
+            << "... ";
+  LMBUNIT_ASSERT(blitz::max(data) ==
+                 data(blitz::TinyVector<atb::BlitzIndexT,Dim>(dataShape / 2)));
+  // data.save(ofname.str(), "/filtered", 3);
 }
 
 template<typename DataT, int Dim>
@@ -252,29 +277,40 @@ static void testLowerUpperBound()
 
   atb::Array<unsigned char,Dim> data(dataShape, elSize, trafo);
 
-  blitz::TinyVector<double,Dim> lb(
-      atb::homogeneousToEuclidean(
-          atb::invert(data.transformation()) *
-          atb::euclideanToHomogeneous(blitz::TinyVector<double,Dim>(0.0))));
-  blitz::TinyVector<double,Dim> ub(lb);
-  for (size_t i = 1; i < (1 << Dim); ++i)
+  blitz::TinyVector<double,Dim> lb;
+  blitz::TinyVector<double,Dim> ub;
+  for (size_t i = 0; i < (1 << Dim); ++i)
   {
     int tmp = static_cast<int>(i);
     blitz::TinyVector<double,Dim> cornerPos;
     for (int d = Dim - 1; d >= 0; --d)
     {
-      cornerPos(d) = ((tmp % 2) * data.extent(d)) * data.elementSizeUm()(d);
+      cornerPos(d) = ((tmp % 2) * data.extent(d) - 0.5) *
+          data.elementSizeUm()(d);
       tmp /= 2;
     }
     cornerPos = atb::homogeneousToEuclidean(
         atb::invert(data.transformation()) *
         atb::euclideanToHomogeneous(cornerPos));
-    for (int d = 0; d < Dim; ++d)
+    if (i == 0) lb = ub = cornerPos;
+    else
     {
-      if (cornerPos(d) < lb(d)) lb(d) = cornerPos(d);
-      if (cornerPos(d) > ub(d)) ub(d) = cornerPos(d);
+      for (int d = 0; d < Dim; ++d)
+      {
+        if (cornerPos(d) < lb(d)) lb(d) = cornerPos(d);
+        if (cornerPos(d) > ub(d)) ub(d) = cornerPos(d);
+      }
     }
   }
+  LMBUNIT_DEBUG_STREAM << "data shape = " << dataShape << std::endl;
+  LMBUNIT_DEBUG_STREAM << "element size = " << elSize << std::endl;
+  LMBUNIT_DEBUG_STREAM << "transformation = " << trafo << std::endl;
+  LMBUNIT_DEBUG_STREAM << "expected lower bound = " << lb << std::endl;
+  LMBUNIT_DEBUG_STREAM << "returned lower bound = " << data.lowerBoundUm()
+                       << std::endl;
+  LMBUNIT_DEBUG_STREAM << "expected upper bound = " << ub << std::endl;
+  LMBUNIT_DEBUG_STREAM << "returned upper bound = " << data.upperBoundUm()
+                       << std::endl;
   LMBUNIT_ASSERT_EQUAL_DELTA(
       std::sqrt(blitz::dot(lb - data.lowerBoundUm(),
                            lb - data.lowerBoundUm())), 0.0, 1e-10);
@@ -443,6 +479,11 @@ int main(int, char**)
   LMBUNIT_RUN_TEST((testFilterDeriche<int,3>()));
   LMBUNIT_RUN_TEST((testFilterDeriche<float,3>()));
   LMBUNIT_RUN_TEST((testFilterDeriche<double,3>()));
+  LMBUNIT_RUN_TEST((testFilterDeriche<unsigned char,4>()));
+  LMBUNIT_RUN_TEST((testFilterDeriche<unsigned short,4>()));
+  LMBUNIT_RUN_TEST((testFilterDeriche<int,4>()));
+  LMBUNIT_RUN_TEST((testFilterDeriche<float,4>()));
+  LMBUNIT_RUN_TEST((testFilterDeriche<double,4>()));
 
   LMBUNIT_RUN_TEST((testFilterDericheTinyVector<unsigned char,1>()));
   LMBUNIT_RUN_TEST((testFilterDericheTinyVector<float,1>()));
@@ -453,6 +494,9 @@ int main(int, char**)
   LMBUNIT_RUN_TEST((testFilterDericheTinyVector<unsigned char,3>()));
   LMBUNIT_RUN_TEST((testFilterDericheTinyVector<float,3>()));
   LMBUNIT_RUN_TEST((testFilterDericheTinyVector<double,3>()));
+  LMBUNIT_RUN_TEST((testFilterDericheTinyVector<unsigned char,4>()));
+  LMBUNIT_RUN_TEST((testFilterDericheTinyVector<float,4>()));
+  LMBUNIT_RUN_TEST((testFilterDericheTinyVector<double,4>()));
 
   LMBUNIT_RUN_TEST((testLowerUpperBound<1>()));
   LMBUNIT_RUN_TEST((testLowerUpperBound<2>()));

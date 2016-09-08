@@ -6,7 +6,7 @@
 **************************************************************************/
 
 
-#include "Blitz2DGraphics.hh"
+#include "libBlitz2DGraphics/Blitz2DGraphics.hh"
 #include <vector>
 
 using namespace std;
