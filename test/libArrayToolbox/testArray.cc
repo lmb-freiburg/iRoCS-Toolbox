@@ -234,27 +234,54 @@ static void testFilterDeriche()
 template<typename DataT, int Dim>
 static void testFilterDericheTinyVector()
 {
+  std::stringstream ofname;
+  ofname << TOP_BUILD_DIR
+         << "/test/libArrayToolbox/testArray_testFilterDericheTinyVector_";
+  if (std::numeric_limits<DataT>::is_specialized)
+  {
+    if (std::numeric_limits<DataT>::is_integer)
+        ofname << (std::numeric_limits<DataT>::is_signed ? "int" : "uint");
+    else ofname << "float";
+  }
+  else ofname << "unknown";
+  ofname << 8 * sizeof(DataT) << "_" << Dim << ".h5";
+
   blitz::TinyVector<atb::BlitzIndexT,Dim> dataShape;
   blitz::TinyVector<double,Dim> elSize;
+  double avgDim = std::pow(1000000.0, 1.0 / static_cast<double>(Dim));
   for (int d = 0; d < Dim; ++d) 
   {
     dataShape(d) = static_cast<atb::BlitzIndexT>(
-        10 + std::rand() / (RAND_MAX / 100));
-    elSize(d) = 2.0 * static_cast<double>(std::rand()) /
-        static_cast<double>(RAND_MAX);
+        avgDim + 0.5 * avgDim * (static_cast<double>(std::rand()) /
+                                 static_cast<double>(RAND_MAX) - 0.5));
+    elSize(d) = 1.0 + (static_cast<double>(std::rand()) /
+                       static_cast<double>(RAND_MAX) - 0.5);
   }
   
   atb::Array<blitz::TinyVector<DataT,3>,Dim> data(dataShape, elSize);
   std::memset(data.data(), 0, data.size() * sizeof(DataT));
   data(blitz::TinyVector<atb::BlitzIndexT,Dim>(dataShape / 2)) =
-      blitz::TinyVector<DataT,3>(
-          static_cast<DataT>(100) *
-          atb::traits< blitz::TinyVector<DataT,3> >::one);
+      blitz::TinyVector<DataT,3>(atb::traits<DataT>::saturated);
+  data.save(ofname.str(), "/data", 3);
   
-  data.filterDeriche(3.0, 0);
-  LMBUNIT_ASSERT(blitz::all(blitz::maxIndex(data[0]) == dataShape / 2));
-  LMBUNIT_ASSERT(blitz::all(blitz::maxIndex(data[1]) == dataShape / 2));
-  LMBUNIT_ASSERT(blitz::all(blitz::maxIndex(data[2]) == dataShape / 2));
+  atb::Profiler timer;
+  timer.tic();
+  for (int d = 0; d < Dim; ++d) data.filterDeriche(3.0, d);
+  long long elapsed_mus = timer.toc();
+  std::cout << "t [1 / 100 Megapixels]: "
+            << atb::MyDateTime::prettyTime(
+                elapsed_mus * 100000000 / Dim / blitz::product(dataShape))
+            << "... ";
+  LMBUNIT_ASSERT(
+      blitz::max(data[0]) ==
+      data(blitz::TinyVector<atb::BlitzIndexT,Dim>(dataShape / 2))(0));
+  LMBUNIT_ASSERT(
+      blitz::max(data[1]) ==
+      data(blitz::TinyVector<atb::BlitzIndexT,Dim>(dataShape / 2))(1));
+  LMBUNIT_ASSERT(
+      blitz::max(data[2]) ==
+      data(blitz::TinyVector<atb::BlitzIndexT,Dim>(dataShape / 2))(2));
+  data.save(ofname.str(), "/filtered", 3);
 }
 
 template<int Dim>

@@ -671,12 +671,69 @@ void BlitzH5File::readAttribute(
   }
   if (H5Tis_variable_str(datatypeId))
   {
+    hid_t dataspaceId = H5Aget_space(attributeId);
+    int nDims = H5Sget_simple_extent_dims(dataspaceId, NULL, NULL);
+    if (nDims > 1)
+    {
+      H5Sclose(dataspaceId);
+      H5Tclose(datatypeId);
+      H5Aclose(attributeId);
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "'. Multi-dimensional string attributes not supported.";
+    }
+    hsize_t dims = 1;
+    if (nDims == 1)
+    {
+      H5Sget_simple_extent_dims(dataspaceId, &dims, NULL);
+      if (dims > 1)
+      {
+        H5Sclose(dataspaceId);
+        H5Tclose(datatypeId);
+        H5Aclose(attributeId);
+        throw BlitzH5Error()
+            << "Could not read attribute '" << objectName << ":"
+            << attName << "'. The attribute contains multiple strings.";
+      }
+    }
+    char **buf = new char*[dims];
+    hid_t memoryTypeId = H5Tcopy(H5T_C_S1);
+    herr_t err = H5Tset_size(memoryTypeId, H5T_VARIABLE);
+    if (err < 0)
+    {
+      H5Tclose(memoryTypeId);
+      delete[] buf;
+      H5Sclose(dataspaceId);
+      H5Tclose(datatypeId);
+      H5Aclose(attributeId);
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "'. Could not set variable length memory type.";
+    }
+    err = H5Aread(attributeId, memoryTypeId, buf);
+    if (err < 0)
+    {
+      H5Tclose(memoryTypeId);
+      delete[] buf;
+      H5Sclose(dataspaceId);
+      H5Tclose(datatypeId);
+      H5Aclose(attributeId);
+      throw BlitzH5Error()
+          << "Could not read attribute '" << objectName << ":"
+          << attName << "'. Error while reading string data.";
+    }
+    data = buf[0];
+    err = H5Dvlen_reclaim(memoryTypeId, dataspaceId, H5P_DEFAULT, buf);
+    H5Tclose(memoryTypeId);
+    delete[] buf;
+    H5Sclose(dataspaceId);
     H5Tclose(datatypeId);
     H5Aclose(attributeId);
-    throw BlitzH5Error()
-        << "Could not read attribute '" << objectName << ":"
-        << attName << "'. Variable length strings are currently not "
-        << "supported.";
+    if (err < 0)
+        throw BlitzH5Error()
+            << "Error while reading attribute '" << objectName << ":"
+            << attName << "'. Attribute buffer could not be reclaimed.";
+    return;
   }
   size_t stringLength = H5Tget_size(datatypeId);
   hid_t dataspaceId = H5Aget_space(attributeId);

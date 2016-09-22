@@ -613,6 +613,224 @@ static void testReadAttributeStringAsCharArrayInDataset()
   }
 }
 
+static void testReadAttributeVariableLengthStringInGroup()
+{
+  std::string attributeName = "globalTestString";
+  const char *string_att[] = { "my global test string" };
+
+  hid_t fileId = H5Fcreate(
+      "testReadAttribute.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (fileId < 0)
+  {
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not create test file");
+    return;
+  }
+
+  // Create group
+  hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
+  hid_t groupId = H5Gcreate2(
+      fileId, "/group/subgroup", linkCreationPropertiesId,
+      H5P_DEFAULT, H5P_DEFAULT);
+  H5Pclose(linkCreationPropertiesId);
+  if (groupId < 0)
+  {
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not create group");
+    return;
+  }
+  
+  hid_t datatypeId = H5Tcopy(H5T_C_S1);
+  if (datatypeId < 0)
+  {
+    H5Gclose(groupId);
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not get a H5T_C_S1 copy");
+    return;
+  }
+  herr_t err = H5Tset_size(datatypeId, H5T_VARIABLE);
+  if (err < 0)
+  {
+    H5Tclose(datatypeId);
+    H5Gclose(groupId);
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE(
+        "Internal error: Could not set variable string length");
+    return;
+  }
+  hid_t dataspaceId = H5Screate(H5S_SCALAR);
+  if (dataspaceId < 0)
+  {
+    H5Tclose(datatypeId);
+    H5Gclose(groupId);
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+    return;
+  }
+  hid_t attributeId =
+      H5Acreate2(groupId, attributeName.c_str(), datatypeId,
+                 dataspaceId, H5P_DEFAULT, H5P_DEFAULT);
+  if (attributeId < 0)
+  {
+    H5Sclose(dataspaceId);
+    H5Tclose(datatypeId);
+    H5Gclose(groupId);
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not create attribute");
+    return;
+  }
+  err = H5Awrite(attributeId, datatypeId, string_att);
+  H5Aclose(attributeId);
+  H5Sclose(dataspaceId);
+  H5Tclose(datatypeId);
+  H5Gclose(groupId);
+  H5Fclose(fileId); 
+  if (err < 0)
+  {
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not write attribute");
+    return;
+  }
+
+  try
+  {
+    BlitzH5File inFile("testReadAttribute.h5");
+    std::string value;
+    inFile.readAttribute(value, attributeName, "/group/subgroup");
+    LMBUNIT_ASSERT_EQUAL(value, string_att[0]);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(std::string("Caught BlitzH5Error: ") + e.what());
+    return;
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(std::string("Caught std::exception: ") + e.what());
+    return;
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error");
+    return;
+  }
+}
+
+static void testReadAttributeVariableLengthStringInDataset()
+{
+  std::string attributeName = "local test string";
+  const char *string_att[] = { "my local test string" };
+
+  // Create dataset
+  try
+  {
+    BlitzH5File outFile("testReadAttribute.h5", BlitzH5File::Replace);
+    blitz::Array<float,1> data(1);
+    outFile.writeDataset(data, "/group/dataset");
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(std::string("Caught BlitzH5Error: ") + e.what());
+    return;
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(std::string("Caught std::exception: ") + e.what());
+    return;
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error");
+    return;
+  }
+
+  hid_t fileId = H5Fopen("testReadAttribute.h5", H5F_ACC_RDWR, H5P_DEFAULT);
+  if (fileId < 0)
+  {
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not open test file");
+    return;
+  }
+  hid_t datatypeId = H5Tcopy(H5T_C_S1);
+  if (datatypeId < 0)
+  {
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not get a H5T_C_S1 copy");
+    return;
+  }
+  herr_t err = H5Tset_size(datatypeId, H5T_VARIABLE);
+  if (err < 0)
+  {
+    H5Tclose(datatypeId);
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE(
+        "Internal error: Could not set variable string length");
+    return;
+  }
+  hsize_t dims = 1;
+  hid_t dataspaceId = H5Screate_simple(1, &dims, NULL);
+  if (dataspaceId < 0)
+  {
+    H5Tclose(datatypeId);
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not create data space");
+    return;
+  }
+  hid_t datasetId = H5Dopen2(fileId, "/group/dataset", H5P_DEFAULT);
+  if (datasetId < 0)
+  {
+    H5Sclose(dataspaceId);
+    H5Tclose(datatypeId);
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not open dataset");
+    return;
+  }
+  hid_t attributeId =
+      H5Acreate2(datasetId, attributeName.c_str(), datatypeId,
+                 dataspaceId, H5P_DEFAULT, H5P_DEFAULT);
+  if (attributeId < 0)
+  {
+    H5Dclose(datasetId);
+    H5Sclose(dataspaceId);
+    H5Tclose(datatypeId);
+    H5Fclose(fileId);
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not create attribute");
+    return;
+  }
+  err = H5Awrite(attributeId, datatypeId, string_att);
+  H5Aclose(attributeId);
+  H5Dclose(datasetId);
+  H5Sclose(dataspaceId);
+  H5Tclose(datatypeId);
+  H5Fclose(fileId); 
+  if (err < 0)
+  {
+    LMBUNIT_WRITE_FAILURE("Internal error: Could not write attribute");
+    return;
+  }
+  
+  try
+  {
+    BlitzH5File inFile("testReadAttribute.h5");
+    std::string value;
+    inFile.readAttribute(value, attributeName, "/group/dataset");
+    LMBUNIT_ASSERT_EQUAL(value, string_att[0]);
+  }
+  catch (BlitzH5Error &e)
+  {
+    LMBUNIT_WRITE_FAILURE(std::string("Caught BlitzH5Error: ") + e.what());
+    return;
+  }
+  catch (std::exception &e)
+  {
+    LMBUNIT_WRITE_FAILURE(std::string("Caught std::exception: ") + e.what());
+    return;
+  }
+  catch (...)
+  {
+    LMBUNIT_WRITE_FAILURE("Caught unknown error");
+    return;
+  }
+}
+
 template<typename WriteT, typename ReadT>
 static void testReadAttributeTinyVectorInGroup()
 {
@@ -1176,6 +1394,8 @@ int main(int, char**)
   LMBUNIT_RUN_TEST(testReadAttributeStringInDataset());
   LMBUNIT_RUN_TEST(testReadAttributeStringAsCharArrayInGroup());
   LMBUNIT_RUN_TEST(testReadAttributeStringAsCharArrayInDataset());
+  LMBUNIT_RUN_TEST(testReadAttributeVariableLengthStringInGroup());
+  LMBUNIT_RUN_TEST(testReadAttributeVariableLengthStringInDataset());
   LMBUNIT_RUN_TEST((testReadAttributeTinyVectorInGroup<float,float>()));
   LMBUNIT_RUN_TEST((testReadAttributeTinyVectorInGroup<float,int>()));
   LMBUNIT_RUN_TEST((testReadAttributeTinyVectorInGroup<int,double>()));

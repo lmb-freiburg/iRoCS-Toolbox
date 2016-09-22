@@ -11,11 +11,12 @@ TESTS = testSimplifyGroupDescriptor \
 
 check_PROGRAMS = $(TESTS)
 
-AM_CPPFLAGS = -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src $(HDF5_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
 
 LDADD = $(top_builddir)/src/libBlitzHdf5/libBlitzHdf5.la \
-	$(top_builddir)/src/libProgressReporter/libProgressReporter.la
+	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
+	$(HDF5_LIBS)
 
 noinst_HEADERS = lmbunit.hh
 

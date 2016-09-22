@@ -72,7 +72,7 @@ namespace atb
   template<typename DataT, int Dim>
   void LocalSumFilter<DataT,Dim>::applyAlongDim(
       blitz::Array<DataT,Dim> const &data,
-      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::TinyVector<double,Dim> const & /*elementSizeUm*/,
       blitz::Array<DataT,Dim> &filtered, int dim,
       iRoCS::ProgressReporter *pr) const
   {
@@ -97,7 +97,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (BlitzIndexT i = 0; i < data.size() / n; ++i)
+    for (size_t i = 0; i < data.size() / n; ++i)
     {
       if (pr != NULL)
       {

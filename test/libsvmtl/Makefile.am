@@ -26,10 +26,11 @@ TESTS = \
 
 check_PROGRAMS = $(TESTS)
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -DTOP_SRC_DIR="\"$(shell (cd \$(top_srcdir); pwd))\""
+AM_CPPFLAGS = -I$(top_srcdir)/src $(HDF5_CFLAGS) \
+	-DTOP_SRC_DIR="\"$(shell (cd \$(top_srcdir); pwd))\""
 
 LDADD = $(top_builddir)/src/libsvmtl/libsvmtl.la \
-	$(HDF5_LIBS)
+	$(HDF5_CPP_LIBS) $(HDF5_LIBS)
 
 testFeatureVectors_SOURCES = testFeatureVectors.cc
 testSparseFV_SOURCES = testSparseFV.cc
