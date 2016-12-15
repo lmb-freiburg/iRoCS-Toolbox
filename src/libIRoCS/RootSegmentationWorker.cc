@@ -280,7 +280,8 @@ namespace iRoCS
       if (pr != NULL)
       {
         if (!pr->updateProgressMessage(mVec[pState])) return;
-        pr->setTaskProgressMin(pVec[pState - 1]);
+        int pMin = (pState > 0) ? pVec[pState - 1] : 0;
+        pr->setTaskProgressMin(pMin);
         pr->setTaskProgressMax(pVec[pState]);
       }
       atb::MedianFilter<double,3>::apply(
@@ -291,7 +292,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         try
@@ -312,7 +313,7 @@ namespace iRoCS
       if (pr != NULL)
       {
         if (!pr->updateProgressMessage(mVec[pState])) return;
-        pr->setTaskProgressMin(pVec[pState - 1]);
+        pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
         pr->setTaskProgressMax(pVec[pState]);
       }
       data.rescale(blitz::TinyVector<double,3>(proc), pr);
@@ -324,7 +325,7 @@ namespace iRoCS
       if (pr != NULL)
       {
         if (!pr->updateProgressMessage(mVec[pState])) return;
-        pr->setTaskProgressMin(pVec[pState - 1]);
+        pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
         pr->setTaskProgressMax(pVec[pState]);
       } 
       try
@@ -344,7 +345,7 @@ namespace iRoCS
       if (pr != NULL)
       {
         if (!pr->updateProgressMessage(mVec[pState])) return;
-        pr->setTaskProgressMin(pVec[pState - 1]);
+        pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
         pr->setTaskProgressMax(pVec[pState]);
       }
       varianceNormalization(
@@ -369,7 +370,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         try
@@ -390,7 +391,7 @@ namespace iRoCS
       if (pr != NULL)
       {
         if (!pr->updateProgressMessage(mVec[pState])) return;
-        pr->setTaskProgressMin(pVec[pState - 1]);
+        pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
         pr->setTaskProgressMax(pVec[pState]);
       }
       atb::AnisotropicDiffusionFilter<double,3> anisotropicDiffusionFilter(
@@ -403,7 +404,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         try
@@ -422,7 +423,7 @@ namespace iRoCS
     if (pr != NULL)
     {
       if (!pr->updateProgressMessage(mVec[pState])) return;
-      pr->setTaskProgressMin(pVec[pState - 1]);
+      pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
       pr->setTaskProgressMax(pVec[pState]);
     }
     atb::GaussianFilter<double,3> gaussianFilter(atb::RepeatBT);
@@ -444,7 +445,8 @@ namespace iRoCS
     atb::Array<double,3> v1z(data.shape(), data.elementSizeUm());
     double varSum = 0.0;
     int p = 0;
-    double prScale = static_cast<double>(pVec[pState] - pVec[pState - 1]) /
+    double prStart = (pState > 0) ? pVec[pState - 1] : 0;
+    double prScale = static_cast<double>(pVec[pState] - prStart) /
         static_cast<double>(data.size() - 1);
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -464,7 +466,7 @@ namespace iRoCS
         }
         if (progress % std::max(1, static_cast<int>(data.size() / 100)) == 0)
             pr->updateProgress(
-                static_cast<int>(pVec[pState - 1] + progress * prScale));
+                static_cast<int>(prStart + progress * prScale));
       }
       blitz::TinyMatrix<double,3,3> m;
       blitz::TinyVector<double,3> lambda;
@@ -503,7 +505,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         l1.save(debugFileName, "/hessian/l1", 1, pr);
@@ -511,7 +513,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         v1.save(debugFileName, "/hessian/v1", 1, pr);
@@ -519,7 +521,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         atb::Array<double,3> buff(data.shape(), data.elementSizeUm());
@@ -550,7 +552,7 @@ namespace iRoCS
       if (pr != NULL)
       {
         if (!pr->updateProgressMessage(mVec[pState])) return;
-        pr->setTaskProgressMin(pVec[pState - 1]);
+        pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
         pr->setTaskProgressMax(pVec[pState]);
       }
       atb::Array<unsigned char,3> buffer2(data.shape(), data.elementSizeUm());
@@ -571,7 +573,7 @@ namespace iRoCS
     if (pr != NULL)
     {
       if (!pr->updateProgressMessage(mVec[pState])) return;
-      pr->setTaskProgressMin(pVec[pState - 1]);
+      pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
       pr->setTaskProgressMax(pVec[pState]);
     }
     segmentation.resize(data.shape());
@@ -598,7 +600,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         segmentation.save(debugFileName, "/L", 1, pr);
@@ -606,7 +608,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         BlitzH5File outFile(debugFileName, BlitzH5File::WriteOrNew);
@@ -683,7 +685,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         segmentation.save(debugFileName, "/L2", 1, pr);
@@ -691,7 +693,7 @@ namespace iRoCS
         if (pr != NULL)
         {
           if (!pr->updateProgressMessage(mVec[pState])) return;
-          pr->setTaskProgressMin(pVec[pState - 1]);
+          pr->setTaskProgressMin((pState > 0) ? pVec[pState - 1] : 0);
           pr->setTaskProgressMax(pVec[pState]);
         }
         BlitzH5File outFile(debugFileName, BlitzH5File::Write);

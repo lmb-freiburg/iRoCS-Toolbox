@@ -96,9 +96,9 @@ namespace atb
         bt.type(), hp_t(boundaryValue));
     ptrdiff_t length = static_cast<ptrdiff_t>(this->extent(dim));
     ptrdiff_t stride = static_cast<ptrdiff_t>(this->stride(dim));
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+// #ifdef _OPENMP
+// #pragma omp parallel for
+// #endif
     for (ptrdiff_t i = 0;
          i < static_cast<ptrdiff_t>(this->size()) / length; ++i)
     {
@@ -139,6 +139,7 @@ namespace atb
         f[p] = preFactor *
             (expa * (alpha - 1.0) * tmp[p - 1] + tmp[p]) +
             2.0 * expa * f[p - 1] - exp2a * f_1;
+        ++p;
       }
       else
       {
@@ -187,6 +188,7 @@ namespace atb
         f[p] += g0;
         g2 = g1;
         g1 = g0;
+        --p;
       }
       else
       {
