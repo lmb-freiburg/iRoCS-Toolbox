@@ -29,6 +29,7 @@
 
 #include "ProgressReporter.hh"
 #include <iostream>
+#include <sstream>
 
 namespace iRoCS
 {
@@ -78,6 +79,16 @@ namespace iRoCS
 
     bool updateProgressMessage(std::string const &message);
 
+/*======================================================================*/
+/*! 
+ *   Appends the given message to the selected output stream.
+ *
+ *   \param msg The message to append (may be also stream control commands)
+ */
+/*======================================================================*/
+    template<typename DataT>
+    ProgressReporterStream &operator<<(DataT const &msg);
+
   private:
   
     std::ostream& _os;
@@ -87,6 +98,21 @@ namespace iRoCS
     bool _aborted;
 
   };
+
+  template<typename DataT>
+  ProgressReporterStream &ProgressReporterStream::operator<<(DataT const &msg)
+  {
+#ifdef _OPENMP
+#pragma omp critical (_PROGRESSMESSAGE_IS_CURRENTLY_UPDATING_)
+#endif
+    {
+      std::ostringstream os;
+      os << msg;
+      _progressMessage += os.str();
+      _os << msg << std::flush;
+    }
+    return *this;
+  }
 
 }
 

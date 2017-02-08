@@ -96,9 +96,9 @@ namespace atb
         bt.type(), hp_t(boundaryValue));
     ptrdiff_t length = static_cast<ptrdiff_t>(this->extent(dim));
     ptrdiff_t stride = static_cast<ptrdiff_t>(this->stride(dim));
-// #ifdef _OPENMP
-// #pragma omp parallel for
-// #endif
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
     for (ptrdiff_t i = 0;
          i < static_cast<ptrdiff_t>(this->size()) / length; ++i)
     {
