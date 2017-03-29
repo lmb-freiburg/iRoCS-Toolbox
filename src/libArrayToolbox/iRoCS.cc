@@ -262,15 +262,15 @@ namespace atb
     blitz::TinyMatrix<double,3,3> rotation;
     blitz::TinyVector<double,3> scales;
     eigenvalueDecompositionRealSymmetric(cov, rotation, scales, Descending);
-    blitz::TinyMatrix<double,4,4> R(
-        traits< blitz::TinyMatrix<double,4,4> >::one);
-    for (int r = 0; r < 3; ++r)
-        for (int c = 0; c < 3; ++c) R(r, c) = rotation(r, c);
-
     // If the eigensystem contains a flip, change the sign of the first
     // eigenvector to get a proper (right-handed) rotation
     if (atb::determinant(rotation) < 0.0)
         for (int d = 0; d < 3; ++d) rotation(d, 0) = -rotation(d, 0);
+
+    blitz::TinyMatrix<double,4,4> R(
+        traits< blitz::TinyMatrix<double,4,4> >::one);
+    for (int r = 0; r < 3; ++r)
+        for (int c = 0; c < 3; ++c) R(r, c) = rotation(r, c);
 
     std::cout << "  Rotation        : " << rotation << std::endl;
     std::cout << "  Scale           : "

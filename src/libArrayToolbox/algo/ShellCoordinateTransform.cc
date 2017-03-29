@@ -98,25 +98,30 @@ void ShellCoordinateTransform::fitModel(
   blitz::TinyMatrix<double,3,3> A;
   blitz::TinyVector<double,3> lambda;
   atb::eigenvalueDecompositionRealSymmetric(cov, A, lambda, atb::Ascending);
-  blitz::TinyMatrix<double,3,3> Ainv;
-  Ainv = atb::invert(A);
+  
+  // If the eigensystem contains a flip, change the sign of the first
+  // eigenvector to get a proper (right-handed) rotation
+  if (atb::determinant(A) < 0.0)
+      for (int d = 0; d < 3; ++d) A(d, 0) = -A(d, 0);
+  
+  // Assure that the main axis points to the right
+  blitz::TinyVector<double,3> centralAxis(A(0, 2), A(1, 2), A(2, 2));
+  if ((!Xset && blitz::dot(
+           centralAxis, blitz::TinyVector<double,3>(0.0, 0.0, 1.0)) < 0.0) ||
+      (Xset && blitz::dot(centralAxis, X) < 0.0)) A = -A;
 
+  if (QCset)
+  {
+    // Ensure that the root points in negative z-direction
+    blitz::TinyVector<double,3> nQC(
+        atb::mvMult(A, blitz::TinyVector<double,3>(QC - cog)));
+    if (nQC(2) > 0) A = -A;
+  }
+  
   if (pr != NULL && !pr->updateProgress(static_cast<int>(pMin + 0.04 * pScale)))
       return;
 
-  // Assure that the main axis points to the right
-  blitz::TinyVector<double,3> centralAxis(A(0, 2), A(1, 2), A(2, 2));
-  if (!Xset && blitz::dot(
-          centralAxis, blitz::TinyVector<double,3>(0.0, 0.0, 1.0)) < 0.0)
-  {
-    A = -A;
-    Ainv = -Ainv;
-  }
-  else if (Xset && blitz::dot(centralAxis, X) < 0.0)
-  {
-    A = -A;
-    Ainv = -Ainv;
-  }
+  blitz::TinyMatrix<double,3,3> Ainv(atb::invert(A));
 
   if (pr != NULL && !pr->updateProgress(static_cast<int>(pMin + 0.05 * pScale)))
       return;
