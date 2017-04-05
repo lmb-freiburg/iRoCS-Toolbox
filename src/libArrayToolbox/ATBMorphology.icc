@@ -24,18 +24,18 @@ namespace atb
 {
 
   template<int Dim>
-  std::vector< blitz::TinyVector<ptrdiff_t,Dim> > sphericalStructuringElement(
+  std::vector< blitz::TinyVector<BlitzIndexT,Dim> > sphericalStructuringElement(
       blitz::TinyVector<double,Dim> const &elementSizeUm, double radiusUm)
   {
-    blitz::TinyVector<ptrdiff_t,Dim> shape(
-        2 * blitz::TinyVector<ptrdiff_t,Dim>(radiusUm / elementSizeUm) +
+    blitz::TinyVector<BlitzIndexT,Dim> shape(
+        2 * blitz::TinyVector<BlitzIndexT,Dim>(radiusUm / elementSizeUm) +
         1);
-    blitz::TinyVector<ptrdiff_t,Dim> center(shape / 2);
-    std::vector< blitz::TinyVector<ptrdiff_t,Dim> > strel;
-    for (ptrdiff_t i = 0; i < blitz::product(shape); ++i)
+    blitz::TinyVector<BlitzIndexT,Dim> center(shape / 2);
+    std::vector< blitz::TinyVector<BlitzIndexT,Dim> > strel;
+    for (BlitzIndexT i = 0; i < blitz::product(shape); ++i)
     {
-      blitz::TinyVector<ptrdiff_t,Dim> pos;
-      ptrdiff_t tmp = i;
+      blitz::TinyVector<BlitzIndexT,Dim> pos;
+      BlitzIndexT tmp = i;
       for (int d = Dim - 1; d >= 0; --d)
       {
         pos(d) = tmp % shape(d);
@@ -52,7 +52,7 @@ namespace atb
   void dilate(
       blitz::Array<DataT,Dim> const &data,
       blitz::Array<DataT,Dim> &result,
-      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &strel,
       iRoCS::ProgressReporter *progress)
   {
     blitz::Array<DataT,Dim> *res;
@@ -64,33 +64,40 @@ namespace atb
       res = &result;
     }
 
-    ptrdiff_t progressTick = 0;
+    int pMin = 0, progressTick = 0;
     if (progress != NULL)
     {
-      if (progress->taskProgressMax() > progress->taskProgressMin())
-          progressTick = data.size() /
-              (progress->taskProgressMax() - progress->taskProgressMin());
+      pMin = progress->taskProgressMin();
+      if (progress->taskProgressMax() > pMin)
+          progressTick =
+              data.size() / (progress->taskProgressMax() - pMin) / 10;
     }
 
-    ptrdiff_t cnt = 1;
+    int tick = 10 * pMin;
+    int cnt = 0;
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for firstprivate(cnt)
 #endif
-    for (ptrdiff_t i = 0; i < data.size(); ++i)
+    for (size_t i = 0; i < data.size(); ++i)
     {
       if (progress != NULL)
       {
         if (progress->isAborted()) continue;
-        if (progressTick != 0 && cnt % progressTick == 0)
-            progress->updateProgress(
-                progress->taskProgressMin() + cnt / progressTick);
+        if (progressTick != 0)
+        {
+          ++cnt;
+          if (cnt % progressTick == 0)
+          {
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-        cnt++;
+            ++tick;
+            progress->updateProgress(tick / 10);
+          }
+        }
       }
-      blitz::TinyVector<ptrdiff_t,Dim> pos;
-      ptrdiff_t tmp = i;
+      blitz::TinyVector<BlitzIndexT,Dim> pos;
+      BlitzIndexT tmp = i;
       for (int d = Dim - 1; d >= 0; --d)
       {
         pos(d) = tmp % data.extent(d);
@@ -98,10 +105,10 @@ namespace atb
       }
       res->data()[i] = -std::numeric_limits<double>::infinity();
       for (typename std::vector<
-               blitz::TinyVector<ptrdiff_t,Dim> >::const_iterator it =
+               blitz::TinyVector<BlitzIndexT,Dim> >::const_iterator it =
                strel.begin(); it != strel.end(); ++it)
       {
-        blitz::TinyVector<ptrdiff_t,Dim> p2(pos + *it);
+        blitz::TinyVector<BlitzIndexT,Dim> p2(pos + *it);
         if (blitz::all(p2 >= 0 && p2 < data.shape()) &&
             data(p2) > res->data()[i])
             res->data()[i] = data(p2);
@@ -126,7 +133,7 @@ namespace atb
   void erode(
       blitz::Array<DataT,Dim> const &data,
       blitz::Array<DataT,Dim> &result,
-      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &strel,
       iRoCS::ProgressReporter *progress)
   {
     blitz::Array<DataT,Dim> *res;
@@ -138,33 +145,40 @@ namespace atb
       res = &result;
     }
 
-    ptrdiff_t progressTick = 0;
+    int pMin = 0, progressTick = 0;
     if (progress != NULL)
     {
-      if (progress->taskProgressMax() > progress->taskProgressMin())
-          progressTick = data.size() /
-              (progress->taskProgressMax() - progress->taskProgressMin());
+      pMin = progress->taskProgressMin();
+      if (progress->taskProgressMax() > pMin)
+          progressTick =
+              data.size() / (progress->taskProgressMax() - pMin) / 10;
     }
 
-    ptrdiff_t cnt = 1;
+    int tick = 10 * pMin;
+    int cnt = 0;
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for firstprivate(cnt)
 #endif
-    for (ptrdiff_t i = 0; i < data.size(); ++i)
+    for (size_t i = 0; i < data.size(); ++i)
     {
       if (progress != NULL)
       {
         if (progress->isAborted()) continue;
-        if (progressTick != 0 && cnt % progressTick == 0)
-            progress->updateProgress(
-                progress->taskProgressMin() + cnt / progressTick);
+        if (progressTick != 0)
+        {
+          ++cnt;
+          if (cnt % progressTick == 0)
+          {
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-        cnt++;
+            ++tick;
+            progress->updateProgress(tick / 10);
+          }
+        }
       }
-      blitz::TinyVector<ptrdiff_t,Dim> pos;
-      ptrdiff_t tmp = i;
+      blitz::TinyVector<BlitzIndexT,Dim> pos;
+      BlitzIndexT tmp = i;
       for (int d = Dim - 1; d >= 0; --d)
       {
         pos(d) = tmp % data.extent(d);
@@ -172,10 +186,10 @@ namespace atb
       }
       res->data()[i] = std::numeric_limits<double>::infinity();
       for (typename std::vector<
-               blitz::TinyVector<ptrdiff_t,Dim> >::const_iterator it =
+               blitz::TinyVector<BlitzIndexT,Dim> >::const_iterator it =
                strel.begin(); it != strel.end(); ++it)
       {
-        blitz::TinyVector<ptrdiff_t,Dim> p2(pos + *it);
+        blitz::TinyVector<BlitzIndexT,Dim> p2(pos + *it);
         if (blitz::all(p2 >= 0 && p2 < data.shape()) &&
             data(p2) < res->data()[i])
             res->data()[i] = data(p2);
@@ -200,7 +214,7 @@ namespace atb
   void open(
       blitz::Array<DataT,Dim> const &data,
       blitz::Array<DataT,Dim> &result,
-      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &strel,
       iRoCS::ProgressReporter *progress)
   {
     int pMin, pMax;
@@ -218,13 +232,14 @@ namespace atb
       progress->setTaskProgressMax(pMax);
     }
     dilate(result, result, strel, progress);
+    if (progress != NULL) progress->setTaskProgressMin(pMin);
   }
 
   template<typename DataT, int Dim>
   void close(
       blitz::Array<DataT,Dim> const &data,
       blitz::Array<DataT,Dim> &result,
-      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &strel,
       iRoCS::ProgressReporter *progress)
   {
     int pMin, pMax;
@@ -234,14 +249,15 @@ namespace atb
       pMax = progress->taskProgressMax();
       progress->setTaskProgressMax((pMin + pMax) / 2);
     }
-    dilate(data, result, strel);
+    dilate(data, result, strel, progress);
     if (progress != NULL)
     {
       if (progress->isAborted()) return;
       progress->setTaskProgressMin((pMin + pMax) / 2);
       progress->setTaskProgressMax(pMax);
     }
-    erode(result, result, strel);
+    erode(result, result, strel, progress);
+    if (progress != NULL) progress->setTaskProgressMin(pMin);
   }
 
   template<typename DataT, int Dim>
@@ -262,7 +278,7 @@ namespace atb
     }
 
     // Generate structuring element
-    std::vector< blitz::TinyVector<ptrdiff_t,Dim> > strel(
+    std::vector< blitz::TinyVector<BlitzIndexT,Dim> > strel(
         sphericalStructuringElement(elementSizeUm, radiusUm));
           
     open(data, *res, strel, progress);
@@ -270,7 +286,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (ptrdiff_t i = 0; i < data.size(); ++i)
+    for (size_t i = 0; i < data.size(); ++i)
         result.data()[i] = data.data()[i] - res->data()[i];
 
     if (&result == &data) delete res;
@@ -420,7 +436,7 @@ namespace atb
   void
   connectedComponentLabelling(
       const blitz::Array<bool,Dim>& data,
-      blitz::Array<BlitzIndexT,Dim>& labels,
+      blitz::Array<int,Dim>& labels,
       NHood nh, iRoCS::ProgressReporter *pr)
   {
     double pMin = (pr != NULL) ? static_cast<double>(pr->taskProgressMin()) : 0;
@@ -462,8 +478,8 @@ namespace atb
 
       if (*maskPtr)
       {
-        blitz::TinyVector<ptrdiff_t,3> p;
-        ptrdiff_t tmp = i;
+        blitz::TinyVector<BlitzIndexT,3> p;
+        BlitzIndexT tmp = i;
         for (int d = Dim - 1; d >= 0; --d)
         {
           p(d) = tmp % data.extent(d);
@@ -473,7 +489,7 @@ namespace atb
         for (typename atb::Neighborhood<Dim>::const_iterator it =
                  neighbors.begin(); it != neighbors.end(); ++it)
         {
-          blitz::TinyVector<ptrdiff_t,Dim> nbPos(p + *it);
+          blitz::TinyVector<BlitzIndexT,Dim> nbPos(p + *it);
           if (blitz::all(nbPos >= 0 && nbPos < data.shape()))
           {
             int *labelNbPtr = &labels(nbPos);
@@ -525,7 +541,7 @@ namespace atb
             static_cast<int>(pMin + pScale * 0.95))) return;   
  
     // Re-map the preliminary labels to the final labels
-    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(labels.size()); ++i)
+    for (size_t i = 0; i < labels.size(); ++i)
         labels.data()[i] = labelMap[labels.data()[i]];
 
     if (pr != NULL) pr->updateProgress(pMin + pScale);

@@ -64,7 +64,7 @@ namespace atb
  */
 /*======================================================================*/ 
   template<int Dim>
-  std::vector< blitz::TinyVector<ptrdiff_t,Dim> > sphericalStructuringElement(
+  std::vector< blitz::TinyVector<BlitzIndexT,Dim> > sphericalStructuringElement(
       blitz::TinyVector<double,Dim> const &elementSizeUm, double radiusUm);
   
 /*======================================================================*/
@@ -86,7 +86,7 @@ namespace atb
   void dilate(
       blitz::Array<DataT,Dim> const &data,
       blitz::Array<DataT,Dim> &result,
-      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &strel,
       iRoCS::ProgressReporter *progress = NULL);
   
 /*======================================================================*/
@@ -108,7 +108,7 @@ namespace atb
   void erode(
       blitz::Array<DataT,Dim> const &data,
       blitz::Array<DataT,Dim> &result,
-      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &strel,
       iRoCS::ProgressReporter *progress = NULL);
   
 /*======================================================================*/
@@ -129,7 +129,7 @@ namespace atb
   void open(
       blitz::Array<DataT,Dim> const &data,
       blitz::Array<DataT,Dim> &result,
-      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &strel,
       iRoCS::ProgressReporter *progress = NULL);
   
 /*======================================================================*/
@@ -150,7 +150,7 @@ namespace atb
   void close(
       blitz::Array<DataT,Dim> const &data,
       blitz::Array<DataT,Dim> &result,
-      std::vector< blitz::TinyVector<ptrdiff_t,Dim> > const &strel,
+      std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &strel,
       iRoCS::ProgressReporter *progress = NULL);
 
 /*======================================================================*/
