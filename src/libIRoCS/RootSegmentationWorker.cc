@@ -226,7 +226,7 @@ namespace iRoCS
     {
       if (pr != NULL && !pr->updateProgressMessage(mVec[pState])) return;
       atb::normalize(data, data, atb::MINMAX);
-      if (gamma == 0.5)
+      if (gamma == 2)
       {
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -234,7 +234,7 @@ namespace iRoCS
         for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(data.size()); ++i)
             data.data()[i] = std::sqrt(data.data()[i]);
       }
-      else if (gamma == 2.0)
+      else if (gamma == 0.5)
       {
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -248,7 +248,7 @@ namespace iRoCS
 #pragma omp parallel for
 #endif
         for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(data.size()); ++i)
-            data.data()[i] = std::pow(data.data()[i], gamma);
+            data.data()[i] = std::pow(data.data()[i], 1.0 / gamma);
       }
       if (pr != NULL && !pr->updateProgress(pVec[pState])) return;
       pState++;

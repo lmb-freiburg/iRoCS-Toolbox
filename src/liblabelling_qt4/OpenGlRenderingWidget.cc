@@ -202,7 +202,6 @@ void OpenGlRenderingWidget::mouseMoveEvent(QMouseEvent *e)
           axis /= angle;
           glRotated(angle, axis(0), axis(1), axis(2));
           glGetDoublev(GL_MODELVIEW_MATRIX, _rotation.data());
-          std::cout << "Rotation matrix = " << _rotation << std::endl;
         }
       }
     }
