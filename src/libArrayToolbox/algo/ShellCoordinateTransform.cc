@@ -110,7 +110,7 @@ void ShellCoordinateTransform::fitModel(
            centralAxis, blitz::TinyVector<double,3>(0.0, 0.0, 1.0)) < 0.0) ||
       (Xset && blitz::dot(centralAxis, X) < 0.0)) A = -A;
 
-  if (QCset)
+  if (!Xset && QCset)
   {
     // Ensure that the root points in negative z-direction
     blitz::TinyVector<double,3> nQC(
