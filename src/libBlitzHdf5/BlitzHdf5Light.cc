@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
- **************************************************************************/ 
+ **************************************************************************/
 
 #include "BlitzHdf5Light.hh"
 
@@ -26,7 +26,7 @@
  *  BlitzH5Error class implementation
  *-----------------------------------------------------------------------*/
 
-BlitzH5Error::BlitzH5Error() 
+BlitzH5Error::BlitzH5Error()
         : std::exception()
 {}
 
@@ -45,7 +45,7 @@ std::string const &BlitzH5Error::str() const
 char const *BlitzH5Error::what() const throw()
 {
   return _message.c_str();
-} 
+}
 
 
 /*-----------------------------------------------------------------------
@@ -70,7 +70,7 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
   bool exists = ifile.good();
   ifile.close();
   if (exists) isHDF5 = H5Fis_hdf5(fileName.c_str());
-  
+
   switch (mode)
   {
   case ReadOnly:
@@ -154,17 +154,17 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
           throw BlitzH5Error()
               << "Could not replace file '" << fileName
               << "'. It is already opened in ReadWrite mode from another "
-              << "location.";        
+              << "location.";
         }
         H5Fclose(fileId);
         throw BlitzH5Error()
             << "Could not replace file '" << fileName
             << "'. It is already opened in ReadOnly mode from another "
-            << "location.";        
+            << "location.";
       }
       throw BlitzH5Error()
           << "Could not replace file '" << fileName
-          << "'. Insufficient permissions.";        
+          << "'. Insufficient permissions.";
     }
     break;
   }
@@ -180,7 +180,7 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
         throw BlitzH5Error()
             << "Could not create file '" << fileName
             << "'. Check whether the destination folder exists and "
-            << "you have write permission.";    
+            << "you have write permission.";
     break;
   }
   case WriteOrNew:
@@ -188,7 +188,7 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
     if (exists && isHDF5 == 0)
         throw BlitzH5Error()
             << "Could not create or open file '" << fileName
-            << "'. A non-HDF5 file with that name already exists.";        
+            << "'. A non-HDF5 file with that name already exists.";
     if (!exists)
     {
       _fileId = H5Fcreate(
@@ -197,7 +197,7 @@ BlitzH5File::BlitzH5File(std::string const &fileName, FileMode mode)
           throw BlitzH5Error()
               << "Could not create file '" << fileName
               << "'. Check whether the destination folder exists and "
-              << "you have write permission.";   
+              << "you have write permission.";
       return;
     }
     _fileId = H5Fopen(fileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
@@ -247,16 +247,16 @@ BlitzH5File::~BlitzH5File()
           ids.data());
       for (size_t i = 0; i < nOpenAttributesLocal; ++i) H5Aclose(ids[i]);
     }
-    
+
     // Close all objects that can be closed by an H5Oclose call
     nOpenObjectsLocal =
         H5Fget_obj_count(_fileId, H5F_OBJ_GROUP | H5F_OBJ_DATATYPE |
-                         H5F_OBJ_DATASET | H5F_OBJ_LOCAL); 
+                         H5F_OBJ_DATASET | H5F_OBJ_LOCAL);
     std::vector<hid_t> ids(nOpenObjectsLocal);
     H5Fget_obj_ids(
         _fileId, H5F_OBJ_GROUP | H5F_OBJ_DATATYPE | H5F_OBJ_DATASET |
         H5F_OBJ_LOCAL, nOpenObjectsLocal, ids.data());
-    for (size_t i = 0; i < nOpenObjectsLocal; ++i) H5Oclose(ids[i]); 
+    for (size_t i = 0; i < nOpenObjectsLocal; ++i) H5Oclose(ids[i]);
   }
 
   nOpenObjectsLocal = H5Fget_obj_count(_fileId, H5F_OBJ_ALL | H5F_OBJ_LOCAL);
@@ -268,7 +268,7 @@ BlitzH5File::~BlitzH5File()
                 << "It is accessed using multiple identifiers. As soon as the "
                 << "last object identifier is released, the file will close "
                 << "automatically." << std::endl;
-  
+
   H5Fclose(_fileId);
 }
 
@@ -367,8 +367,9 @@ BlitzH5File::allDatasets(std::string const &startGroup) const
       datasets.insert(
           datasets.end(), subDatasets.begin(), subDatasets.end());
     }
-    else datasets.push_back(
-        simplifyGroupDescriptor(startGroup) + "/" + objects[i]);
+    else if (existsDataset(startGroup + "/" + objects[i]))
+        datasets.push_back(
+            simplifyGroupDescriptor(startGroup) + "/" + objects[i]);
   }
   return datasets;
 }
@@ -483,7 +484,7 @@ void BlitzH5File::writeDataset(
       throw BlitzH5Error()
           << "Could not write dataset '" << name
           << "'. Could not create dataspace.";
-          
+
   hid_t datatypeId = H5Tcopy(H5T_C_S1);
   if (datatypeId < 0)
   {
@@ -501,7 +502,7 @@ void BlitzH5File::writeDataset(
         << "Could not write dataset '" << name
         << "'. Could not set string length.";
   }
-  
+
   hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
   H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
 
@@ -517,7 +518,7 @@ void BlitzH5File::writeDataset(
         << "Could not write dataset '" << name
         << "'. Could not create dataset.";
   }
-          
+
   char *buf = new char[data.size() + 1];
   for (size_t i = 0; i < data.size(); ++i) buf[i] = data[i];
   buf[data.size()] = 0;
@@ -545,7 +546,7 @@ void BlitzH5File::deleteDataset(std::string const &name)
       throw BlitzH5Error()
           << "Could not delete dataset '" << name
           << "'. Dataset not found.";
-  
+
   herr_t err = H5Ldelete(_fileId, name.c_str(), H5P_DEFAULT);
   if (err < 0)
       throw BlitzH5Error()
@@ -784,7 +785,7 @@ void BlitzH5File::writeAttribute(
       throw BlitzH5Error()
           << "Could not write attribute '" << objectName
           << ":" << attName << "'. Could not create dataspace.";
-          
+
   hid_t datatypeId = H5Tcopy(H5T_C_S1);
   if (datatypeId < 0)
   {
@@ -802,7 +803,7 @@ void BlitzH5File::writeAttribute(
         << "Could not write attribute '" << objectName
         << ":" << attName << "'. Could not set string length.";
   }
-          
+
   if (simplifyGroupDescriptor(objectName) != "")
   {
     htri_t exists = H5Lexists(_fileId, objectName.c_str(), H5P_DEFAULT);
@@ -837,7 +838,7 @@ void BlitzH5File::writeAttribute(
         << "Could not write attribute '" << objectName
         << ":" << attName << "'. Could not create attribute.";
   }
-          
+
   char *buf = new char[in.size() + 1];
   for (size_t i = 0; i < in.size(); ++i) buf[i] = in[i];
   buf[in.size()] = 0;
@@ -977,7 +978,7 @@ void BlitzH5File::createGroup(std::string const &groupName)
           << "Could not create group '" << groupName
           << "'. File is opened ReadOnly.";
   if (existsGroup(groupName)) return;
-  
+
   hid_t linkCreationPropertiesId = H5Pcreate(H5P_LINK_CREATE);
   H5Pset_create_intermediate_group(linkCreationPropertiesId, 1);
   hid_t groupId = H5Gcreate2(
@@ -1003,7 +1004,7 @@ void BlitzH5File::deleteGroup(std::string const &groupName)
       throw BlitzH5Error()
           << "Could not delete group '" << groupName
           << "'. Group not found.";
-          
+
   std::vector<std::string> objectsToDelete(getObjects(groupName));
   while (objectsToDelete.size() > 0)
   {
@@ -1080,7 +1081,7 @@ void BlitzH5File::copyObject(
       throw BlitzH5Error()
           << "Could not copy '" << objectName << "'. Could not read dataset.";
     }
-    
+
     hid_t targetDataspaceId = H5Scopy(dataspaceId);
     if (targetDataspaceId < 0)
     {
@@ -1091,7 +1092,7 @@ void BlitzH5File::copyObject(
       throw BlitzH5Error()
           << "Could not copy '" << objectName << "'. Could not copy dataspace.";
     }
-    
+
     hid_t targetDatasetCreationPropertiesId = -1;
     if (compression == -1)
     {
@@ -1207,7 +1208,7 @@ void BlitzH5File::copyObject(
     throw BlitzH5Error()
         << "Could not copy '" << objectName << "'. No such group/dataset.";
   }
-  
+
   // copy attributes of this object
   std::vector<std::string> attributes(getAttributes(objectName));
   for (size_t i = 0; i < attributes.size(); ++i)
@@ -1226,13 +1227,13 @@ void BlitzH5File::copyObject(
         throw BlitzH5Error()
             << "Could not read attribute '" << objectName << ":"
             << attributes[i] << "'.";
-    
+
     // Open target object
     hid_t objectId = H5Oopen(outFile.id(), objectName.c_str(), H5P_DEFAULT);
     if (objectId < 0)
     {
       H5Aclose(attributeId);
-      throw BlitzH5Error() 
+      throw BlitzH5Error()
           << "Could not open object '" << objectName << "' in output file.";
     }
 
@@ -1269,7 +1270,7 @@ void BlitzH5File::_copyAttribute(hid_t attributeId, hid_t targetId)
   if (dataspaceId < 0)
   {
     H5Tclose(datatypeId);
-    throw BlitzH5Error() 
+    throw BlitzH5Error()
         << "Could not get dataspace for attribute '" << name << "'.";
   }
   int attNDims = H5Sget_simple_extent_ndims(dataspaceId);
@@ -1289,14 +1290,14 @@ void BlitzH5File::_copyAttribute(hid_t attributeId, hid_t targetId)
         << "Could not copy attribute data for attribute '" << name
         << "' to processing buffer.";
   }
-  
+
   hid_t newDataspaceId = H5Scopy(dataspaceId);
   if (newDataspaceId < 0)
   {
     delete[] buf;
     H5Sclose(dataspaceId);
     H5Tclose(datatypeId);
-    throw BlitzH5Error() 
+    throw BlitzH5Error()
         << "Could not create target dataspace for attribute '" << name << "'.";
   }
   hid_t newAttributeId = H5Acreate2(
@@ -1319,4 +1320,3 @@ void BlitzH5File::_copyAttribute(hid_t attributeId, hid_t targetId)
   if (err < 0)
       throw BlitzH5Error() << "Could not write attribute '" << name << "'.";
 }
-
