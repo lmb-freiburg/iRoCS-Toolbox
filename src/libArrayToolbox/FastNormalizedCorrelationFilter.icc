@@ -111,7 +111,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (BlitzIndexT i = 0; i < kernelFFT->size(); ++i)
+        for (size_t i = 0; i < kernelFFT->size(); ++i)
             kernelFFT->data()[i] = std::conj(kernelFFT->data()[i]);        
       }
       if (&result != &data) result.resize(data.shape());
@@ -124,7 +124,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+:dataMean)  
 #endif
-      for (BlitzIndexT i = 0; i < data.size(); ++i) dataMean += data.data()[i];
+      for (size_t i = 0; i < data.size(); ++i) dataMean += data.data()[i];
       dataMean /= data.size();
 
       if (pr != NULL && !pr->updateProgress(
@@ -133,7 +133,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (BlitzIndexT i = 0; i < data.size(); ++i)
+      for (size_t i = 0; i < data.size(); ++i)
           result.data()[i] = data.data()[i] - dataMean;
 
       if (pr != NULL && !pr->updateProgress(
@@ -143,7 +143,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+:dataNorm)
 #endif
-      for (BlitzIndexT i = 0; i < result.size(); ++i)
+      for (size_t i = 0; i < result.size(); ++i)
           dataNorm += result.data()[i] * result.data()[i];
       dataNorm = std::sqrt(dataNorm);
 
@@ -153,8 +153,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (BlitzIndexT i = 0; i < data.size(); ++i)
-          result.data()[i] /= dataNorm;
+      for (size_t i = 0; i < data.size(); ++i) result.data()[i] /= dataNorm;
 
       if (pr != NULL && !pr->updateProgress(
               static_cast<int>(pStart + 0.25 * pScale))) return;
@@ -168,7 +167,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (BlitzIndexT i = 0; i < dataFFT.size(); ++i)
+      for (size_t i = 0; i < dataFFT.size(); ++i)
           dataFFT.data()[i] *= kernelFFT->data()[i];
       
       if (pr != NULL && !pr->updateProgress(
@@ -185,7 +184,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (BlitzIndexT i = 0; i < result.size(); ++i)
+      for (size_t i = 0; i < result.size(); ++i)
           result.data()[i] /= result.size();
 
       if (pr != NULL && !pr->updateProgress(
@@ -277,7 +276,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (BlitzIndexT i = 0; i < dataFFT.size(); ++i)
+    for (size_t i = 0; i < dataFFT.size(); ++i)
         dataFFT.data()[i] *= kernelFFT->data()[i];
 
     if (pr != NULL && !pr->updateProgress(
@@ -301,7 +300,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (BlitzIndexT i = 0; i < data.size(); ++i)
+    for (size_t i = 0; i < data.size(); ++i)
         lcSqrSum.data()[i] = data.data()[i] * data.data()[i];
 
     int tpMax = 1;
@@ -341,7 +340,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (BlitzIndexT i = 0; i < result.size(); ++i)
+    for (size_t i = 0; i < result.size(); ++i)
     {
       double sqrNorm = lcSqrSum.data()[i] -
           lcSum.data()[i] * lcSum.data()[i] / _kernel.size();
