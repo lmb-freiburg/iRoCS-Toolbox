@@ -14,7 +14,7 @@ if(WIN32)
   # On windows store DLLs alongside the binaries
   install(TARGETS cmdline
     LIBRARY DESTINATION bin
-    ARCHIVE DESTINATION lib)  
+    ARCHIVE DESTINATION lib)
 else()
   install(TARGETS cmdline
     LIBRARY DESTINATION lib
@@ -25,10 +25,10 @@ endif(WIN32)
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(cmdline_static STATIC CmdArg.cc CmdLine.cc CmdLineError.cc Compiler.cc ArgIter.hh ArgvIter.hh CmdArg.hh CmdArg.icc CmdArgs.hh CmdLine.hh CmdLine.icc CmdLineError.hh Compiler.hh Compilers.hh Errors.hh IStreamIter.hh)
   install(TARGETS cmdline_static ARCHIVE DESTINATION lib)
-  
+
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(cmdline_static PROPERTIES OUTPUT_NAME cmdline CLEAN_DIRECT_OUTPUT 1)
   endif(UNIX)
-  
+
 endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
