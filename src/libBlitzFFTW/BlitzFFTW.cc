@@ -3,7 +3,7 @@
  * Copyright (C) 2010 Thorsten Falk, Mario Emmenlauer
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -32,7 +32,7 @@
 **   fft's
 **
 **************************************************************************/
-#include <BlitzFFTW.hh>
+#include "BlitzFFTW.hh"
 
 #include <libBaseFunctions/BaseEnvironment.hh>
 #include <libBaseFunctions/BaseFile.hh>

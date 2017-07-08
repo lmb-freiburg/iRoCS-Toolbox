@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Mario Emmenlauer
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -21,9 +21,9 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
- **************************************************************************/ 
+ **************************************************************************/
 
-#include <BaseFile.hh>
+#include "BaseFile.hh"
 
 // standard libraries
 #include <cstdlib>
@@ -73,7 +73,7 @@ std::string BaseFile::BaseNamePath(std::string const &aPathName)
 {
   char *realpath_res = realpath(aPathName.c_str(), NULL);
   if (realpath_res == NULL) return std::string();
-  
+
   std::string vFullyQualifiedPath(realpath_res);
   free(realpath_res);
 
@@ -374,7 +374,7 @@ char *BaseFile::realpath(const char *path, char resolved_path[PATH_MAX])
     else
     {
       //Non standard extension that glibc uses
-      return_path = (char*)malloc(PATH_MAX); 
+      return_path = (char*)malloc(PATH_MAX);
     }
 
     if (return_path) //Else EINVAL
@@ -388,7 +388,7 @@ char *BaseFile::realpath(const char *path, char resolved_path[PATH_MAX])
         if (return_path != resolved_path) //Malloc'd buffer - Unstandard extension retry
         {
           size_t new_size;
-          
+
           free(return_path);
           return_path = (char*)malloc(size);
 
@@ -412,7 +412,7 @@ char *BaseFile::realpath(const char *path, char resolved_path[PATH_MAX])
             //I wasn't sure what to return here, but the standard does say to return EINVAL
             //if resolved_path is null, and in this case we couldn't malloc large enough buffer
             errno = EINVAL;
-          }  
+          }
         }
         else //resolved_path buffer isn't big enough
         {
@@ -422,13 +422,13 @@ char *BaseFile::realpath(const char *path, char resolved_path[PATH_MAX])
       }
 
       //GetFullPathNameA() returns 0 if some path resolve problem occured
-      if (!size) 
+      if (!size)
       {
         if (return_path != resolved_path) //Malloc'd buffer
         {
           free(return_path);
         }
-        
+
         return_path = 0;
 
         //Convert MS errors into standard errors
@@ -445,7 +445,7 @@ char *BaseFile::realpath(const char *path, char resolved_path[PATH_MAX])
           case ERROR_ACCESS_DENIED:
             errno = EACCES;
             break;
-          
+
           default: //Unknown Error
             errno = EIO;
             break;
@@ -458,13 +458,13 @@ char *BaseFile::realpath(const char *path, char resolved_path[PATH_MAX])
         struct stat stat_buffer;
 
         //Make sure path exists, stat() returns 0 on success
-        if (stat(return_path, &stat_buffer)) 
+        if (stat(return_path, &stat_buffer))
         {
           if (return_path != resolved_path)
           {
             free(return_path);
           }
-        
+
           return_path = 0;
           //stat() will set the correct errno for us
         }
@@ -480,8 +480,7 @@ char *BaseFile::realpath(const char *path, char resolved_path[PATH_MAX])
   {
     errno = EINVAL;
   }
-    
+
   return return_path;
 }
 #endif
-

@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Mario Emmenlauer
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -21,10 +21,10 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
- **************************************************************************/ 
+ **************************************************************************/
 
-#include <BaseEnvironment.hh>
-#include <BaseFile.hh>
+#include "BaseEnvironment.hh"
+#include "BaseFile.hh"
 
 #include <iostream>
 
@@ -231,5 +231,3 @@ std::string BaseEnvironment::HostName()
   //}
   return hostName;
 }
-
-
