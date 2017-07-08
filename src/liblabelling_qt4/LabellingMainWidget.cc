@@ -560,10 +560,9 @@ void LabellingMainWidget::setPluginFolder()
     {
       QPluginLoader loader((*it)->data().toString(), this);
       if (loader.isLoaded() && !loader.unload())
-      {
-        std::cerr << "Could not unload plugin '" << (*it)->text().toStdString()
-                  << "'. The plugin seems to be running." << std::endl;
-      }
+          std::cerr << tr(
+              "Could not unload plugin '%1'. The plugin seems to be "
+              "running.").arg((*it)->text()).toStdString() << std::endl;
       else
       {
         p_pluginMenu->removeAction(*it);
@@ -672,16 +671,12 @@ void LabellingMainWidget::searchPlugins()
     settings.setValue("PluginFolder", pluginFolder);
   }
   else pluginsDir = QDir(pluginFolder);
-  std::cout << "Searching plugins in "
-            << pluginFolder.toStdString() << std::endl;
+  std::cout << tr("Searching plugins in '%1'").arg(pluginFolder).toStdString()
+            << std::endl;
 
   foreach (QString fileName, pluginsDir.entryList(QDir::Files))
   {
-#ifdef _WIN32
-    if (!fileName.endsWith(".dll", Qt::CaseInsensitive)) continue;
-#else
-    if (!fileName.endsWith(".so", Qt::CaseInsensitive)) continue;
-#endif
+    if (!QLibrary::isLibrary(fileName)) continue;
     QPluginLoader loader(pluginsDir.absoluteFilePath(fileName));
     QObject* plugin = loader.instance();
     if (plugin)
@@ -689,28 +684,33 @@ void LabellingMainWidget::searchPlugins()
       PluginInterface* iPlugin = qobject_cast<PluginInterface*>(plugin);
       if (iPlugin)
       {
-        std::cout << "Registering plugin: " << iPlugin->name().toStdString()
-                  << std::endl;
-        QAction *action = new QAction(iPlugin->name(), NULL);
-        action->setData(pluginsDir.absoluteFilePath(fileName));
         QList<QAction*>::iterator it = _plugins.begin();
         while (it != _plugins.end() &&
                (*it)->text().compare(iPlugin->name()) < 0) ++it;
-        _plugins.insert(it, action);
+        if (it == _plugins.end() || (*it)->text().compare(iPlugin->name()) != 0)
+        {
+          std::cout << tr("Registering plugin: '%1'").arg(
+              iPlugin->name()).toStdString() << std::endl;
+          QAction *action = new QAction(iPlugin->name(), NULL);
+          action->setData(pluginsDir.absoluteFilePath(fileName));
+          _plugins.insert(it, action);
+        }
+        else
+            std::cerr << tr("Ignoring plugin '%1' - already registered").arg(
+                iPlugin->name()).toStdString() << std::endl;
       }
       else
       {
-        std::cerr << fileName.toStdString()
-                  << " is no valid iRoCS Toolbox plugin. It does not "
-                  << "implement the PluginInterface class or does not "
-                  << "inherit from QObject" << std::endl;
+        std::cerr << tr("'%1' is no valid iRoCS Toolbox plugin. It does not "
+                        "implement the PluginInterface class.").arg(
+                            fileName).toStdString() << std::endl;
       }
-      loader.unload();
+      if (loader.isLoaded()) loader.unload();
     }
     else
     {
-      std::cerr << fileName.toStdString() << " is no valid QT plugin: "
-                << loader.errorString().toStdString() << std::endl;
+      std::cerr << tr("'%1' is no valid QT plugin: %2").arg(fileName).arg(
+          loader.errorString()).toStdString() << std::endl;
     }
   }
   for (QList<QAction*>::iterator it = _plugins.begin();
