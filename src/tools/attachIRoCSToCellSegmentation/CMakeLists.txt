@@ -1,0 +1,5 @@
+add_executable(attachIRoCSToCellSegmentation attachIRoCSToCellSegmentation.cc)
+target_link_libraries(attachIRoCSToCellSegmentation
+  LINK_PUBLIC IRoCS segmentation cmdline)
+
+install(TARGETS attachIRoCSToCellSegmentation RUNTIME DESTINATION bin)

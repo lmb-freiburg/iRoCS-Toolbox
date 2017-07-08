@@ -1,3 +1,8 @@
+set(Labelling_qt4_VERSION_MAJOR 2)
+set(Labelling_qt4_VERSION_MINOR 0)
+set(Labelling_qt4_VERSION_PATCH 1)
+set(Labelling_qt4_VERSION ${Labelling_qt4_VERSION_MAJOR}.${Labelling_qt4_VERSION_MINOR}.${Labelling_qt4_VERSION_PATCH})
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
@@ -5,15 +10,15 @@ set(Labelling_qt4_SOURCES
   StreamBufTextEditQt4.cc AbstractControlElement.cc BoolControlElement.cc
   IntControlElement.cc Int3ControlElement.cc IntVectorControlElement.cc
   DoubleControlElement.cc Double3ControlElement.cc DoubleVectorControlElement.cc
-  Double4x4ControlElement.cc DoubleRangeControlElement.cc StringControlElement.cc
-  StringSelectionControlElement.cc IntDoubleMapControlElement.cc
-  ChannelSelectionControlElement.cc FileNameSelectionControlElement.cc
-  HDF5SelectionControlElement.cc ColorControlElement.cc Marker.cc
-  MarkerPresetWidget.cc MarkerControlWidget.cc PointMarker.cc SphereMarker.cc
-  SHSurfaceMarker.cc NucleusMarker.cc CylinderMarker.cc SurfaceMarker.cc
-  CellMarker.cc UserInteractionEvent.cc OrthoViewUserInteractionEvent.cc
-  ChannelSpecs.cc DataChannelSpecs.cc RGBChannelSpecs.cc
-  VisualizationChannelSpecs.cc AnnotationChannelSpecs.cc
+  Double4x4ControlElement.cc DoubleRangeControlElement.cc
+  StringControlElement.cc StringSelectionControlElement.cc
+  IntDoubleMapControlElement.cc ChannelSelectionControlElement.cc
+  FileNameSelectionControlElement.cc HDF5SelectionControlElement.cc
+  ColorControlElement.cc Marker.cc MarkerPresetWidget.cc MarkerControlWidget.cc
+  PointMarker.cc SphereMarker.cc SHSurfaceMarker.cc NucleusMarker.cc
+  CylinderMarker.cc SurfaceMarker.cc CellMarker.cc UserInteractionEvent.cc
+  OrthoViewUserInteractionEvent.cc ChannelSpecs.cc DataChannelSpecs.cc
+  RGBChannelSpecs.cc VisualizationChannelSpecs.cc AnnotationChannelSpecs.cc
   SplineCurveChannelSpecs.cc IRoCSChannelSpecs.cc IRoCSSCTChannelSpecs.cc
   ViewWidget.cc MarkerRenderer.cc ChannelSpecsRenderer.cc OrthoViewPlane.cc
   OrthoViewWidget.cc ChannelSpecsOrthoViewRenderer.cc MarkerOrthoViewRenderer.cc
@@ -21,7 +26,8 @@ set(Labelling_qt4_SOURCES
   SHSurfaceMarkerOrthoViewRenderer.cc NucleusMarkerOrthoViewRenderer.cc
   CylinderMarkerOrthoViewRenderer.cc SurfaceMarkerOrthoViewRenderer.cc
   CellMarkerOrthoViewRenderer.cc DataChannelSpecsOrthoViewRenderer.cc
-  RGBChannelSpecsOrthoViewRenderer.cc VisualizationChannelSpecsOrthoViewRenderer.cc
+  RGBChannelSpecsOrthoViewRenderer.cc
+  VisualizationChannelSpecsOrthoViewRenderer.cc
   AnnotationChannelSpecsOrthoViewRenderer.cc
   SplineCurveChannelSpecsOrthoViewRenderer.cc
   IRoCSChannelSpecsOrthoViewRenderer.cc IRoCSSCTChannelSpecsOrthoViewRenderer.cc
@@ -50,11 +56,12 @@ set(Labelling_qt4_HEADERS
   StreamBufTextEditQt4.hh AbstractControlElement.hh BoolControlElement.hh
   IntControlElement.hh Int3ControlElement.hh IntVectorControlElement.hh
   DoubleControlElement.hh Double3ControlElement.hh DoubleVectorControlElement.hh
-  Double4x4ControlElement.hh DoubleRangeControlElement.hh StringControlElement.hh
-  StringSelectionControlElement.hh IntDoubleMapControlElement.hh
-  ChannelSelectionControlElement.hh FileNameSelectionControlElement.hh
-  HDF5SelectionControlElement.hh ColorControlElement.hh ColorMap.hh
-  IColorMapEditor.hh ColorMapEditorWidget.hh UserInteractionEvent.hh
+  Double4x4ControlElement.hh DoubleRangeControlElement.hh
+  StringControlElement.hh StringSelectionControlElement.hh
+  IntDoubleMapControlElement.hh ChannelSelectionControlElement.hh
+  FileNameSelectionControlElement.hh HDF5SelectionControlElement.hh
+  ColorControlElement.hh ColorMap.hh IColorMapEditor.hh
+  ColorMapEditorWidget.hh UserInteractionEvent.hh
   OrthoViewUserInteractionEvent.hh Marker.hh MarkerPresetWidget.hh
   MarkerControlWidget.hh PointMarker.hh SphereMarker.hh SHSurfaceMarker.hh
   NucleusMarker.hh CylinderMarker.hh SurfaceMarker.hh CellMarker.hh
@@ -99,25 +106,19 @@ set(Labelling_qt4_RESOURCES
   icons/oxygen/32x32/actions/process-stop.png
   icons/oxygen/32x32/actions/zoom-in.png
   icons/oxygen/32x32/actions/zoom-original.png
-  icons/oxygen/32x32/actions/zoom-out.png )
+  icons/oxygen/32x32/actions/zoom-out.png)
 
-add_library(Labelling_qt4 ${Labelling_qt4_SOURCES} ${Labelling_qt4_HEADERS} )
-
-set(Labelling_qt4_VERSION_MAJOR 2)
-set(Labelling_qt4_VERSION_MINOR 0)
-set(Labelling_qt4_VERSION_PATCH 1)
-set(Labelling_qt4_VERSION ${Labelling_qt4_VERSION_MAJOR}.${Labelling_qt4_VERSION_MINOR}.${Labelling_qt4_VERSION_PATCH})
-set_target_properties(Labelling_qt4 PROPERTIES VERSION ${Labelling_qt4_VERSION} SOVERSION ${Labelling_qt4_VERSION_MAJOR})
-
-target_include_directories(Labelling_qt4 PUBLIC ${OPENGL_INCLUDE_DIRS} )
+add_library(Labelling_qt4 ${Labelling_qt4_SOURCES} ${Labelling_qt4_HEADERS})
+set_target_properties(Labelling_qt4 PROPERTIES
+  VERSION ${Labelling_qt4_VERSION} SOVERSION ${Labelling_qt4_VERSION_MAJOR})
+target_include_directories(Labelling_qt4 PUBLIC ${OPENGL_INCLUDE_DIRS})
 target_link_libraries(Labelling_qt4
   segmentation ProgressReporter_qt4 BlitzAnalyze Qt4::QtCore Qt4::QtOpenGL
-  Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES} )
+  Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES})
 
 # Install development headers
-install(DIRECTORY . DESTINATION include/libLabelling_qt4
-  FILES_MATCHING PATTERN "*.hh")
-install(DIRECTORY icons DESTINATION share/LibLabelling_qt4 )
+install(FILES ${Labelling_qt4_HEADERS}
+  DESTINATION include/${PACKAGE}/libLabelling_qt4)
 
 # Install libraries
 if(WIN32)
@@ -136,10 +137,11 @@ endif(WIN32)
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(Labelling_qt4_static STATIC
     ${Labelling_qt4_SOURCES} ${Labelling_qt4_HEADERS} )
-  target_include_directories(Labelling_qt4_static PUBLIC ${OPENGL_INCLUDE_DIRS} )
+  target_include_directories(Labelling_qt4_static PUBLIC
+    ${OPENGL_INCLUDE_DIRS})
   target_link_libraries(Labelling_qt4_static
     segmentation ProgressReporter_qt4 BlitzAnalyze Qt4::QtCore Qt4::QtOpenGL
-    Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES} )
+    Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES})
   install(TARGETS Labelling_qt4_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name
@@ -150,5 +152,5 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
 
 endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
 
-set(CMAKE_AUTOMOC OFF)
 set(CMAKE_AUTORCC OFF)
+set(CMAKE_AUTOMOC OFF)

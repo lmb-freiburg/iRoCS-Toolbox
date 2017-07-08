@@ -1,0 +1,6 @@
+add_executable(trainLayerAssignmentForSegmentation
+  trainLayerAssignmentForSegmentation.cc)
+target_link_libraries(trainLayerAssignmentForSegmentation
+  LINK_PUBLIC IRoCS segmentation cmdline)
+
+install(TARGETS trainLayerAssignmentForSegmentation RUNTIME DESTINATION bin)

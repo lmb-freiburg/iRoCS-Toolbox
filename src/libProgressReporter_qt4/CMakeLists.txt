@@ -1,20 +1,23 @@
-set(CMAKE_AUTOMOC ON)
-
-add_library(ProgressReporter_qt4
-  ProgressReporterQt4.cc ProgressReporterQt4.hh )
 set(ProgressReporter_qt4_VERSION_MAJOR 1)
 set(ProgressReporter_qt4_VERSION_MINOR 0)
 set(ProgressReporter_qt4_VERSION_PATCH 0)
 set(ProgressReporter_qt4_VERSION ${ProgressReporter_qt4_VERSION_MAJOR}.${ProgressReporter_qt4_VERSION_MINOR}.${ProgressReporter_qt4_VERSION_PATCH})
-set_target_properties(ProgressReporter_qt4 PROPERTIES VERSION
-  ${ProgressReporter_qt4_VERSION} SOVERSION ${ProgressReporter_qt4_VERSION_MAJOR})
 
-target_link_libraries(ProgressReporter_qt4
-  Qt4::QtGui ProgressReporter )
+set(ProgressReporter_qt4_HEADERS ProgressReporterQt4.hh)
+set(ProgressReporter_qt4_SOURCES ProgressReporterQt4.cc)
+
+set(CMAKE_AUTOMOC ON)
+
+add_library(ProgressReporter_qt4
+  ${ProgressReporter_qt4_SOURCES} ${ProgressReporter_qt4_HEADERS})
+set_target_properties(ProgressReporter_qt4 PROPERTIES
+  VERSION ${ProgressReporter_qt4_VERSION}
+  SOVERSION ${ProgressReporter_qt4_VERSION_MAJOR})
+target_link_libraries(ProgressReporter_qt4 Qt4::QtGui ProgressReporter)
 
 # Install development headers
-install(DIRECTORY . DESTINATION include/libProgressReporter_qt4
-  FILES_MATCHING PATTERN "*.hh")
+install(FILES ${ProgressReporter_qt4_HEADERS}
+  DESTINATION include/${PACKAGE}/libProgressReporter_qt4)
 
 # Install libraries
 if(WIN32)
@@ -32,9 +35,8 @@ endif(WIN32)
 # are requested
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(ProgressReporter_qt4_static STATIC
-    ProgressReporterQt4.cc ProgressReporterQt4.hh )
-  target_link_libraries(ProgressReporter_qt4_static
-    Qt4::QtGui ProgressReporter )
+    ${ProgressReporter_qt4_SOURCES} ${ProgressReporter_qt4_HEADERS})
+  target_link_libraries(ProgressReporter_qt4_static Qt4::QtGui ProgressReporter)
   install(TARGETS ProgressReporter_qt4_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name

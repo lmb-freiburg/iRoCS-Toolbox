@@ -1,16 +1,19 @@
-add_library(BaseFunctions
-  BaseEnvironment.cc BaseFile.cc BaseEnvironment.hh BaseFile.hh )
 set(BaseFunctions_VERSION_MAJOR 1)
 set(BaseFunctions_VERSION_MINOR 0)
 set(BaseFunctions_VERSION_PATCH 0)
 set(BaseFunctions_VERSION
   ${BaseFunctions_VERSION_MAJOR}.${BaseFunctions_VERSION_MINOR}.${BaseFunctions_VERSION_PATCH})
-set_target_properties(BaseFunctions PROPERTIES VERSION
-  ${BaseFunctions_VERSION} SOVERSION ${BaseFunctions_VERSION_MAJOR})
+
+set(BaseFunctions_HEADERS BaseEnvironment.hh BaseFile.hh)
+set(BaseFunctions_SOURCES BaseEnvironment.cc BaseFile.cc)
+
+add_library(BaseFunctions ${BaseFunctions_SOURCES} ${BaseFunctions_HEADERS})
+set_target_properties(BaseFunctions PROPERTIES
+  VERSION ${BaseFunctions_VERSION} SOVERSION ${BaseFunctions_VERSION_MAJOR})
 
 # Install development headers
-install(DIRECTORY . DESTINATION include/libBaseFunctions
-  FILES_MATCHING PATTERN "*.hh" PATTERN "*.icc")
+install(FILES ${BaseFunctions_HEADERS}
+  DESTINATION include/${PACKAGE}/libBaseFunctions)
 
 # Install libraries
 if(WIN32)
@@ -28,7 +31,7 @@ endif(WIN32)
 # are requested
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(BaseFunctions_static STATIC
-    BaseEnvironment.cc BaseFile.cc BaseEnvironment.hh BaseFile.hh )
+    ${BaseFunctions_SOURCES} ${BaseFunctions_HEADERS})
   install(TARGETS BaseFunctions_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name

@@ -1,0 +1,5 @@
+add_executable(assignLayersToSegmentation assignLayersToSegmentation.cc)
+target_link_libraries(assignLayersToSegmentation
+  LINK_PUBLIC IRoCS segmentation cmdline)
+
+install(TARGETS assignLayersToSegmentation RUNTIME DESTINATION bin)

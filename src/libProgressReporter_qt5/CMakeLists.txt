@@ -1,20 +1,23 @@
-set(CMAKE_AUTOMOC ON)
-
-add_library(ProgressReporter_qt5
-  ProgressReporterQt5.cc ProgressReporterQt5.hh )
 set(ProgressReporter_qt5_VERSION_MAJOR 1)
 set(ProgressReporter_qt5_VERSION_MINOR 0)
 set(ProgressReporter_qt5_VERSION_PATCH 0)
 set(ProgressReporter_qt5_VERSION ${ProgressReporter_qt5_VERSION_MAJOR}.${ProgressReporter_qt5_VERSION_MINOR}.${ProgressReporter_qt5_VERSION_PATCH})
-set_target_properties(ProgressReporter_qt5 PROPERTIES VERSION
-  ${ProgressReporter_qt5_VERSION} SOVERSION ${ProgressReporter_qt5_VERSION_MAJOR})
 
-target_link_libraries(ProgressReporter_qt5
-  Qt5::Widgets ProgressReporter )
+set(ProgressReporter_qt5_HEADERS ProgressReporterQt5.hh)
+set(ProgressReporter_qt5_SOURCES ProgressReporterQt5.cc)
+
+set(CMAKE_AUTOMOC ON)
+
+add_library(ProgressReporter_qt5
+  ${ProgressReporter_qt5_SOURCES} ${ProgressReporter_qt5_HEADERS})
+set_target_properties(ProgressReporter_qt5 PROPERTIES
+  VERSION ${ProgressReporter_qt5_VERSION}
+  SOVERSION ${ProgressReporter_qt5_VERSION_MAJOR})
+target_link_libraries(ProgressReporter_qt5 Qt5::Widgets ProgressReporter)
 
 # Install development headers
-install(DIRECTORY . DESTINATION include/libProgressReporter_qt5
-  FILES_MATCHING PATTERN "*.hh")
+install(FILES ${ProgressReporter_qt5_HEADERS}
+  DESTINATION include/${PACKAGE}/libProgressReporter_qt5)
 
 # Install libraries
 if(WIN32)
@@ -32,9 +35,9 @@ endif(WIN32)
 # are requested
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(ProgressReporter_qt5_static STATIC
-    ProgressReporterQt5.cc ProgressReporterQt5.hh )
+    ${ProgressReporter_qt5_SOURCES} ${ProgressReporter_qt5_HEADERS})
   target_link_libraries(ProgressReporter_qt5_static
-    Qt5::Widgets ProgressReporter )
+    Qt5::Widgets ProgressReporter)
   install(TARGETS ProgressReporter_qt5_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name

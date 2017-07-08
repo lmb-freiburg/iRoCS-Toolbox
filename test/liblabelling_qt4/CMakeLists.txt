@@ -1,0 +1,3 @@
+add_executable(testCopyFromToATBNucleus testCopyFromToATBNucleus.cc)
+target_link_libraries(testCopyFromToATBNucleus LINK_PUBLIC Labelling_qt4)
+add_test(NAME testCopyFromToATBNucleus COMMAND testCopyFromToATBNucleus)

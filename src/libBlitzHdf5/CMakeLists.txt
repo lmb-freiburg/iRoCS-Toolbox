@@ -1,20 +1,24 @@
-add_library(BlitzHdf5
-  BlitzH5Traits.cc BlitzHdf5Light.cc BlitzH5Traits.hh BlitzHdf5Light.hh
-  BlitzHdf5Light.icc FileIOWrapper.hh FileIOWrapper.icc )
 set(BlitzHdf5_VERSION_MAJOR 3)
 set(BlitzHdf5_VERSION_MINOR 0)
 set(BlitzHdf5_VERSION_PATCH 2)
 set(BlitzHdf5_VERSION ${BlitzHdf5_VERSION_MAJOR}.${BlitzHdf5_VERSION_MINOR}.${BlitzHdf5_VERSION_PATCH})
-set_target_properties(BlitzHdf5 PROPERTIES VERSION ${BlitzHdf5_VERSION} SOVERSION ${BlitzHdf5_VERSION_MAJOR})
 
+set(BlitzHdf5_HEADERS
+  BlitzH5Traits.hh BlitzHdf5Light.hh BlitzHdf5Light.icc
+  FileIOWrapper.hh FileIOWrapper.icc)
+set(BlitzHdf5_SOURCES BlitzH5Traits.cc BlitzHdf5Light.cc)
+
+add_library(BlitzHdf5 ${BlitzHdf5_SOURCES} ${BlitzHdf5_HEADERS})
+set_target_properties(BlitzHdf5 PROPERTIES
+  VERSION ${BlitzHdf5_VERSION} SOVERSION ${BlitzHdf5_VERSION_MAJOR})
 target_include_directories(BlitzHdf5
   PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS} )
 target_link_libraries(BlitzHdf5
   ${BLITZ_LIBRARIES} ${HDF5_LIBRARIES} ProgressReporter)
 
 # Install development headers
-install(DIRECTORY . DESTINATION include/libBlitzHdf5
-  FILES_MATCHING PATTERN "*.hh" PATTERN "*.icc")
+install(FILES ${BIitzHdf5_HEADERS}
+  DESTINATION include/${PACKAGE}/libBlitzHdf5)
 
 # Install libraries
 if(WIN32)
@@ -28,11 +32,10 @@ else()
     ARCHIVE DESTINATION lib)
 endif(WIN32)
 
-# Explicitly add static library build if both static and shared libraries are requested
+# Explicitly add static library build if both static and shared libraries
+# are requested
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
-  add_library(BlitzHdf5_static STATIC
-    BlitzH5Traits.cc BlitzHdf5Light.cc BlitzH5Traits.hh BlitzHdf5Light.hh
-    BlitzHdf5Light.icc FileIOWrapper.hh FileIOWrapper.icc )
+  add_library(BlitzHdf5_static STATIC ${BlitzHdf5_SOURCES} ${BlitzHdf5_HEADERS})
   target_include_directories(BlitzHdf5_static
     PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS} )
   target_link_libraries(BlitzHdf5_static
@@ -41,7 +44,8 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
-    SET_TARGET_PROPERTIES(BlitzHdf5_static PROPERTIES OUTPUT_NAME BlitzHdf5 CLEAN_DIRECT_OUTPUT 1)
+    SET_TARGET_PROPERTIES(BlitzHdf5_static PROPERTIES
+      OUTPUT_NAME BlitzHdf5 CLEAN_DIRECT_OUTPUT 1)
   endif(UNIX)
 
 endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
