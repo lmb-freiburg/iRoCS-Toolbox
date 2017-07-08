@@ -1,0 +1,3 @@
+add_executable(testLibBlitzGraphics testLibBlitzGraphics.cc)
+target_link_libraries(testLibBlitzGraphics LINK_PUBLIC Blitz2DGraphics)
+add_test(NAME testLibBlitzGraphics COMMAND testLibBlitzGraphics)

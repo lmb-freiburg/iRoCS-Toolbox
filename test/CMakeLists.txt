@@ -1,2 +1,10 @@
-add_subdirectory(libcmdline)
-
+#add_subdirectory(libBaseFunctions)
+#add_subdirectory(libcmdline)
+#add_subdirectory(libsvmtl)
+#add_subdirectory(libBlitz2DGraphics)
+#add_subdirectory(libBlitzAnalyze)
+add_subdirectory(libProgressReporter)
+#add_subdirectory(lmbs2kit)
+#add_subdirectory(libBlitzHdf5)
+#add_subdirectory(libBlitzFFTW)
+#add_subdirectory(libArrayToolbox)

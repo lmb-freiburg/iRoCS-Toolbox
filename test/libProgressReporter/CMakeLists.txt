@@ -1,0 +1,7 @@
+add_executable(testProgressReporterStream testProgressReporterStream.cc )
+target_link_libraries(testProgressReporterStream LINK_PUBLIC ProgressReporter )
+add_test(NAME testProgressReporterStream COMMAND testProgressReporterStream )
+
+add_executable(testProgressReporterQt4 testProgressReporterQt4.cc )
+target_link_libraries(testProgressReporterQt4 LINK_PUBLIC ProgressReporter_qt4 )
+add_test(NAME testProgressReporterQt4 COMMAND testProgressReporterQt4 )
