@@ -394,7 +394,7 @@ hid_t BlitzH5File::getDatasetType(std::string const &name) const
 
 void BlitzH5File::readDataset(
     std::string &data, std::string const &name,
-    iRoCS::ProgressReporter */*pr*/) const
+    iRoCS::ProgressReporter * /*pr*/) const
 {
   if (_fileId < 0)
       throw BlitzH5Error()
@@ -466,7 +466,7 @@ void BlitzH5File::readDataset(
 
 void BlitzH5File::writeDataset(
     std::string const &data, std::string const &name,
-    iRoCS::ProgressReporter */*pr*/)
+    iRoCS::ProgressReporter * /*pr*/)
 {
   if (_fileId < 0)
       throw BlitzH5Error()
