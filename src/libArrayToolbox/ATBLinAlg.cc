@@ -22,6 +22,8 @@
 
 #include "ATBLinAlg.hh"
 
+#include <algorithm>
+
 namespace atb
 {
 
