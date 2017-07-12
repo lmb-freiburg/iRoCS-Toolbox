@@ -30,14 +30,10 @@
 #ifndef BLITZFFTW_IMPL_HH
 #define BLITZFFTW_IMPL_HH
 
-#ifdef HAVE_CONFIG_H
-#include <config.hh>
-#endif
-
 // make sure we don't include the inline template definitions
 // before the explicit extern template instantiations
 #define BLITZFFTW_HH_NO_INCLUDE_ICC
-#include <BlitzFFTW.hh>
+#include "BlitzFFTW.hh"
 
 // extern template does not conform to ISO C++, so we need to
 // tell gcc to avoid warnings for this file. Else the -Werror
@@ -184,7 +180,7 @@ extern template void BlitzFFTW<double>::exec_guru_plan_c2r(blitz::Array<std::com
 
 // include inline template declarations only after
 // the explicit extern template instantiations
-#include <BlitzFFTW.icc>
+#include "BlitzFFTW.icc"
 
 #endif
 

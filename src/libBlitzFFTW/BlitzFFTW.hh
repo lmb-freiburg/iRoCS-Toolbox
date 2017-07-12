@@ -72,7 +72,7 @@ public:
 
 
 template<typename DataT>
-class BlitzFFTW
+class BLITZFFTWDLL_API BlitzFFTW
 {
 public:
   typedef typename BlitzFFTWPlan<DataT>::real_fftw_plan blitz_fftw_plan;

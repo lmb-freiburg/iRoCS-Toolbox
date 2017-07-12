@@ -52,7 +52,17 @@
 #include <iostream>
 #include <exception>
 
-class BlitzFFTWError : public std::exception
+#ifdef _WIN32
+#ifdef BlitzFFTW_EXPORTS
+#define BLITZFFTWDLL_API __declspec(dllexport)
+#else
+#define BLITZFFTWDLL_API __declspec(dllimport)
+#endif
+#else
+#define BLITZFFTWDLL_API
+#endif
+
+class BLITZFFTWDLL_API BlitzFFTWError : public std::exception
 {
 public:
   BlitzFFTWError() throw()
