@@ -323,7 +323,7 @@ int BlitzImageWriter::writePNG(const ImageAccessWrapper &data,
   int pngColorType;
   
   // setup the rows array
-  png_byte* row_pointers[ysize];
+  png_byte** row_pointers = new png_byte*[ysize];
 
   blitz::Array<png_byte,2> tmp_image;
   
@@ -342,7 +342,7 @@ int BlitzImageWriter::writePNG(const ImageAccessWrapper &data,
       for (int x=0; x<xsize; ++x) {              
         tmp_image(y,x) = static_cast<png_byte>(data.getPixelR(y,x));
       }          
-      row_pointers[y] = &tmp_image(y,0);
+      row_pointers[y] = static_cast<png_byte*>(&tmp_image(y,0));
     }
     break;
 
@@ -384,6 +384,7 @@ int BlitzImageWriter::writePNG(const ImageAccessWrapper &data,
 
   default:         
     std::cerr << "BlitzImageWriter: data format error.\n";
+    delete[] row_pointers;
     return -1;         
   }
 
@@ -414,6 +415,8 @@ int BlitzImageWriter::writePNG(const ImageAccessWrapper &data,
 
   // close file
   fclose( fp);
+
+  delete[] row_pointers;
 
   return 1;
    
