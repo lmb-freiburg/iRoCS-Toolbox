@@ -31,7 +31,7 @@
 
 #include "ChannelSpecs.hh"
 
-#include "../libArrayToolbox/Array.hh"
+#include <libArrayToolbox/Array.hh>
 
 class ColorMap;
 class ColorMapEditorWidget;
