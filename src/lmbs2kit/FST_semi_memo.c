@@ -64,6 +64,10 @@
 
 */
 
+#ifdef _WIN32
+#define _USE_MATH_DEFINES
+#endif
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
