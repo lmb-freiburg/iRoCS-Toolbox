@@ -34,7 +34,7 @@
 namespace iRoCS
 {
   
-  class ProgressReporterStream : public ProgressReporter
+  class PROGRESSREPORTERDLL_API ProgressReporterStream : public ProgressReporter
   {
 
   public:

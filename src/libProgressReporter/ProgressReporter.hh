@@ -29,10 +29,20 @@
 
 #include <string>
 
+#ifdef _WIN32
+#ifdef ProgressReporter_EXPORTS
+#define PROGRESSREPORTERDLL_API __declspec(dllexport)
+#else
+#define PROGRESSREPORTERDLL_API __declspec(dllimport)
+#endif
+#else
+#define PROGRESSREPORTERDLL_API
+#endif
+
 namespace iRoCS
 {
   
-  class ProgressReporter
+  class PROGRESSREPORTERDLL_API ProgressReporter
   {
 
   public:
