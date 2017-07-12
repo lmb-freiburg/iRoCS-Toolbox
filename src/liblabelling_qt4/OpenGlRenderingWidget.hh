@@ -29,6 +29,10 @@
 #include <config.hh>
 #endif
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QMouseEvent>
 
