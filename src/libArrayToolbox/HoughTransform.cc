@@ -52,7 +52,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < static_cast<size_t>(ddata.size()); ++i)
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(ddata.size()); ++i)
         magnitude.data()[i] = static_cast<float>(
             std::sqrt(blitz::dot(ddata.data()[i], ddata.data()[i])));
     
@@ -65,7 +65,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < static_cast<size_t>(ddata.size()); ++i)
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(ddata.size()); ++i)
         ddata.data()[i] /= magnitude.data()[i];
     
     // Normalize gradient magnitude
@@ -135,7 +135,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < static_cast<size_t>(data.size()); ++i)
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(data.size()); ++i)
       {
         if (response.data()[i] < accu.data()[i])
         {

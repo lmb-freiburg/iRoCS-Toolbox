@@ -39,7 +39,7 @@ namespace iRoCS
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < data.size(); ++i)
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(data.size()); ++i)
           _dataScaled.data()[i] = static_cast<double>(data.data()[i]);
 
       if (cacheFileName == "") return _dataScaled;
@@ -80,7 +80,7 @@ namespace iRoCS
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < data.size(); ++i)
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(data.size()); ++i)
           _dataScaled.data()[i] = static_cast<double>(data.data()[i]);
     
       _dataScaled.rescale(targetElSize);
@@ -290,7 +290,7 @@ namespace iRoCS
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < tmp.size(); ++i)
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(tmp.size()); ++i)
           _intrinsicCoordinates.data()[i](0) = tmp.data()[i];
 
       dsName = _featureGroups[2] + "/radialDistance_um";
@@ -302,7 +302,7 @@ namespace iRoCS
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < tmp.size(); ++i)
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(tmp.size()); ++i)
           _intrinsicCoordinates.data()[i](1) = tmp.data()[i];
 
       dsName = _featureGroups[2] + "/phi";
@@ -314,7 +314,7 @@ namespace iRoCS
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < tmp.size(); ++i)
+      for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(tmp.size()); ++i)
           _intrinsicCoordinates.data()[i](2) = tmp.data()[i];
     }
     catch (BlitzH5Error &) 
@@ -374,7 +374,7 @@ namespace iRoCS
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (size_t i = 0; i < tmp.size(); ++i)
+        for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(tmp.size()); ++i)
             tmp.data()[i] = _intrinsicCoordinates.data()[i](0);
 
         tmp.save(cacheFileName, _featureGroups[2] + "/qcDistance_um");
@@ -387,7 +387,7 @@ namespace iRoCS
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (size_t i = 0; i < tmp.size(); ++i)
+        for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(tmp.size()); ++i)
             tmp.data()[i] = _intrinsicCoordinates.data()[i](1);
 
         tmp.save(cacheFileName, _featureGroups[2] + "/radialDistance_um");
@@ -399,7 +399,7 @@ namespace iRoCS
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (size_t i = 0; i < tmp.size(); ++i)
+        for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(tmp.size()); ++i)
             tmp.data()[i] = _intrinsicCoordinates.data()[i](2);
 
         tmp.save(cacheFileName, _featureGroups[2] + "/phi");

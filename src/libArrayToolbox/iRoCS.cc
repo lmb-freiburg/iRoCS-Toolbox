@@ -158,7 +158,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < static_cast<size_t>(shell.size()); ++i)
+    for (int i = 0; i < static_cast<int>(shell.size()); ++i)
     {
       shell.data()[i] = false;
       if (bwL.data()[i] != largestLabel) continue;

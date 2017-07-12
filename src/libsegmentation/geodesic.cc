@@ -43,7 +43,7 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < static_cast<size_t>(mask.size()); ++i)
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(mask.size()); ++i)
     {
       blitz::TinyVector<double,3> posPx;
       size_t tmp = i;
@@ -137,7 +137,7 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < static_cast<size_t>(rgvf.size()); ++i)
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(rgvf.size()); ++i)
         rgvf.data()[i] *= anisotropyFactor;
 
     blitz::Array<float, 3> radial_comp(Shape);

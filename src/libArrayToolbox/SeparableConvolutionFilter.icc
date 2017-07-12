@@ -87,7 +87,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < kernel->size(); ++i)
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(kernel->size()); ++i)
         kernelRev.data()[i] = kernel->data()[kernel->size() - 1 - i];
     _filterReal.setKernelForDim(&kernelRev, dim);
   }

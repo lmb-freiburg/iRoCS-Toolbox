@@ -70,7 +70,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < strel.size(); ++i)
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(strel.size()); ++i)
     {
       blitz::TinyVector<BlitzIndexT,Dim> p;
       BlitzIndexT tmp = BlitzIndexT(i);
@@ -88,7 +88,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < data.size(); ++i)
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(data.size()); ++i)
     {
       if (pr != NULL)
       {
