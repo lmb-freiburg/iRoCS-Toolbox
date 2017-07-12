@@ -196,7 +196,7 @@ namespace atb
   template <typename DataT, int Dim>
   void fillHolesGray(
       blitz::Array<DataT,Dim> const &data, blitz::Array<DataT,Dim> &result,
-      enum Neighborhood<Dim>::Type nh = Neighborhood<Dim>::Complex,
+      typename Neighborhood<Dim>::Type nh = Neighborhood<Dim>::Complex,
       iRoCS::ProgressReporter *pr = NULL);
 
 /*======================================================================*/
