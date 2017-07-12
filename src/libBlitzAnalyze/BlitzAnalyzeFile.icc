@@ -50,9 +50,6 @@
 
 #include <cstring>
 
-#undef min
-#undef max
-
 /*=========================================================================
  *  DESCRIPTION OF FUNCTION:
  *  ==> see headerfile
