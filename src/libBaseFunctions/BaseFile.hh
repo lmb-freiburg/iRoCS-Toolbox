@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Mario Emmenlauer
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -21,7 +21,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
- **************************************************************************/ 
+ **************************************************************************/
 
 #ifndef BASEFILE_HH
 #define BASEFILE_HH BASEFILE_HH
@@ -33,8 +33,17 @@
 #include <string>
 #include <vector>
 
-class BaseFile
-{
+#ifdef _WIN32
+#ifdef BaseFunctions_EXPORTS
+#define BASEFUNCTIONSDLL_API __declspec(dllexport)
+#else
+#define BASEFUNCTIONSDLL_API __declspec(dllimport)
+#endif
+#else
+#define BASEFUNCTIONSDLL_API
+#endif
+
+class BASEFUNCTIONSDLL_API BaseFile {
 public:
   /**
    * BaseName returns the file name component of the path. Note
@@ -59,6 +68,8 @@ public:
    * file. It expands all symbolic links and resolves references
    * to /./, /../ and extra '/' characters, to produce a
    * canonicalized absolute pathname.
+   *
+   * @todo Current implementation does not work on Windows
    *
    * @return string the path to the file
    */
@@ -125,8 +136,8 @@ public:
    *         successfully listed, false otherwise.
    */
   static bool ListDir(
-      const std::string& aInputDir, std::vector<std::string>& aFiles,
-      const std::string& aPattern);
+    const std::string& aInputDir, std::vector<std::string>& aFiles,
+    const std::string& aPattern);
 
   /**
    * Remove deletes a file or directory
@@ -165,7 +176,7 @@ public:
    * @return A new filename
    */
   static std::string
-  FindUniqueUnexistingName(std::string const &aBaseName, char aPattern);
+    FindUniqueUnexistingName(std::string const &aBaseName, char aPattern);
 
   /**
    * BeautifyFilePath sanitizes a path to a file or directory. It

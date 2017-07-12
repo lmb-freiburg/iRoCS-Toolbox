@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Mario Emmenlauer
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -21,7 +21,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
- **************************************************************************/ 
+ **************************************************************************/
 
 #ifndef BASEENVIRONMENT_HH
 #define BASEENVIRONMENT_HH BASEENVIRONMENT_HH
@@ -32,9 +32,17 @@
 
 #include <string>
 
+#ifdef _WIN32
+#ifdef BaseFunctions_EXPORTS
+#define BASEFUNCTIONSDLL_API __declspec(dllexport)
+#else
+#define BASEFUNCTIONSDLL_API __declspec(dllimport)
+#endif
+#else
+#define BASEFUNCTIONSDLL_API
+#endif
 
-class BaseEnvironment
-{
+class BASEFUNCTIONSDLL_API BaseEnvironment {
 public:
   /**
    * UserHomeDirectory returns the path to the users home
@@ -69,10 +77,6 @@ public:
    * @return string the name of the host.
    */
   static std::string HostName();
-
-private:
-#ifdef _WIN32
-#endif
 
 };
 

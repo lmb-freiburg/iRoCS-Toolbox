@@ -28,7 +28,7 @@
 
 #include <iostream>
 
-// standard libraries
+ // standard libraries
 #include <string>
 #include <string.h>
 #include <cstdlib>
@@ -38,7 +38,7 @@
 #include <sys/types.h>
 #ifdef _WIN32
 #include <winsock2.h> // for gethostname
-#include <windows.h>  // for RegOpenKeyEx
+#pragma comment(lib, "wsock32.lib")
 #include <direct.h>   // for mkdir
 #ifdef __MINGW32__
 #include <Shlobj.h> // For SHGetFolderPath
@@ -53,33 +53,35 @@
 #endif
 
 
-std::string BaseEnvironment::UserHomeDirectory()
-{
+std::string BaseEnvironment::UserHomeDirectory() {
   std::string vUserHomeDir;
 
-  char* ptr;
+  char* ptr = NULL;
 #if defined(__linux__) || defined(__APPLE__)
   ptr = getenv("HOME");
-  if( ptr != NULL && BaseFile::IsDirectory(ptr)) {
+  if (ptr != NULL && BaseFile::IsDirectory(ptr)) {
     vUserHomeDir = std::string(ptr);
-  } else {
+  }
+  else {
     ptr = (char*)getpwuid(getuid());
-    if( ptr != NULL) {
+    if (ptr != NULL) {
       ptr = ((struct passwd*)ptr)->pw_dir;
-      if( ptr != NULL && *ptr != '\0' && BaseFile::IsDirectory(ptr)) {
+      if (ptr != NULL && *ptr != '\0' && BaseFile::IsDirectory(ptr)) {
         vUserHomeDir = ptr;
-      } else {
+      }
+      else {
         ptr = ((struct passwd*)ptr)->pw_name;
-        if( ptr != NULL && *ptr != '\0') {
+        if (ptr != NULL && *ptr != '\0') {
           std::string vTmp = std::string("/home/") + ptr;
           if (BaseFile::IsDirectory(vTmp.c_str())) {
             vUserHomeDir = vTmp;
           }
         }
       }
-    } else {
+    }
+    else {
       ptr = getlogin();
-      if( ptr != NULL) {
+      if (ptr != NULL) {
         std::string vTmp = std::string("/home/") + ptr;
         if (BaseFile::IsDirectory(vTmp.c_str())) {
           vUserHomeDir = vTmp;
@@ -88,53 +90,33 @@ std::string BaseEnvironment::UserHomeDirectory()
     }
   }
 #elif defined(_WIN32)
-  ptr = getenv("USERPROFILE");
-  if( ptr != NULL && BaseFile::IsDirectory(ptr)) {
+  _dupenv_s(&ptr, NULL, "USERPROFILE");
+  if (ptr != NULL && BaseFile::IsDirectory(ptr)) {
     vUserHomeDir = std::string(ptr);
-  } else {
-    ptr = getenv("HOMEPATH");
-    char* ptr2 = getenv("HOMEDRIVE");
-    if( ptr != NULL && ptr2 != 0) {
+    free(ptr);
+    ptr = NULL;
+  }
+  else {
+    _dupenv_s(&ptr, NULL, "HOMEPATH");
+    char* ptr2 = NULL;
+    _dupenv_s(&ptr2, NULL, "HOMEDRIVE");
+    if (ptr != NULL && ptr2 != NULL) {
       std::string vTmp = std::string(ptr2) + std::string(ptr);
       if (BaseFile::IsDirectory(vTmp.c_str())) {
         vUserHomeDir = vTmp;
       }
     }
-    /*
-     else {
-        HKEY   hKey;
-        TCHAR  szPath[MAX_PATH];
-        TCHAR *szProfilePath;
-        ULONG  nPathLen = sizeof(szPath);
-        TCHAR *szProfileList = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList";
-        if(ERROR_SUCCESS != RegOpenKeyEx(HKLM, szProfileList, 0, KEY_READ, &hKey))
-          return FALSE;
-        if(ERROR_SUCCESS == RegQueryValueEx(hKey, "ProfilesDirectory", 0, REG_SZ, szPath, &nPathLen)) {
-          ExpandEnvironmentStrings(szPath, szProfilePath, nLength);
-          RegCloseKey(hKey);
-          return TRUE;
-        } else {
-          RegCloseKey(hKey);
-          return FALSE;
-        }
-      }
-    */
+    if (ptr != NULL) free(ptr);
+    if (ptr2 != NULL) free(ptr2);
   }
 #else
 #error function not defined for your architecture
 #endif
-
-  //if (!vUserHomeDir.empty()) {
-  //  Reporter::message(3) << "Found an (existing) user home directory at '" << vUserHomeDir << "'.\n";
-  //} else {
-  //  Reporter::message(3) << "Could not find an (existing) user home directory.\n";
-  //}
   return vUserHomeDir;
 }
 
 
-std::string BaseEnvironment::UserTempDirectory()
-{
+std::string BaseEnvironment::UserTempDirectory() {
   std::string vUserTempDir;
 
 #ifdef _WIN32
@@ -160,7 +142,8 @@ std::string BaseEnvironment::UserTempDirectory()
   char* vPath = getenv("TMP");
   if (vPath != NULL) {
     vUserTempDir = vPath;
-  } else if (BaseFile::IsDirectory("/tmp")) {
+  }
+  else if (BaseFile::IsDirectory("/tmp")) {
     vUserTempDir = "/tmp";
   }
   free(vPath);
@@ -171,15 +154,14 @@ std::string BaseEnvironment::UserTempDirectory()
 }
 
 
-std::string BaseEnvironment::UserAppDataDirectory()
-{
+std::string BaseEnvironment::UserAppDataDirectory() {
   std::string vUserAppDataDir;
 
 #ifdef _WIN32
 #ifdef __MINGW32__
   TCHAR *buf = new TCHAR[MAX_PATH];
   if (!SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, buf)))
-      return std::string();
+    return std::string();
   vUserAppDataDir = buf;
   delete[] buf;
   std::cout << "APPDATA = " << vUserAppDataDir << std::endl;
@@ -200,21 +182,20 @@ std::string BaseEnvironment::UserAppDataDirectory()
 }
 
 
-std::string BaseEnvironment::HostName()
-{
+std::string BaseEnvironment::HostName() {
   std::string hostName;
 
   char ptr[1024];
-  memset( ptr, 0, 1023);
+  memset(ptr, 0, 1023);
 #if defined(__linux__) || defined(__APPLE__)
-  if( gethostname( ptr, 1023) == 0) {
+  if (gethostname(ptr, 1023) == 0) {
     hostName = std::string(ptr);
   }
 #elif defined(_WIN32)
   WSADATA WSAData;
   // Initialize winsock dll
-  if( WSAStartup(MAKEWORD(1, 0), &WSAData) == 0) {
-    if( gethostname( ptr, 1023) == 0) {
+  if (WSAStartup(MAKEWORD(1, 0), &WSAData) == 0) {
+    if (gethostname(ptr, 1023) == 0) {
       hostName = std::string(ptr);
     }
   }
