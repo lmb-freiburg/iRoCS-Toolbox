@@ -96,9 +96,9 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
     ${ArrayToolbox_SOURCES} ${ArrayToolbox_algo_SOURCES}
     ${ArrayToolbox_HEADERS} ${ArrayToolbox_algo_HEADERS})
   target_include_directories(ArrayToolbox_static
-    PUBLIC ${GSL_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS})
+    PUBLIC ${GSL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
   target_link_libraries(ArrayToolbox_static
-    BlitzFFTW BlitzHdf5 ${GSL_LIBRARIES} ${OPENCV_LIBRARIES})
+    BlitzFFTW BlitzHdf5 ${GSL_LIBRARIES} ${OpenCV_LIBRARIES})
   install(TARGETS ArrayToolbox_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name
