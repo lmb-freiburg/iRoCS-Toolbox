@@ -12,3 +12,10 @@
 // blitz++ specific defines
 #cmakedefine BZ_THREADSAFE
 #cmakedefine BZ_DEBUG
+
+// Undefine problematic defines as e.g. introduced by windows.h
+#undef small
+#undef min
+#undef max
+#undef abs
+#undef Complex
