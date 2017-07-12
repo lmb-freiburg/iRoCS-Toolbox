@@ -3,7 +3,7 @@
  * Copyright (C) 2010 Robert Bensch
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -20,68 +20,56 @@
  *
  **************************************************************************/
 
-/**************************************************************************
- **	Title: BlitzAnalyzeTraits implementation
- **	$RCSfile$
- **	$Revision: $$Name$
- **	$Date: $
- **	Copyright: GPL $Author: $
- **	Description:
- **
- **************************************************************************/
-
 #include "BlitzAnalyzeTraits.hh"
 
-/*-----------------------------------------------------------------------
- *  Constructors
- *-----------------------------------------------------------------------*/
+ /*-----------------------------------------------------------------------
+  *  Constructors
+  *-----------------------------------------------------------------------*/
 
-/*=========================================================================
- *  DESCRIPTION OF FUNCTION:
- *  ==> see headerfile
- *=======================================================================*/
+  /*=========================================================================
+   *  DESCRIPTION OF FUNCTION:
+   *  ==> see headerfile
+   *=======================================================================*/
 template<>
 BlitzAnalyzeTraits<unsigned char>::BlitzAnalyzeTraits()
-throw(BlitzAnalyzeError)
-{
+throw(BlitzAnalyzeError) {}
 
-}
 /*=========================================================================
  *  DESCRIPTION OF FUNCTION:
  *  ==> see headerfile
  *=======================================================================*/
 template<>
 BlitzAnalyzeTraits<short int>::BlitzAnalyzeTraits()
-throw(BlitzAnalyzeError)
-{
+throw(BlitzAnalyzeError) {}
 
-}
 /*=========================================================================
  *  DESCRIPTION OF FUNCTION:
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-BlitzAnalyzeTraits< blitz::TinyVector<unsigned char,3> >::BlitzAnalyzeTraits()
-throw(BlitzAnalyzeError)
-{
-
-}
+BlitzAnalyzeTraits< blitz::TinyVector<unsigned char, 3> >::BlitzAnalyzeTraits()
+throw(BlitzAnalyzeError) {}
 
 /*-----------------------------------------------------------------------
  *  Implementations of Type()
  *-----------------------------------------------------------------------*/
 
+ /*=========================================================================
+  *  DESCRIPTION OF FUNCTION:
+  *  ==> see headerfile
+  *=======================================================================*/
+template<>
+std::string BlitzAnalyzeTraits<unsigned char>::Type() {
+  return std::string("CHAR");
+}
+
 /*=========================================================================
  *  DESCRIPTION OF FUNCTION:
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-std::string
-BlitzAnalyzeTraits<unsigned char>::
-Type()
-{
-  std::string datatype("CHAR");
-  return datatype;
+std::string BlitzAnalyzeTraits<short int>::Type() {
+  return std::string("SHORT");
 }
 
 /*=========================================================================
@@ -90,39 +78,21 @@ Type()
  *=======================================================================*/
 template<>
 std::string
-BlitzAnalyzeTraits<short int>::
-Type()
-{
-  std::string datatype("SHORT");
-  return datatype;
-}
-
-/*=========================================================================
- *  DESCRIPTION OF FUNCTION:
- *  ==> see headerfile
- *=======================================================================*/
-template<>
-std::string
-BlitzAnalyzeTraits< blitz::TinyVector<unsigned char,3> >::
-Type()
-{
-  std::string datatype("RGB");
-  return datatype;
+BlitzAnalyzeTraits< blitz::TinyVector<unsigned char, 3> >::Type() {
+  return std::string("RGB");
 }
 
 /*-----------------------------------------------------------------------
  *  Implementations of max()
  *-----------------------------------------------------------------------*/
 
-/*=========================================================================
- *  DESCRIPTION OF FUNCTION:
- *  ==> see headerfile
- *=======================================================================*/
+ /*=========================================================================
+  *  DESCRIPTION OF FUNCTION:
+  *  ==> see headerfile
+  *=======================================================================*/
 template<>
-int
-BlitzAnalyzeTraits<unsigned char>::
-max( const blitz::Array< unsigned char,3>& inArray)
-{
+int BlitzAnalyzeTraits<unsigned char>::max(
+  const blitz::Array< unsigned char, 3>& inArray) {
   return static_cast<int>(blitz::max(inArray));
 }
 
@@ -131,10 +101,8 @@ max( const blitz::Array< unsigned char,3>& inArray)
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-int
-BlitzAnalyzeTraits<short int>::
-max( const blitz::Array< short int,3>& inArray)
-{
+int BlitzAnalyzeTraits<short int>::max(
+  const blitz::Array< short int, 3>& inArray) {
   return static_cast<int>(blitz::max(inArray));
 }
 
@@ -143,10 +111,8 @@ max( const blitz::Array< short int,3>& inArray)
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-int
-BlitzAnalyzeTraits< blitz::TinyVector<unsigned char,3> >::
-max( const blitz::Array< blitz::TinyVector<unsigned char,3>, 3>&)
-{
+int BlitzAnalyzeTraits< blitz::TinyVector<unsigned char, 3> >::max(
+  const blitz::Array< blitz::TinyVector<unsigned char, 3>, 3>&) {
   return 255;
 }
 
@@ -154,15 +120,13 @@ max( const blitz::Array< blitz::TinyVector<unsigned char,3>, 3>&)
  *  Implementations of min()
  *-----------------------------------------------------------------------*/
 
-/*=========================================================================
- *  DESCRIPTION OF FUNCTION:
- *  ==> see headerfile
- *=======================================================================*/
+ /*=========================================================================
+  *  DESCRIPTION OF FUNCTION:
+  *  ==> see headerfile
+  *=======================================================================*/
 template<>
-int
-BlitzAnalyzeTraits<unsigned char>::
-min( const blitz::Array< unsigned char,3>& inArray)
-{
+int BlitzAnalyzeTraits<unsigned char>::min(
+  const blitz::Array< unsigned char, 3>& inArray) {
   return static_cast<int>(blitz::min(inArray));
 }
 
@@ -171,10 +135,8 @@ min( const blitz::Array< unsigned char,3>& inArray)
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-int
-BlitzAnalyzeTraits<short int>::
-min( const blitz::Array< short int,3>& inArray)
-{
+int BlitzAnalyzeTraits<short int>::min(
+  const blitz::Array< short int, 3>& inArray) {
   return static_cast<int>(blitz::min(inArray));
 }
 
@@ -183,10 +145,8 @@ min( const blitz::Array< short int,3>& inArray)
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-int
-BlitzAnalyzeTraits< blitz::TinyVector<unsigned char,3> >::
-min( const blitz::Array< blitz::TinyVector<unsigned char,3>, 3>& inArray)
-{
+int BlitzAnalyzeTraits< blitz::TinyVector<unsigned char, 3> >::min(
+  const blitz::Array< blitz::TinyVector<unsigned char, 3>, 3>& inArray) {
   return 0;
 }
 
@@ -195,10 +155,7 @@ min( const blitz::Array< blitz::TinyVector<unsigned char,3>, 3>& inArray)
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-size_t
-BlitzAnalyzeTraits<unsigned char>::
-sizeof_type()
-{
+size_t BlitzAnalyzeTraits<unsigned char>::sizeof_type() {
   return sizeof(unsigned char);
 }
 
@@ -206,15 +163,12 @@ sizeof_type()
  *  Implementations of sizeof_type()
  *-----------------------------------------------------------------------*/
 
-/*=========================================================================
- *  DESCRIPTION OF FUNCTION:
- *  ==> see headerfile
- *=======================================================================*/
+ /*=========================================================================
+  *  DESCRIPTION OF FUNCTION:
+  *  ==> see headerfile
+  *=======================================================================*/
 template<>
-size_t
-BlitzAnalyzeTraits<short int>::
-sizeof_type()
-{
+size_t BlitzAnalyzeTraits<short int>::sizeof_type() {
   return sizeof(short int);
 }
 
@@ -224,9 +178,6 @@ sizeof_type()
  *=======================================================================*/
 template<>
 size_t
-BlitzAnalyzeTraits< blitz::TinyVector<unsigned char,3> >::
-sizeof_type()
-{
-  return 3*sizeof(unsigned char);
+BlitzAnalyzeTraits< blitz::TinyVector<unsigned char, 3> >::sizeof_type() {
+  return 3 * sizeof(unsigned char);
 }
-

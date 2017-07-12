@@ -3,7 +3,7 @@
  * Copyright (C) 2010 Robert Bensch
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -20,16 +20,6 @@
  *
  **************************************************************************/
 
-/**************************************************************************
- **    Title: BlitzAnalyzeError class
- **    $RCSfile$
- **    $Revision: $$Name$
- **    $Date: $
- **    Copyright: GPL $Author: $
- **    Description:
- **
- **************************************************************************/
-
 #ifndef ANALYZEERROR_HH
 #define ANALYZEERROR_HH
 
@@ -41,15 +31,13 @@
 #include <sstream>
 #include <iostream>
 
-
-/*======================================================================*/
-/*!
- *  \class BlitzAnalyzeError BlitzAnalyzeError.hh
- *  \brief Error class for BlitzAnalyzeFile
- */
-/*======================================================================*/
-class BlitzAnalyzeError
-{
+  /*======================================================================*/
+  /*!
+   *  \class BlitzAnalyzeError BlitzAnalyzeError.hh
+   *  \brief Error class for BlitzAnalyzeFile
+   */
+   /*======================================================================*/
+class BlitzAnalyzeError {
 public:
   /*======================================================================*/
   /*!
@@ -57,9 +45,8 @@ public:
    *
    *   \sa BlitzAnalyzeError::operator<<
    */
-  /*======================================================================*/
-  BlitzAnalyzeError()
-        {}
+   /*======================================================================*/
+  BlitzAnalyzeError() {}
 
   /*======================================================================*/
   /*!
@@ -69,10 +56,9 @@ public:
    *
    *   \param message  error message
    */
-  /*======================================================================*/
-  BlitzAnalyzeError( const std::string& message)
-          :_message( message)
-        {}
+   /*======================================================================*/
+  BlitzAnalyzeError(const std::string& message)
+    :_message(message) {}
 
   /*======================================================================*/
   /*!
@@ -80,15 +66,14 @@ public:
    *
    *   \param data
    */
-  /*======================================================================*/
+   /*======================================================================*/
   template<class DataType>
-  BlitzAnalyzeError & operator<<( const DataType &data)
-        {
-          std::ostringstream os;
-          os << data;
-          _message += os.str();
-          return *this;
-        }
+  BlitzAnalyzeError & operator<<(const DataType &data) {
+    std::ostringstream os;
+    os << data;
+    _message += os.str();
+    return *this;
+  }
 
   /*======================================================================*/
   /*!
@@ -96,16 +81,14 @@ public:
    *
    *   \return error message
    */
-  /*======================================================================*/
-  std::string str() const
-        {
-          return _message;
-        }
+   /*======================================================================*/
+  std::string str() const {
+    return _message;
+  }
 
-  const char* what() const
-        {
-          return _message.c_str();
-        }
+  const char* what() const {
+    return _message.c_str();
+  }
 
 private:
   std::string _message;
@@ -113,4 +96,3 @@ private:
 };
 
 #endif
-

@@ -3,7 +3,7 @@
  * Copyright (C) 2010 Robert Bensch
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -23,7 +23,7 @@
  * -----------------------------
  *
  * The Analyze header type definitions in "BlitzAnalyzeType.hh" and
- * the methode "saveArrayWithElemSize" in "BlitzAnalyzeFile.icc"
+ * the method "saveArrayWithElemSize" in "BlitzAnalyzeFile.icc"
  * are mainly based on the Analyze 7.5 File Format document
  * http://www.mayo.edu/bir/PDF/ANALYZE75.pdf
  * (.../libBlitzAnalyze/docs/ANALYZE75.pdf)
@@ -38,16 +38,6 @@
  *
  **************************************************************************/
 
-/**************************************************************************
- **	Title: BlitzAnalyzeFile class
- **	$RCSfile$
- **	$Revision: $$Name$
- **	$Date: $
- **	Copyright: GPL $Author: $
- **	Description:
- **
- **************************************************************************/
-
 #ifndef BLITZANALYZEFILE_HH
 #define BLITZANALYZEFILE_HH
 
@@ -59,22 +49,22 @@
 #include <fstream>
 #include <blitz/array.h>
 
-#include "BlitzAnalyzeType.hh"	// lib's type definitions for Analyze header
-#include "BlitzAnalyzeError.hh"  // lib's own error class
+#include "BlitzAnalyzeType.hh" // lib's type definitions for Analyze header
+#include "BlitzAnalyzeError.hh" // lib's own error class
 #include "BlitzAnalyzeTraits.hh" // lib's type traits
 
-/*======================================================================*/
-/*!
- *  \class BlitzAnalyzeFile BlitzAnalyzeFile.hh
- *  \brief The BlitzAnalyzeFile class provides a function
- *  		for saving of voxel blocks to the Analyze file format.
- *
- *	Currently supported are Blitz-Arrays of data element types:
- *		unsigned char
- *		short int
- *		blitz::TinyVector<unsigned char,3>	//for RGB arrays
- */
-/*======================================================================*/
+ /*======================================================================*/
+ /*!
+  *  \class BlitzAnalyzeFile BlitzAnalyzeFile.hh
+  *  \brief The BlitzAnalyzeFile class provides a function
+  *    for saving of voxel blocks to the Analyze file format.
+  *
+  * Currently supported are Blitz-Arrays of data element types:
+  *  unsigned char
+  *  short int
+  *  blitz::TinyVector<unsigned char,3>	//for RGB arrays
+  */
+  /*======================================================================*/
 
 class BlitzAnalyzeFile {
 
@@ -86,8 +76,8 @@ public:
    *
    *   \param fName  file to be opened, without file extention!
    */
-  /*======================================================================*/
-  BlitzAnalyzeFile( const std::string& fName);
+   /*======================================================================*/
+  BlitzAnalyzeFile(const std::string& fName);
 
   /*-----------------------------------------------------------------------
    *  Destructor
@@ -98,22 +88,22 @@ public:
    *  data methods
    *-----------------------------------------------------------------------*/
 
-  /*======================================================================*/
-  /*!
-   *   Writes a three dimensional data set.
-   *
-   *   \param inArray			array to be written into file
-   *   \param element_size_um	element size in um (lev,row,col)
-   *
-   *   Supported types T:
-   *   		unsigned char
-   *   		short int
-   *   		blitz::TinyVector<unsigned char,3>
-   */
-  /*======================================================================*/
+   /*======================================================================*/
+   /*!
+    *   Writes a three dimensional data set.
+    *
+    *   \param inArray			array to be written into file
+    *   \param element_size_um	element size in um (lev,row,col)
+    *
+    *   Supported types T:
+    *     unsigned char
+    *     short int
+    *     blitz::TinyVector<unsigned char,3>
+    */
+    /*======================================================================*/
   template<typename T>
-  void saveArrayWithElemSize( const blitz::Array<T,3>& inArray, const blitz::TinyVector<float,3>& element_size_um)
-      throw(BlitzAnalyzeError);
+  void saveArrayWithElemSize(const blitz::Array<T, 3>& inArray, const blitz::TinyVector<float, 3>& element_size_um)
+    throw(BlitzAnalyzeError);
 
 private:
 
@@ -130,4 +120,3 @@ private:
 #include "BlitzAnalyzeFile.icc"
 
 #endif
-

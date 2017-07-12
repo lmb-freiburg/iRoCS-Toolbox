@@ -20,16 +20,6 @@
  *
  **************************************************************************/
 
-/**************************************************************************
- **	Title: BlitzAnalyzeTraits class
- **	$RCSfile$
- **	$Revision: $$Name$
- **	$Date: $
- **	Copyright: GPL $Author: $
- **	Description:
- **
- **************************************************************************/
-
 #ifndef BLITZANALYZETRAITS_HH
 #define BLITZANALYZETRAITS_HH
 
@@ -41,7 +31,6 @@
 #include <fstream>
 #include <blitz/array.h>
 
-//#include "BlitzAnalyzeType.hh"	// lib's type traits
 #include "BlitzAnalyzeError.hh"  // lib's own error class
 
 /*======================================================================*/
@@ -125,4 +114,3 @@ private:
 #include "BlitzAnalyzeTraits.icc"
 
 #endif
-
