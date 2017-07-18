@@ -42,13 +42,20 @@ endif(WIN32)
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(segmentation_static STATIC
     ${segmentation_SOURCES} ${segmentation_HEADERS})
-  target_link_libraries(segmentation_static ArrayToolbox lbs2kit)
+  target_link_libraries(segmentation_static ArrayToolbox lmbs2kit)
   install(TARGETS segmentation_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(segmentation_static PROPERTIES
-      OUTPUT_NAME segmentation CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+      OUTPUT_NAME segmentation)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(segmentation_static_tools STATIC
+    ${segmentation_SOURCES} ${segmentation_HEADERS})
+  target_link_libraries(segmentation_static_tools
+    ArrayToolbox_static_tools lmbs2kit_static_tools)
+endif()

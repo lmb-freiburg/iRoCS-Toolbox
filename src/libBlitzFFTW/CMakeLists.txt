@@ -42,8 +42,17 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
-    SET_TARGET_PROPERTIES(BlitzFFTW_static PROPERTIES
-      OUTPUT_NAME BlitzFFTW CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+    SET_TARGET_PROPERTIES(BlitzFFTW_static PROPERTIES OUTPUT_NAME BlitzFFTW)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(BlitzFFTW_static_tools
+    STATIC ${BlitzFFTW_SOURCES} ${BlitzFFTW_HEADERS})
+  target_include_directories(BlitzFFTW_static_tools
+    PUBLIC ${BLITZ_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS} ${FFTW3F_INCLUDE_DIRS})
+  target_link_libraries(BlitzFFTW_static_tools
+    ${BLITZ_STATIC_LIBRARIES} ${FFTW3_STATIC_LIBRARIES}
+    ${FFTW3F_STATIC_LIBRARIES} BaseFunctions_static_tools)
+endif()

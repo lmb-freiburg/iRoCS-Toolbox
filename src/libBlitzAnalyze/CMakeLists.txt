@@ -43,7 +43,15 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(BlitzAnalyze_static PROPERTIES
-      OUTPUT_NAME BlitzAnalyze CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+      OUTPUT_NAME BlitzAnalyze)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(BlitzAnalyze_static_tools STATIC
+    ${BlitzAnalyze_SOURCES} ${BlitzAnalyze_HEADERS})
+  target_include_directories(BlitzAnalyze_static_tools
+    PUBLIC ${BLITZ_INCLUDE_DIRS})
+  target_link_libraries(BlitzAnalyze_static_tools ${BLITZ_STATIC_LIBRARIES})
+endif()

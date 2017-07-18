@@ -52,7 +52,18 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(Blitz2DGraphics_static PROPERTIES
-      OUTPUT_NAME Blitz2DGraphics CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+      OUTPUT_NAME Blitz2DGraphics)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(Blitz2DGraphics_static_tools STATIC
+    ${Blitz2DGraphics_SOURCES} ${Blitz2DGraphics_HEADERS})
+  target_include_directories(Blitz2DGraphics_static_tools PUBLIC
+    ${BLITZ_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${TIFF_INCLUDE_DIRS}
+    ${JPEG_INCLUDE_DIRS})
+  target_link_libraries(Blitz2DGraphics_static_tools
+    ${BLITZ_STATIC_LIBRARIES} ${PNG_STATIC_LIBRARIES} ${TIFF_STATIC_LIBRARIES}
+    ${JPEG_STATIC_LIBRARIES})
+endif()

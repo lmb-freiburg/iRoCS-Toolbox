@@ -140,17 +140,16 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   target_include_directories(Labelling_qt4_static PUBLIC
     ${OPENGL_INCLUDE_DIRS})
   target_link_libraries(Labelling_qt4_static
-    segmentation ProgressReporter_qt4 BlitzAnalyze Qt4::QtCore Qt4::QtOpenGL
-    Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES})
+    segmentation ProgressReporter_qt4 BlitzAnalyze
+    Qt4::QtCore Qt4::QtOpenGL Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES})
   install(TARGETS Labelling_qt4_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(Labelling_qt4_static PROPERTIES
-      OUTPUT_NAME Labelling_qt4 CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
-
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+      OUTPUT_NAME Labelling_qt4)
+  endif()
+endif()
 
 set(CMAKE_AUTORCC OFF)
 set(CMAKE_AUTOMOC OFF)

@@ -19,7 +19,7 @@ target_include_directories(lmbs2kit PUBLIC
 target_link_libraries(lmbs2kit ${FFTW3_LIBRARIES} ${FFTW3F_LIBRARIES})
 
 if(UNIX)
-  target_link_libraries(lmbs2kit m)
+  target_link_libraries(lmbs2kit ${LIBM_LIBRARIES})
 endif()
 
 # Install development headers
@@ -46,15 +46,27 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   target_link_libraries(lmbs2kit_static ${FFTW3_LIBRARIES} ${FFTW3F_LIBRARIES})
 
   if(UNIX)
-    target_link_libraries(lmbs2kit_static m)
+    target_link_libraries(lmbs2kit_static ${LIBM_LIBRARIES})
   endif()
 
   install(TARGETS lmbs2kit_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
-    SET_TARGET_PROPERTIES(lmbs2kit_static PROPERTIES
-      OUTPUT_NAME lmbs2kit CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+    SET_TARGET_PROPERTIES(lmbs2kit_static PROPERTIES OUTPUT_NAME lmbs2kit)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(lmbs2kit_static_tools STATIC
+    ${lmbs2kit_SOURCES} ${lmbs2kit_HEADERS})
+  target_include_directories(lmbs2kit_static_tools PUBLIC
+    ${FFTW3_INCLUDE_DIRS} ${FFTW3F_INCLUDE_DIRS})
+  target_link_libraries(lmbs2kit_static_tools ${FFTW3_STATIC_LIBRARIES}
+    ${FFTW3F_STATIC_LIBRARIES})
+
+  if(UNIX)
+    target_link_libraries(lmbs2kit_static_tools ${LIBM_STATIC_LIBRARIES})
+  endif()
+endif()

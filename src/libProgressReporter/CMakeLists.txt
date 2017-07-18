@@ -38,7 +38,12 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(ProgressReporter_static PROPERTIES
-      OUTPUT_NAME ProgressReporter CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+      OUTPUT_NAME ProgressReporter)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(ProgressReporter_static_tools STATIC
+    ${ProgressReporter_SOURCES} ${ProgressReporter_HEADERS})
+endif()

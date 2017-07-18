@@ -12,12 +12,12 @@ add_library(BlitzHdf5 ${BlitzHdf5_SOURCES} ${BlitzHdf5_HEADERS})
 set_target_properties(BlitzHdf5 PROPERTIES
   VERSION ${BlitzHdf5_VERSION} SOVERSION ${BlitzHdf5_VERSION_MAJOR})
 target_include_directories(BlitzHdf5
-  PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS} )
+  PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS})
 target_link_libraries(BlitzHdf5
-  ${BLITZ_LIBRARIES} ${HDF5_LIBRARIES} ProgressReporter)
+  ${BLITZ_LIBRARIES} ${HDF5_C_LIBRARIES} ProgressReporter)
 
 # Install development headers
-install(FILES ${BIitzHdf5_HEADERS}
+install(FILES ${BlitzHdf5_HEADERS}
   DESTINATION include/${PACKAGE}/libBlitzHdf5)
 
 # Install libraries
@@ -37,15 +37,24 @@ endif(WIN32)
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(BlitzHdf5_static STATIC ${BlitzHdf5_SOURCES} ${BlitzHdf5_HEADERS})
   target_include_directories(BlitzHdf5_static
-    PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS} )
+    PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS})
   target_link_libraries(BlitzHdf5_static
-    ${BLITZ_LIBRARIES} ${HDF5_LIBRARIES} ProgressReporter )
+    ${BLITZ_LIBRARIES} ${HDF5_C_LIBRARIES} ProgressReporter)
   install(TARGETS BlitzHdf5_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
-    SET_TARGET_PROPERTIES(BlitzHdf5_static PROPERTIES
-      OUTPUT_NAME BlitzHdf5 CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+    SET_TARGET_PROPERTIES(BlitzHdf5_static PROPERTIES OUTPUT_NAME BlitzHdf5)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(BlitzHdf5_static_tools STATIC
+    ${BlitzHdf5_SOURCES} ${BlitzHdf5_HEADERS})
+  target_include_directories(BlitzHdf5_static_tools
+    PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_STATIC_C_INCLUDE_DIRS})
+  target_link_libraries(BlitzHdf5_static_tools
+    ${BLITZ_STATIC_LIBRARIES} ${HDF5_STATIC_C_LIBRARIES}
+    ProgressReporter_static_tools)
+endif()

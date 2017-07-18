@@ -104,7 +104,18 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(ArrayToolbox_static PROPERTIES
-      OUTPUT_NAME ArrayToolbox CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+      OUTPUT_NAME ArrayToolbox)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(ArrayToolbox_static_tools STATIC
+    ${ArrayToolbox_SOURCES} ${ArrayToolbox_algo_SOURCES}
+    ${ArrayToolbox_HEADERS} ${ArrayToolbox_algo_HEADERS})
+  target_include_directories(ArrayToolbox_static_tools
+    PUBLIC ${GSL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+  target_link_libraries(ArrayToolbox_static_tools
+    BlitzFFTW_static_tools BlitzHdf5_static_tools ${GSL_STATIC_LIBRARIES}
+    ${OpenCV_STATIC_LIBRARIES})
+endif()

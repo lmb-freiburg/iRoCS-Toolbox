@@ -49,8 +49,13 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
-    SET_TARGET_PROPERTIES(IRoCS_static PROPERTIES
-      OUTPUT_NAME IRoCS CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+    SET_TARGET_PROPERTIES(IRoCS_static PROPERTIES OUTPUT_NAME IRoCS)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(IRoCS_static_tools STATIC ${IRoCS_SOURCES} ${IRoCS_HEADERS})
+  target_link_libraries(IRoCS_static_tools
+    ArrayToolbox_static_tools svmtl_static_tools)
+endif()
