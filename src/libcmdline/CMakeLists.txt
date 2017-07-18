@@ -35,8 +35,11 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
-    SET_TARGET_PROPERTIES(cmdline_static PROPERTIES
-      OUTPUT_NAME cmdline CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+    SET_TARGET_PROPERTIES(cmdline_static PROPERTIES OUTPUT_NAME cmdline)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(cmdline_static_tools STATIC ${cmdline_SOURCES} ${cmdline_HEADERS})
+endif()

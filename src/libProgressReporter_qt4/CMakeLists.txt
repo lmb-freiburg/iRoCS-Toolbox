@@ -36,7 +36,8 @@ endif(WIN32)
 if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(ProgressReporter_qt4_static STATIC
     ${ProgressReporter_qt4_SOURCES} ${ProgressReporter_qt4_HEADERS})
-  target_link_libraries(ProgressReporter_qt4_static Qt4::QtGui ProgressReporter)
+  target_link_libraries(ProgressReporter_qt4_static Qt4::QtGui
+    ProgressReporter_static)
   install(TARGETS ProgressReporter_qt4_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name

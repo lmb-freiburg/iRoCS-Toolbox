@@ -43,9 +43,8 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(ProgressReporter_qt5_static PROPERTIES
-      OUTPUT_NAME ProgressReporter_qt5 CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
-
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+      OUTPUT_NAME ProgressReporter_qt5)
+  endif()
+endif()
 
 set(CMAKE_AUTOMOC OFF)

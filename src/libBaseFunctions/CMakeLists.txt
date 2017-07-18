@@ -37,7 +37,12 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   # On Linux rename static library to match shared library name
   if(UNIX)
     SET_TARGET_PROPERTIES(BaseFunctions_static PROPERTIES
-      OUTPUT_NAME BaseFunctions CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+      OUTPUT_NAME BaseFunctions)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(BaseFunctions_static_tools STATIC
+    ${BaseFunctions_SOURCES} ${BaseFunctions_HEADERS})
+endif()

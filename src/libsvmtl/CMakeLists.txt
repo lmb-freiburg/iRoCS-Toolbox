@@ -56,9 +56,8 @@ add_library(svmtl
   ${svmtl_noinst_HEADERS})
 set_target_properties(svmtl PROPERTIES
   VERSION ${svmtl_VERSION} SOVERSION ${svmtl_VERSION_MAJOR})
-target_include_directories(svmtl PUBLIC
-  ${HDF5_INCLUDE_DIRS} ${HDF5_CPP_INCLUDE_DIRS})
-target_link_libraries(svmtl ${HDF5_CPP_LIBRARIES} ${HDF5_LIBRARIES})
+target_include_directories(svmtl PUBLIC ${HDF5_INCLUDE_DIRS})
+target_link_libraries(svmtl ${HDF5_CXX_LIBRARIES})
 
 # Install development headers
 install(FILES ${svmtl_HEADERS} DESTINATION include/${PACKAGE}/libsvmtl)
@@ -83,15 +82,22 @@ if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
   add_library(svmtl_static STATIC
     ${svmtl_SOURCES} ${svmtl_HEADERS} ${svmtl_svt_check_HEADERS}
     ${svmtl_noinst_HEADERS})
-  target_include_directories(svmtl_static PUBLIC
-    ${HDF5_INCLUDE_DIRS} ${HDF5_CPP_INCLUDE_DIRS})
-  target_link_libraries(svmtl_static ${HDF5_CPP_LIBRARIES} ${HDF5_LIBRARIES})
+  target_include_directories(svmtl_static PUBLIC ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(svmtl_static ${HDF5_CXX_LIBRARIES})
   install(TARGETS svmtl_static ARCHIVE DESTINATION lib)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
-    SET_TARGET_PROPERTIES(svmtl_static PROPERTIES
-      OUTPUT_NAME svmtl CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
+    SET_TARGET_PROPERTIES(svmtl_static PROPERTIES OUTPUT_NAME svmtl)
+  endif()
+endif()
 
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Explicitly add static library build for static binaries
+if(BUILD_STATIC_TOOLS)
+  add_library(svmtl_static_tools STATIC
+    ${svmtl_SOURCES} ${svmtl_HEADERS} ${svmtl_svt_check_HEADERS}
+    ${svmtl_noinst_HEADERS})
+  target_include_directories(svmtl_static_tools
+    PUBLIC ${HDF5_STATIC_CXX_INCLUDE_DIRS})
+  target_link_libraries(svmtl_static_tools ${HDF5_STATIC_CXX_LIBRARIES})
+endif()
