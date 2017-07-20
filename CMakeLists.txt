@@ -90,25 +90,14 @@ find_package(Qt5Widgets QUIET)
 
 if(BUILD_STATIC_TOOLS)
 
-<<<<<<< HEAD
   macro(find_static_library shared_lib outvarprefix module)
-=======
-  macro(find_static_library shared_lib module)
->>>>>>> 213dc36b1dbdb90e17f31ec870be543ddef66dea
     get_filename_component(folder ${shared_lib} DIRECTORY)
     get_filename_component(libname ${shared_lib} NAME_WE)
     string(REGEX REPLACE "^lib" "" libname ${libname})
     if ("${module}" STREQUAL "")
-<<<<<<< HEAD
       set(outvar ${outvarprefix}_STATIC_LIBRARY)
     else()
       set(outvar ${module}_${outvarprefix}_STATIC_LIBRARY)
-=======
-      string(TOUPPER ${libname} outvar_base)
-      set(outvar ${outvar_base}_STATIC_LIBRARY)
-    else()
-      set(outvar ${module}_${libname}_STATIC_LIBRARY)
->>>>>>> 213dc36b1dbdb90e17f31ec870be543ddef66dea
     endif()
     find_library(${outvar} ${CMAKE_STATIC_LIBRARY_PREFIX}${libname}${CMAKE_STATIC_LIBRARY_SUFFIX}
       HINTS ${folder} DOC "The static ${libname} library")
@@ -119,11 +108,7 @@ if(BUILD_STATIC_TOOLS)
     if (NOT "${module}" STREQUAL "")
       list(APPEND ${module}_STATIC_LIBRARIES ${${outvar}})
     else()
-<<<<<<< HEAD
       set(${outvarprefix}_STATIC_LIBRARIES ${${outvar}})
-=======
-      set(${outvar_base}_STATIC_LIBRARIES ${${outvar}})
->>>>>>> 213dc36b1dbdb90e17f31ec870be543ddef66dea
     endif()
   endmacro()
 
@@ -134,13 +119,7 @@ if(BUILD_STATIC_TOOLS)
     endif()
     mark_as_advanced(LIBM_STATIC_LIBRARIES)
   endif()
-<<<<<<< HEAD
   find_static_library(${ZLIB_LIBRARY} "ZLIB" "")
-=======
-  find_static_library(${ZLIB_LIBRARY} "")
-  set(ZLIB_STATIC_LIBRARY ${Z_STATIC_LIBRARY} CACHE PATH "Static gnu zip library")
-  mark_as_advanced(ZLIB_STATIC_LIBRARY)
->>>>>>> 213dc36b1dbdb90e17f31ec870be543ddef66dea
 
   set(THIRDPARTY_PREFIX "thirdparty")
 
@@ -185,7 +164,6 @@ if(BUILD_STATIC_TOOLS)
   set(HDF5_STATIC_CXX_LIBRARIES ${PROJECT_BINARY_DIR}/${THIRDPARTY_PREFIX}/src/hdf5_static-build/bin/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_cpp${CMAKE_STATIC_LIBRARY_SUFFIX})
   list(APPEND HDF5_STATIC_CXX_LIBRARIES ${ZLIB_STATIC_LIBRARY})
 
-<<<<<<< HEAD
   find_static_library(${BLITZ_LIBRARY} "BLITZ" "")
   find_static_library(${PNG_LIBRARY} "PNG" "")
   find_static_library(${TIFF_LIBRARY} "TIFF" "")
@@ -195,17 +173,6 @@ if(BUILD_STATIC_TOOLS)
   find_static_library(${GSL_LIBRARY} "GSL" "")
   find_static_library(${GSL_CBLAS_LIBRARY} "GSL_CBLAS" "")
   set(GSL_STATIC_LIBRARIES ${GSL_STATIC_LIBRARY} ${GSL_CBLAS_STATIC_LIBRARY})
-=======
-  find_static_library(${BLITZ_LIBRARY} "")
-  find_static_library(${PNG_LIBRARY} "")
-  find_static_library(${TIFF_LIBRARY} "")
-  find_static_library(${JPEG_LIBRARY} "")
-  find_static_library(${FFTW3_LIBRARY} "")
-  find_static_library(${FFTW3F_LIBRARY} "")
-  find_static_library(${GSL_LIBRARY} "")
-  find_static_library(${GSL_CBLAS_LIBRARY} "")
-  set(GSL_STATIC_LIBRARIES ${GSL_STATIC_LIBRARY} ${GSLCBLAS_STATIC_LIBRARY})
->>>>>>> 213dc36b1dbdb90e17f31ec870be543ddef66dea
 
   # Build our own mini OpenCV to reduce dependencies to a minimum
   set(OpenCV_URL "https://github.com/opencv/opencv/archive/2.4.13.2.zip")
