@@ -1,6 +1,6 @@
 set(Blitz2DGraphics_VERSION_MAJOR 1)
-set(Blitz2DGraphics_VERSION_MINOR 1)
-set(Blitz2DGraphics_VERSION_PATCH 0)
+set(Blitz2DGraphics_VERSION_MINOR 0)
+set(Blitz2DGraphics_VERSION_PATCH 2)
 set(Blitz2DGraphics_VERSION ${Blitz2DGraphics_VERSION_MAJOR}.${Blitz2DGraphics_VERSION_MINOR}.${Blitz2DGraphics_VERSION_PATCH})
 
 set(Blitz2DGraphics_HEADERS

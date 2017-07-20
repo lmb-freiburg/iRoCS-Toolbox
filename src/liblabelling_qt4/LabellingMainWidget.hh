@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -45,28 +45,32 @@ class PluginInterface;
 
 #include "Marker.hh"
 
-#if defined(Labelling_qt4_EXPORTS)
-#define LABELLING_QT4_API __declspec(dllexport)
-#elif defined(Labelling_qt4_USE_DLL)
-#define LABELLING_QT4_API __declspec(dllimport)
+#ifdef _WIN32
+  #if defined(Labelling_qt4_EXPORTS)
+    #define LABELLING_QT4_API __declspec(dllexport)
+  #elif defined(Labelling_qt4_USE_DLL)
+    #define LABELLING_QT4_API __declspec(dllimport)
+  #else
+    #define LABELLING_QT4_API
+  #endif
 #else
-#define LABELLING_QT4_API
+  #define LABELLING_QT4_API
 #endif
 
 class LABELLING_QT4_API LabellingMainWidget : public QMainWindow
 {
-  
+
   Q_OBJECT
 
 public:
-  
+
   static std::string const __labellingVersionString;
 
   LabellingMainWidget(
       size_t memoryLimit, std::string const &fileName = "",
       bool forceImport = false, QWidget* parent = 0);
   ~LabellingMainWidget();
-  
+
   MultiChannelModel* multiChannelModel();
   OrthoViewWidget* orthoView();
   OpenGlRenderingViewWidget* openGlRenderingView();
@@ -155,7 +159,7 @@ private:
 
   QProgressBar *p_progressBar;
   iRoCS::ProgressReporterQt4 *p_progressReporter;
-  
+
 };
 
 #endif

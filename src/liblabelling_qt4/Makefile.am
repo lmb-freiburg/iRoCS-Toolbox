@@ -8,10 +8,8 @@ RCC = @QT4_RCC@
 AM_CPPFLAGS = -I$(top_srcdir)/src \
 	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(BLITZ_CFLAGS) $(FFTW_CFLAGS) \
 	$(HDF5_CFLAGS) $(QT4_CFLAGS)
-AM_CXXFLAGS = -Wno-long-long 
-AM_LDFLAGS = -no-undefined -version-info 2:0:1 -rdynamic
-
-# version bump to 3:0:2 pending (interface extension)
+AM_CXXFLAGS = -Wno-long-long
+AM_LDFLAGS = -no-undefined -version-info 3:0:0 -rdynamic
 
 libLabelling_qt4_la_LIBADD = \
 	$(top_builddir)/src/libsegmentation/libsegmentation.la \

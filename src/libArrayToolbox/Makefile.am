@@ -6,9 +6,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src \
 	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(BLITZ_CFLAGS) $(FFTW_CFLAGS) \
 	$(HDF5_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -no-undefined -version-info 2:1:1
-
-# Version bump to 2.0.2 pending (Interface extension)
+AM_LDFLAGS = -no-undefined -version-info 3:0:0
 
 libArrayToolbox_la_LIBADD = \
 	$(top_builddir)/src/libBlitzFFTW/libBlitzFFTW.la \
@@ -113,4 +111,3 @@ libArrayToolbox_la_SOURCES = \
 	HoughTransform.cc \
 	Random.cc \
 	ATBThinPlateSpline.cc
-

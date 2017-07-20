@@ -6,7 +6,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(HDF5_CFLAGS) \
 	$(HDF5_CPP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(OPENCV_CFLAGS) \
 	$(QT4_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -no-undefined -version-info 1:0:0
+AM_LDFLAGS = -no-undefined -version-info 1:1:0
 
 libPluginEpidermisLabelling_la_LIBADD = \
 	$(top_builddir)/src/libIRoCS/libIRoCS.la \
@@ -45,4 +45,4 @@ nodist_libPluginEpidermisLabelling_la_SOURCES = \
 moc_%.cc: %.hh
 	$(MOC) $(AM_CPPFLAGS) $< -o $@
 
-MOSTLYCLEANFILES = $(MOC_GEN_SOURCES) 
+MOSTLYCLEANFILES = $(MOC_GEN_SOURCES)

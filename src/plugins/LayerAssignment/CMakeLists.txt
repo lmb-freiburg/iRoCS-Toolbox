@@ -1,6 +1,6 @@
 set(PluginLayerAssignment_VERSION_MAJOR 1)
 set(PluginLayerAssignment_VERSION_MINOR 0)
-set(PluginLayerAssignment_VERSION_PATCH 0)
+set(PluginLayerAssignment_VERSION_PATCH 1)
 set(PluginLayerAssignment_VERSION ${PluginLayerAssignment_VERSION_MAJOR}.${PluginLayerAssignment_VERSION_MINOR}.${PluginLayerAssignment_VERSION_PATCH})
 
 set(CMAKE_AUTOMOC ON)

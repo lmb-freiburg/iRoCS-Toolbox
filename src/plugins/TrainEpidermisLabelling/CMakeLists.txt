@@ -1,4 +1,4 @@
-set(PluginTrainEpidermisLabelling_VERSION_MAJOR 1)
+set(PluginTrainEpidermisLabelling_VERSION_MAJOR 2)
 set(PluginTrainEpidermisLabelling_VERSION_MINOR 0)
 set(PluginTrainEpidermisLabelling_VERSION_PATCH 0)
 set(PluginTrainEpidermisLabelling_VERSION ${PluginTrainEpidermisLabelling_VERSION_MAJOR}.${PluginTrainEpidermisLabelling_VERSION_MINOR}.${PluginTrainEpidermisLabelling_VERSION_PATCH})

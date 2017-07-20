@@ -1,4 +1,4 @@
-set(ProgressReporter_VERSION_MAJOR 1) # bump to 2.0.0 at next release
+set(ProgressReporter_VERSION_MAJOR 2)
 set(ProgressReporter_VERSION_MINOR 0)
 set(ProgressReporter_VERSION_PATCH 0)
 set(ProgressReporter_VERSION ${ProgressReporter_VERSION_MAJOR}.${ProgressReporter_VERSION_MINOR}.${ProgressReporter_VERSION_PATCH})

@@ -1,4 +1,4 @@
-set(PluginRootSegmentation_VERSION_MAJOR 1)
+set(PluginRootSegmentation_VERSION_MAJOR 2)
 set(PluginRootSegmentation_VERSION_MINOR 0)
 set(PluginRootSegmentation_VERSION_PATCH 0)
 set(PluginRootSegmentation_VERSION ${PluginRootSegmentation_VERSION_MAJOR}.${PluginRootSegmentation_VERSION_MINOR}.${PluginRootSegmentation_VERSION_PATCH})

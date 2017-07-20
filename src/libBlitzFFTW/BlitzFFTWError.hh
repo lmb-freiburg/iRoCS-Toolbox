@@ -3,7 +3,7 @@
  * Copyright (C) 2010 Thorsten Falk, Mario Emmenlauer
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -21,14 +21,14 @@
  **************************************************************************/
 
 /**************************************************************************
-**       Title: 
+**       Title:
 **    $RCSfile$
 **   $Revision: 1384 $$Name$
 **       $Date: 2007-11-28 14:02:45 +0100 (Wed, 28 Nov 2007) $
 **   Copyright: GPL $Author: fehr $
 ** Description:
 **
-**    
+**
 **
 **-------------------------------------------------------------------------
 **
@@ -52,12 +52,16 @@
 #include <iostream>
 #include <exception>
 
-#if defined(BlitzFFTW_EXPORTS)
-#define BLITZFFTWDLL_API __declspec(dllexport)
-#elif defined(BlitzFFTW_USE_DLL)
-#define BLITZFFTWDLL_API __declspec(dllimport)
+#ifdef _WIN32
+  #if defined(BlitzFFTW_EXPORTS)
+    #define BLITZFFTWDLL_API __declspec(dllexport)
+  #elif defined(BlitzFFTW_USE_DLL)
+    #define BLITZFFTWDLL_API __declspec(dllimport)
+  #else
+    #define BLITZFFTWDLL_API
+  #endif
 #else
-#define BLITZFFTWDLL_API
+  #define BLITZFFTWDLL_API
 #endif
 
 class BLITZFFTWDLL_API BlitzFFTWError : public std::exception
@@ -65,14 +69,14 @@ class BLITZFFTWDLL_API BlitzFFTWError : public std::exception
 public:
   BlitzFFTWError() throw()
         {}
-  
+
   BlitzFFTWError( const std::string& message) throw()
           :_message( message)
         {}
 
   virtual ~BlitzFFTWError() throw()
         {}
-  
+
   template<class DataType>
   BlitzFFTWError & operator<<( const DataType &data) throw()
         {
@@ -91,11 +95,11 @@ public:
         {
           return _message.c_str();
         }
-  
-  
+
+
 private:
   std::string _message;
-  
+
 };
 
 #endif

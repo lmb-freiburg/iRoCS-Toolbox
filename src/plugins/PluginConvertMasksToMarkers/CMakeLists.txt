@@ -1,4 +1,4 @@
-set(PluginConvertMasksToMarkers_VERSION_MAJOR 1)
+set(PluginConvertMasksToMarkers_VERSION_MAJOR 2)
 set(PluginConvertMasksToMarkers_VERSION_MINOR 0)
 set(PluginConvertMasksToMarkers_VERSION_PATCH 0)
 set(PluginConvertMasksToMarkers_VERSION ${PluginConvertMasksToMarkers_VERSION_MAJOR}.${PluginConvertMasksToMarkers_VERSION_MINOR}.${PluginConvertMasksToMarkers_VERSION_PATCH})

@@ -1,6 +1,6 @@
 set(BlitzAnalyze_VERSION_MAJOR 1)
 set(BlitzAnalyze_VERSION_MINOR 0)
-set(BlitzAnalyze_VERSION_PATCH 0)
+set(BlitzAnalyze_VERSION_PATCH 1)
 set(BlitzAnalyze_VERSION ${BlitzAnalyze_VERSION_MAJOR}.${BlitzAnalyze_VERSION_MINOR}.${BlitzAnalyze_VERSION_PATCH})
 
 set(BlitzAnalyze_HEADERS

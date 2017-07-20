@@ -33,12 +33,16 @@
 #include <string>
 #include <vector>
 
-#if defined(BaseFunctions_EXPORTS)
-#define BASEFUNCTIONSDLL_API __declspec(dllexport)
-#elif defined(BaseFunctions_USE_DLL)
-#define BASEFUNCTIONSDLL_API __declspec(dllimport)
+#ifdef _WIN32
+  #if defined(BaseFunctions_EXPORTS)
+    #define BASEFUNCTIONSDLL_API __declspec(dllexport)
+  #elif defined(BaseFunctions_USE_DLL)
+    #define BASEFUNCTIONSDLL_API __declspec(dllimport)
+  #else
+    #define BASEFUNCTIONSDLL_API
+  #endif
 #else
-#define BASEFUNCTIONSDLL_API
+  #define BASEFUNCTIONSDLL_API
 #endif
 
 class BASEFUNCTIONSDLL_API BaseFile {

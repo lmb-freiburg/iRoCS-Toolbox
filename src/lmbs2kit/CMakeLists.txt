@@ -1,6 +1,6 @@
 set(lmbs2kit_VERSION_MAJOR 1)
 set(lmbs2kit_VERSION_MINOR 0)
-set(lmbs2kit_VERSION_PATCH 0)
+set(lmbs2kit_VERSION_PATCH 1)
 set(lmbs2kit_VERSION ${lmbs2kit_VERSION_MAJOR}.${lmbs2kit_VERSION_MINOR}.${lmbs2kit_VERSION_PATCH})
 
 set(lmbs2kit_HEADERS

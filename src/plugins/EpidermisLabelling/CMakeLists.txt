@@ -1,6 +1,6 @@
 set(PluginEpidermisLabelling_VERSION_MAJOR 1)
 set(PluginEpidermisLabelling_VERSION_MINOR 0)
-set(PluginEpidermisLabelling_VERSION_PATCH 0)
+set(PluginEpidermisLabelling_VERSION_PATCH 1)
 set(PluginEpidermisLabelling_VERSION ${PluginEpidermisLabelling_VERSION_MAJOR}.${PluginEpidermisLabelling_VERSION_MINOR}.${PluginEpidermisLabelling_VERSION_PATCH})
 
 set(CMAKE_AUTOMOC ON)

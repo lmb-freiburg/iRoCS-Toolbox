@@ -5,7 +5,7 @@ MOC = @QT5_MOC@
 
 AM_CPPFLAGS = -I$(top_srcdir)/src $(QT5_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -no-undefined -version-info 0:0:0
+AM_LDFLAGS = -no-undefined -version-info 1:0:0
 
 libProgressReporter_qt5_la_LIBADD = \
 	$(top_builddir)/src/libProgressReporter/libProgressReporter.la \
@@ -26,4 +26,4 @@ progressreporterinclude_HEADERS = \
 moc_%.cc: %.hh
 	$(MOC) $< -o $@
 
-MOSTLYCLEANFILES = $(MOC_GEN_SOURCES) 
+MOSTLYCLEANFILES = $(MOC_GEN_SOURCES)

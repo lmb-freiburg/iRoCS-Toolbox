@@ -1,4 +1,4 @@
-set(PluginTrainLayerAssignment_VERSION_MAJOR 1)
+set(PluginTrainLayerAssignment_VERSION_MAJOR 2)
 set(PluginTrainLayerAssignment_VERSION_MINOR 0)
 set(PluginTrainLayerAssignment_VERSION_PATCH 0)
 set(PluginTrainLayerAssignment_VERSION ${PluginTrainLayerAssignment_VERSION_MAJOR}.${PluginTrainLayerAssignment_VERSION_MINOR}.${PluginTrainLayerAssignment_VERSION_PATCH})

@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
- **************************************************************************/ 
+ **************************************************************************/
 
 /*======================================================================*/
 /*!
@@ -37,19 +37,23 @@
 #include <complex>
 #include <blitz/array.h>
 
-#if defined(ArrayToolbox_EXPORTS)
-#define ARRAYTOOLBOXDLL_API __declspec(dllexport)
-#elif defined(ArrayToolbox_USE_DLL)
-#define ARRAYTOOLBOXDLL_API __declspec(dllimport)
+#ifdef _WIN32
+  #if defined(ArrayToolbox_EXPORTS)
+    #define ARRAYTOOLBOXDLL_API __declspec(dllexport)
+  #elif defined(ArrayToolbox_USE_DLL)
+    #define ARRAYTOOLBOXDLL_API __declspec(dllimport)
+  #else
+    #define ARRAYTOOLBOXDLL_API
+  #endif
 #else
-#define ARRAYTOOLBOXDLL_API
+  #define ARRAYTOOLBOXDLL_API
 #endif
 
 namespace atb
 {
-  
+
 /*! The native integer type for indexing blitz++ Arrays. */
-  typedef int BlitzIndexT; 
+  typedef int BlitzIndexT;
 
 /*======================================================================*/
 /*!
@@ -68,9 +72,9 @@ namespace atb
   template<typename DataT>
   struct traits
   {
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   \brief The type with highest precision of this kind.
  *
  *   If you want to do floating point arithmetics on variables of
@@ -82,7 +86,7 @@ namespace atb
     typedef DataT HighPrecisionT;
 
 /*======================================================================*/
-/*! 
+/*!
  *   \brief The corresponding complex value type to the given type.
  *
  *   The default implementation is DataT which is pointless
@@ -92,7 +96,7 @@ namespace atb
     typedef DataT ComplexT;
 
 /*======================================================================*/
-/*! 
+/*!
  *   \brief The corresponding basic type to the given type.
  *
  *   For multi-component types this should return the basic element type,
@@ -102,35 +106,35 @@ namespace atb
     typedef DataT BasicT;
 
 /*======================================================================*/
-/*! 
+/*!
  *   \brief Get a representation of the smallest value for this data type.
  */
 /*======================================================================*/
     static DataT const smallest;
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   \brief Get a representation of the greatest value for this data type.
  */
 /*======================================================================*/
     static DataT const greatest;
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   \brief Get a representation of the Zero for this data type.
  */
 /*======================================================================*/
     static DataT const zero;
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   \brief Get a representation of the One for this data type.
  */
 /*======================================================================*/
     static DataT const one;
 
 /*======================================================================*/
-/*! 
+/*!
  *   \brief Get the value that corresponds to the saturation of the sensor.
  *   This is 255 for an 8Bit sensor, 65535 for a 16Bit sensor, and 1.0 for
  *   a floating point type. For unknown types (if the compiler doesn't
@@ -140,7 +144,7 @@ namespace atb
     static DataT const saturated;
 
 /*======================================================================*/
-/*! 
+/*!
  *   \brief If this type specifies a complex number type this constant is true
  */
 /*======================================================================*/

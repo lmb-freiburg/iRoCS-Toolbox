@@ -2,7 +2,7 @@ lib_LTLIBRARIES = liblmbs2kit.la
 lmbs2kitincludedir = $(pkgincludedir)/lmbs2kit
 
 AM_CPPFLAGS = $(FFTW_CFLAGS)
-AM_LDFLAGS = -no-undefined -version-info 1:0:0
+AM_LDFLAGS = -no-undefined -version-info 1:1:0
 
 liblmbs2kit_la_LIBADD = $(FFTW_LIBS)
 

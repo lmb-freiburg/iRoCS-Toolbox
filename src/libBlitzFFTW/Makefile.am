@@ -2,7 +2,7 @@ lib_LTLIBRARIES = libBlitzFFTW.la
 blitzfftwincludedir = $(pkgincludedir)/libBlitzFFTW
 
 AM_CPPFLAGS = -I$(top_srcdir)/src $(BLITZ_CFLAGS) $(FFTW_CFLAGS)
-AM_LDFLAGS = -no-undefined -version-info 1:0:0
+AM_LDFLAGS = -no-undefined -version-info 1:1:0
 
 libBlitzFFTW_la_LIBADD = \
 	$(top_builddir)/src/libBaseFunctions/libBaseFunctions.la \
@@ -17,4 +17,3 @@ blitzfftwinclude_HEADERS = \
 	BlitzFFTW.icc \
 	BlitzFFTW-Impl.hh \
 	BlitzFFTWError.hh
-

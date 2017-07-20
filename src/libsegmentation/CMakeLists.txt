@@ -1,4 +1,4 @@
-set(segmentation_VERSION_MAJOR 1)
+set(segmentation_VERSION_MAJOR 2)
 set(segmentation_VERSION_MINOR 0)
 set(segmentation_VERSION_PATCH 0)
 set(segmentation_VERSION ${segmentation_VERSION_MAJOR}.${segmentation_VERSION_MINOR}.${segmentation_VERSION_PATCH})

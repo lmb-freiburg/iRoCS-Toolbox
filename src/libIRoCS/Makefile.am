@@ -5,9 +5,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src \
 	$(GSL_CFLAGS) $(OPENCV_CFLAGS) $(BLITZ_CFLAGS) $(FFTW_CFLAGS) \
 	$(HDF5_CFLAGS)
 AM_CXXFLAGS = -Wno-long-long
-AM_LDFLAGS = -no-undefined -version-info 2:0:0 -rdynamic
-
-# Version bump to 3:0:0 pending (Interface change - removed liblabelling_qt4 dependencies)
+AM_LDFLAGS = -no-undefined -version-info 3:0:0 -rdynamic
 
 libIRoCS_la_LIBADD = \
 	$(top_builddir)/src/libArrayToolbox/libArrayToolbox.la \
@@ -50,4 +48,4 @@ libIRoCS_la_SOURCES = \
 	TrainDetectorWorker.cc \
 	TrainEpidermisLabellingWorker.cc \
 	TrainLayerAssignmentWorker.cc \
-	DetectSpheresWorker.cc 
+	DetectSpheresWorker.cc

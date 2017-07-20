@@ -1,6 +1,6 @@
-set(BlitzHdf5_VERSION_MAJOR 3)
+set(BlitzHdf5_VERSION_MAJOR 4)
 set(BlitzHdf5_VERSION_MINOR 0)
-set(BlitzHdf5_VERSION_PATCH 2)
+set(BlitzHdf5_VERSION_PATCH 0)
 set(BlitzHdf5_VERSION ${BlitzHdf5_VERSION_MAJOR}.${BlitzHdf5_VERSION_MINOR}.${BlitzHdf5_VERSION_PATCH})
 
 set(BlitzHdf5_HEADERS

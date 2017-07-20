@@ -1,6 +1,6 @@
 set(PluginAssignLayersToCellSegmentation_VERSION_MAJOR 1)
 set(PluginAssignLayersToCellSegmentation_VERSION_MINOR 0)
-set(PluginAssignLayersToCellSegmentation_VERSION_PATCH 0)
+set(PluginAssignLayersToCellSegmentation_VERSION_PATCH 1)
 set(PluginAssignLayersToCellSegmentation_VERSION ${PluginAssignLayersToCellSegmentation_VERSION_MAJOR}.${PluginAssignLayersToCellSegmentation_VERSION_MINOR}.${PluginAssignLayersToCellSegmentation_VERSION_PATCH})
 
 set(CMAKE_AUTOMOC ON)
