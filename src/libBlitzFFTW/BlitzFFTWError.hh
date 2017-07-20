@@ -52,12 +52,10 @@
 #include <iostream>
 #include <exception>
 
-#ifdef _WIN32
-#ifdef BlitzFFTW_EXPORTS
+#if defined(BlitzFFTW_EXPORTS)
 #define BLITZFFTWDLL_API __declspec(dllexport)
-#else
+#elif defined(BlitzFFTW_USE_DLL)
 #define BLITZFFTWDLL_API __declspec(dllimport)
-#endif
 #else
 #define BLITZFFTWDLL_API
 #endif

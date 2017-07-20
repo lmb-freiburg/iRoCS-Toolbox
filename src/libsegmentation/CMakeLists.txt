@@ -30,12 +30,13 @@ if(WIN32)
   # On windows store DLLs alongside the binaries
   install(TARGETS segmentation
     LIBRARY DESTINATION bin
+    RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib)
 else()
   install(TARGETS segmentation
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib)
-endif(WIN32)
+endif()
 
 # Explicitly add static library build if both static and shared libraries
 # are requested

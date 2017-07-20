@@ -24,7 +24,7 @@ namespace atb
 {
 
   template<>
-  struct traits<bool>
+  struct ARRAYTOOLBOXDLL_API traits<bool>
   {
     
     typedef double HighPrecisionT;
@@ -40,7 +40,7 @@ namespace atb
   };
 
   template<>
-  struct traits<signed char>
+  struct ARRAYTOOLBOXDLL_API traits<signed char>
   {
     
     typedef double HighPrecisionT;
@@ -56,7 +56,7 @@ namespace atb
   };
 
   template<>
-  struct traits<unsigned char>
+  struct ARRAYTOOLBOXDLL_API traits<unsigned char>
   {
     
     typedef double HighPrecisionT;
@@ -72,7 +72,7 @@ namespace atb
   };
 
   template<>
-  struct traits<char>
+  struct ARRAYTOOLBOXDLL_API traits<char>
   {
     
     typedef double HighPrecisionT;
@@ -88,7 +88,7 @@ namespace atb
   };
 
   template<>
-  struct traits<unsigned short>
+  struct ARRAYTOOLBOXDLL_API traits<unsigned short>
   {
     
     typedef double HighPrecisionT;
@@ -104,7 +104,7 @@ namespace atb
   };
 
   template<>
-  struct traits<short>
+  struct ARRAYTOOLBOXDLL_API traits<short>
   {
     
     typedef double HighPrecisionT;
@@ -120,7 +120,7 @@ namespace atb
   };
 
   template<>
-  struct traits<unsigned int>
+  struct ARRAYTOOLBOXDLL_API traits<unsigned int>
   {
     
     typedef double HighPrecisionT;
@@ -136,7 +136,7 @@ namespace atb
   };
 
   template<>
-  struct traits<int>
+  struct ARRAYTOOLBOXDLL_API traits<int>
   {
     
     typedef double HighPrecisionT;
@@ -152,7 +152,7 @@ namespace atb
   };
 
   template<>
-  struct traits<unsigned long>
+  struct ARRAYTOOLBOXDLL_API traits<unsigned long>
   {
     
     typedef double HighPrecisionT;
@@ -168,7 +168,7 @@ namespace atb
   };
 
   template<>
-  struct traits<long>
+  struct ARRAYTOOLBOXDLL_API traits<long>
   {
     
     typedef double HighPrecisionT;
@@ -184,7 +184,7 @@ namespace atb
   };
 
   template<>
-  struct traits<unsigned long long>
+  struct ARRAYTOOLBOXDLL_API traits<unsigned long long>
   {
     
     typedef double HighPrecisionT;
@@ -200,7 +200,7 @@ namespace atb
   };
 
   template<>
-  struct traits<long long>
+  struct ARRAYTOOLBOXDLL_API traits<long long>
   {
     
     typedef double HighPrecisionT;
@@ -216,7 +216,7 @@ namespace atb
   };
 
   template<>
-  struct traits<float>
+  struct ARRAYTOOLBOXDLL_API traits<float>
   {
     
     typedef double HighPrecisionT;
@@ -232,7 +232,7 @@ namespace atb
   };
 
   template<>
-  struct traits<double>
+  struct ARRAYTOOLBOXDLL_API traits<double>
   {
     
     typedef double HighPrecisionT;
@@ -248,7 +248,7 @@ namespace atb
   };
 
   template<>
-  struct traits<long double>
+  struct ARRAYTOOLBOXDLL_API traits<long double>
   {
     
     typedef double HighPrecisionT;
@@ -298,7 +298,7 @@ namespace atb
   bool const traits< std::complex<DataT> >::isComplex = true;
 
   template<>
-  struct traits< std::complex<float> >
+  struct ARRAYTOOLBOXDLL_API traits< std::complex<float> >
   {
     
     typedef std::complex<double> HighPrecisionT;
@@ -314,7 +314,7 @@ namespace atb
   };
 
   template<>
-  struct traits< std::complex<double> >
+  struct ARRAYTOOLBOXDLL_API traits< std::complex<double> >
   {
     
     typedef std::complex<double> HighPrecisionT;
@@ -330,7 +330,7 @@ namespace atb
   };
 
   template<>
-  struct traits< std::complex<long double> >
+  struct ARRAYTOOLBOXDLL_API traits< std::complex<long double> >
   {
     
     typedef std::complex<double> HighPrecisionT;

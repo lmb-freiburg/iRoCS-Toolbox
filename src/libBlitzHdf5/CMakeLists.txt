@@ -25,6 +25,7 @@ if(WIN32)
   # On windows store DLLs alongside the binaries
   install(TARGETS BlitzHdf5
     LIBRARY DESTINATION bin
+    RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib)
 else()
   install(TARGETS BlitzHdf5

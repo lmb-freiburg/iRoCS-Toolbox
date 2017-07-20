@@ -45,7 +45,15 @@ class PluginInterface;
 
 #include "Marker.hh"
 
-class LabellingMainWidget : public QMainWindow
+#if defined(Labelling_qt4_EXPORTS)
+#define LABELLING_QT4_API __declspec(dllexport)
+#elif defined(Labelling_qt4_USE_DLL)
+#define LABELLING_QT4_API __declspec(dllimport)
+#else
+#define LABELLING_QT4_API
+#endif
+
+class LABELLING_QT4_API LabellingMainWidget : public QMainWindow
 {
   
   Q_OBJECT

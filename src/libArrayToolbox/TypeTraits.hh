@@ -37,6 +37,14 @@
 #include <complex>
 #include <blitz/array.h>
 
+#if defined(ArrayToolbox_EXPORTS)
+#define ARRAYTOOLBOXDLL_API __declspec(dllexport)
+#elif defined(ArrayToolbox_USE_DLL)
+#define ARRAYTOOLBOXDLL_API __declspec(dllimport)
+#else
+#define ARRAYTOOLBOXDLL_API
+#endif
+
 namespace atb
 {
   

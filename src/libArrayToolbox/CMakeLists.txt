@@ -70,6 +70,10 @@ target_include_directories(ArrayToolbox
   PUBLIC ${GSL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(ArrayToolbox
    BlitzFFTW BlitzHdf5 ${GSL_LIBRARIES} ${OpenCV_LIBRARIES})
+if(WIN32 AND BUILD_SHARED_LIBS)
+  target_compile_definitions(ArrayToolbox INTERFACE -DArrayToolbox_USE_DLL)
+endif()
+
 
 # Install development headers
 install(FILES ${ArrayToolbox_HEADERS}
@@ -82,6 +86,7 @@ if(WIN32)
   # On windows store DLLs alongside the binaries
   install(TARGETS ArrayToolbox
     LIBRARY DESTINATION bin
+    RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib)
 else()
   install(TARGETS ArrayToolbox

@@ -33,6 +33,7 @@ if(WIN32)
   # On windows store DLLs alongside the binaries
   install(TARGETS IRoCS
     LIBRARY DESTINATION bin
+    RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib)
 else()
   install(TARGETS IRoCS

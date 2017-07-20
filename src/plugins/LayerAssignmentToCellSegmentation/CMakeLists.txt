@@ -29,6 +29,7 @@ if(WIN32)
   # On windows store DLLs alongside the binaries
   install(TARGETS PluginAssignLayersToCellSegmentation
     LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
+    RUNTIME DESTINATION share/${PACKAGE}/plugins
     ARCHIVE DESTINATION lib)
 else()
   install(TARGETS PluginAssignLayersToCellSegmentation

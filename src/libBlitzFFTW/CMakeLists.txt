@@ -15,6 +15,10 @@ target_include_directories(BlitzFFTW
 target_link_libraries(BlitzFFTW
   ${BLITZ_LIBRARIES} ${FFTW3_LIBRARIES} ${FFTW3F_LIBRARIES} BaseFunctions)
 
+if (_WIN32 AND BUILD_SHARED_LIBS)
+  target_compile_definitions(BlitzFFTW PRIVATE BaseFunctions_USE_DLL)
+endif()
+
 # Install development headers
 install(FILES ${BlitzFFTW_HEADERS} DESTINATION include/${PACKAGE}/libBlitzFFTW)
 
@@ -23,12 +27,13 @@ if(WIN32)
   # On windows store DLLs alongside the binaries
   install(TARGETS BlitzFFTW
     LIBRARY DESTINATION bin
+    RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib)
 else()
   install(TARGETS BlitzFFTW
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib)
-endif(WIN32)
+endif()
 
 # Explicitly add static library build if both static and shared libraries
 # are requested

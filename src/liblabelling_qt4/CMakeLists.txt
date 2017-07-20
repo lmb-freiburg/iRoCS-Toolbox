@@ -115,6 +115,9 @@ target_include_directories(Labelling_qt4 PUBLIC ${OPENGL_INCLUDE_DIRS})
 target_link_libraries(Labelling_qt4
   segmentation ProgressReporter_qt4 BlitzAnalyze Qt4::QtCore Qt4::QtOpenGL
   Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES})
+if(WIN32 AND BUILD_SHARED_LIBS)
+  target_compile_definitions(Labelling_qt4 INTERFACE -DLabelling_qt4_USE_DLL)
+endif()
 
 # Install development headers
 install(FILES ${Labelling_qt4_HEADERS}
@@ -125,6 +128,7 @@ if(WIN32)
   # On windows store DLLs alongside the binaries
   install(TARGETS Labelling_qt4
     LIBRARY DESTINATION bin
+    RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib)
 else()
   install(TARGETS Labelling_qt4

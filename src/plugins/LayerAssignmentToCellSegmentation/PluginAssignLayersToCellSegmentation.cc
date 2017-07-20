@@ -39,6 +39,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include <config.hh>
+#endif
+
 PluginAssignLayersToCellSegmentation::
 PluginAssignLayersToCellSegmentation() 
         : QObject(), p_mainWidget(NULL), p_dialog(NULL), _interactive(true),
