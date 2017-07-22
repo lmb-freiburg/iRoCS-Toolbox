@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -32,19 +32,8 @@
 
 #include <vector>
 
-template<typename InnerT>
-struct BlitzH5Traits
-{
-  
-  typedef InnerT DataT;
-  typedef InnerT BasicT;
-  
-  static std::vector<hsize_t> h5Dims(DataT const &array);
-  static hid_t h5Type();
-  static void *data(DataT &array);
-  static void const *data(DataT const &array);
-  
-};
+// Bail out at compile time if no specialization is available
+template<typename InnerT> struct BlitzH5Traits;
 
 template<>
 struct BlitzH5Traits<unsigned char>
@@ -169,7 +158,7 @@ struct BlitzH5Traits<long long>
 
 template<>
 struct BlitzH5Traits<float>
-{   
+{
   typedef float DataT;
   typedef float BasicT;
   static std::vector<hsize_t> h5Dims(DataT const &);
@@ -203,7 +192,7 @@ struct BlitzH5Traits<long double>
 template<typename InnerT>
 struct BlitzH5Traits< std::vector<InnerT> >
 {
-    
+
   typedef std::vector<InnerT> DataT;
   typedef InnerT BasicT;
 
@@ -213,7 +202,7 @@ struct BlitzH5Traits< std::vector<InnerT> >
           dims[0] = array.size();
           return dims;
         }
-    
+
   static hid_t h5Type()
         {
           return BlitzH5Traits<InnerT>::h5Type();
@@ -234,7 +223,7 @@ struct BlitzH5Traits< std::vector<InnerT> >
 template<typename InnerT, int Dim>
 struct BlitzH5Traits< blitz::TinyVector<InnerT,Dim> >
 {
-    
+
   typedef blitz::TinyVector<InnerT,Dim> DataT;
   typedef InnerT BasicT;
 
@@ -244,7 +233,7 @@ struct BlitzH5Traits< blitz::TinyVector<InnerT,Dim> >
           dims[0] = Dim;
           return dims;
         }
-    
+
   static hid_t h5Type()
         {
           return BlitzH5Traits<InnerT>::h5Type();
@@ -265,7 +254,7 @@ struct BlitzH5Traits< blitz::TinyVector<InnerT,Dim> >
 template<typename InnerT, int NRows, int NCols>
 struct BlitzH5Traits< blitz::TinyMatrix<InnerT,NRows,NCols> >
 {
-    
+
   typedef blitz::TinyMatrix<InnerT,NRows,NCols> DataT;
   typedef InnerT BasicT;
 
@@ -276,7 +265,7 @@ struct BlitzH5Traits< blitz::TinyMatrix<InnerT,NRows,NCols> >
           dims[1] = NCols;
           return dims;
         }
-    
+
   static hid_t h5Type()
         {
           return BlitzH5Traits<InnerT>::h5Type();
@@ -297,7 +286,7 @@ struct BlitzH5Traits< blitz::TinyMatrix<InnerT,NRows,NCols> >
 template<typename InnerT>
 struct BlitzH5Traits< std::complex<InnerT> >
 {
-    
+
   typedef std::complex<InnerT> DataT;
   typedef InnerT BasicT;
 
@@ -307,7 +296,7 @@ struct BlitzH5Traits< std::complex<InnerT> >
           dims[0] = 2;
           return dims;
         }
-    
+
   static hid_t h5Type()
         {
           return BlitzH5Traits<InnerT>::h5Type();
@@ -328,7 +317,7 @@ struct BlitzH5Traits< std::complex<InnerT> >
 template<typename InnerT, int Dim>
 struct BlitzH5Traits< blitz::Array<InnerT,Dim> >
 {
-    
+
   typedef blitz::Array<InnerT,Dim> DataT;
   typedef InnerT BasicT;
 
@@ -338,7 +327,7 @@ struct BlitzH5Traits< blitz::Array<InnerT,Dim> >
           for (int d = 0; d < Dim; ++d) dims[d] = array.extent(d);
           return dims;
         }
-    
+
   static hid_t h5Type()
         {
           return BlitzH5Traits<InnerT>::h5Type();
@@ -360,7 +349,7 @@ template<typename InnerT, int Dim>
 struct BlitzH5Traits<
     blitz::Array<std::complex<InnerT>,Dim> >
 {
-    
+
   typedef blitz::Array<std::complex<InnerT>,Dim> DataT;
   typedef InnerT BasicT;
 
@@ -371,7 +360,7 @@ struct BlitzH5Traits<
           dims[Dim] = 2;
           return dims;
         }
-    
+
   static hid_t h5Type()
         {
           return BlitzH5Traits<InnerT>::h5Type();
@@ -392,7 +381,7 @@ template<typename InnerT, int InnerDim, int OuterDim>
 struct BlitzH5Traits<
     blitz::Array<blitz::TinyVector<InnerT,InnerDim>,OuterDim> >
 {
-    
+
   typedef blitz::Array<blitz::TinyVector<InnerT,InnerDim>,OuterDim> DataT;
   typedef InnerT BasicT;
 
@@ -403,7 +392,7 @@ struct BlitzH5Traits<
           dims[OuterDim] = InnerDim;
           return dims;
         }
-    
+
   static hid_t h5Type()
         {
           return BlitzH5Traits<InnerT>::h5Type();
@@ -424,7 +413,7 @@ template<typename InnerT, int InnerDim1, int InnerDim2, int OuterDim>
 struct BlitzH5Traits<
     blitz::Array<blitz::TinyMatrix<InnerT,InnerDim1,InnerDim2>,OuterDim> >
 {
-    
+
   typedef blitz::Array<blitz::TinyMatrix<InnerT,InnerDim1,InnerDim2>,OuterDim>
   DataT;
   typedef InnerT BasicT;
@@ -436,7 +425,7 @@ struct BlitzH5Traits<
           dims[OuterDim] = InnerDim1 * InnerDim2;
           return dims;
         }
-    
+
   static hid_t h5Type()
         {
           return BlitzH5Traits<InnerT>::h5Type();
@@ -456,11 +445,11 @@ struct BlitzH5Traits<
 template<>
 struct BlitzH5Traits<std::string>
 {
-    
+
   typedef std::string DataT;
   typedef std::string BasicT;
 
-  static std::vector<hsize_t> h5Dims(DataT const &array);    
+  static std::vector<hsize_t> h5Dims(DataT const &array);
   static hid_t h5Type();
   static void *data(DataT &array);
   static void const *data(DataT const &array);
