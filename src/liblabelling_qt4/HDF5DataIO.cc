@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -54,7 +54,7 @@
 #include <libBlitzHdf5/BlitzHdf5Light.hh>
 
 /*-----------------------------------------------------------------------
- * Generic ChannelMetaData 
+ * Generic ChannelMetaData
  *-----------------------------------------------------------------------*/
 
 ChannelMetaData::ChannelMetaData()
@@ -72,10 +72,10 @@ ChannelMetaData::~ChannelMetaData()
 void ChannelMetaData::load(const std::string& h5FileName, int index)
 {
   BlitzH5File inFile(h5FileName);
-  
+
   std::stringstream groupStream;
   groupStream << "/.labelling_qt4/channel_" << index;
-  
+
   inFile.readAttribute(channelName, "name", groupStream.str());
   inFile.readAttribute(channelType, "type", groupStream.str());
   inFile.readAttribute(alpha, "alpha", groupStream.str());
@@ -87,7 +87,7 @@ void ChannelMetaData::load(const std::string& h5FileName, int index)
 int ChannelMetaData::save(const std::string& h5FileName)
 {
   assert(channelName != "" && channelType != "");
-  
+
   int index = 0;
   try
   {
@@ -96,7 +96,7 @@ int ChannelMetaData::save(const std::string& h5FileName)
     {
       int nChannels;
       outFile.readAttribute(nChannels, "nChannels", "/.labelling_qt4");
-      if (nChannels != 0) 
+      if (nChannels != 0)
       {
         std::string channelName;
         while (index < nChannels && channelName != this->channelName)
@@ -106,7 +106,7 @@ int ChannelMetaData::save(const std::string& h5FileName)
           outFile.readAttribute(channelName, "name", groupStream.str());
           ++index;
         }
-        if (index == nChannels && channelName != this->channelName) 
+        if (index == nChannels && channelName != this->channelName)
         {
           ++nChannels;
           outFile.writeAttribute(nChannels, "nChannels", "/.labelling_qt4");
@@ -114,7 +114,7 @@ int ChannelMetaData::save(const std::string& h5FileName)
         else --index;
       }
     }
-    else 
+    else
     {
       int nChannels = 1;
       outFile.writeAttribute(nChannels, "nChannels", "/.labelling_qt4");
@@ -141,7 +141,7 @@ std::ostream& operator<<(std::ostream& os, const ChannelMetaData& channel)
   os << "ChannelMetaData { Name = " << channel.channelName << ", Type = "
      << channel.channelType << ", Alpha = " << channel.alpha
      << ", Visible = " << (channel.visible ? "Yes" : "No") << " }";
-  return os; 
+  return os;
 }
 
 /*-----------------------------------------------------------------------
@@ -173,10 +173,10 @@ void DataChannelMetaData::load(const std::string& h5FileName, int index)
   ChannelMetaData::load(h5FileName, index);
 
   BlitzH5File inFile(h5FileName);
-  
+
   std::stringstream groupStream;
   groupStream << "/.labelling_qt4/channel_" << index;
-  
+
   inFile.readAttribute(color, "color", groupStream.str());
   inFile.readAttribute(gamma, "gamma", groupStream.str());
   try
@@ -194,17 +194,17 @@ void DataChannelMetaData::load(const std::string& h5FileName, int index)
   showExposureProblems = (tmp == 1);
 }
 
-int DataChannelMetaData::save(const std::string& h5FileName) 
+int DataChannelMetaData::save(const std::string& h5FileName)
 {
   int index = ChannelMetaData::save(h5FileName);
   if (index == -1) return index;
   try
   {
     BlitzH5File outFile(h5FileName, BlitzH5File::Write);
-    
+
     std::stringstream groupStream;
     groupStream << "/.labelling_qt4/channel_" << index;
-    
+
     outFile.writeAttribute(color, "color", groupStream.str());
     outFile.writeAttribute(gamma, "gamma", groupStream.str());
     outFile.writeAttribute(displayMin, "displayMin", groupStream.str());
@@ -256,10 +256,10 @@ void RGBChannelMetaData::load(const std::string& h5FileName, int index)
   ChannelMetaData::load(h5FileName, index);
 
   BlitzH5File inFile(h5FileName);
-  
+
   std::stringstream groupStream;
   groupStream << "/.labelling_qt4/channel_" << index;
-  
+
   inFile.readAttribute(gamma, "gamma", groupStream.str());
   int tmp;
   inFile.readAttribute(tmp, "normalized", groupStream.str());
@@ -268,17 +268,17 @@ void RGBChannelMetaData::load(const std::string& h5FileName, int index)
   showExposureProblems = (tmp == 1);
 }
 
-int RGBChannelMetaData::save(const std::string& h5FileName) 
+int RGBChannelMetaData::save(const std::string& h5FileName)
 {
   int index = ChannelMetaData::save(h5FileName);
   if (index == -1) return index;
   try
   {
     BlitzH5File outFile(h5FileName, BlitzH5File::Write);
-    
+
     std::stringstream groupStream;
     groupStream << "/.labelling_qt4/channel_" << index;
-    
+
     outFile.writeAttribute(gamma, "gamma", groupStream.str());
     int tmp = (normalized) ? 1 : 0;
     outFile.writeAttribute(tmp, "normalized", groupStream.str());
@@ -333,12 +333,12 @@ AnnotationChannelMetaData::~AnnotationChannelMetaData()
 void AnnotationChannelMetaData::load(const std::string& h5FileName, int index)
 {
   ChannelMetaData::load(h5FileName, index);
-  
+
   BlitzH5File inFile(h5FileName);
-  
+
   std::stringstream groupStream;
   groupStream << "/.labelling_qt4/channel_" << index;
-  
+
   int type;
   inFile.readAttribute(type, "markerType", groupStream.str());
 
@@ -374,7 +374,7 @@ void AnnotationChannelMetaData::load(const std::string& h5FileName, int index)
   if (inFile.existsAttribute("activeLabels", groupStream.str()))
   {
     inFile.readAttribute(activeLabels, "activeLabels", groupStream.str());
-    try 
+    try
     {
       blitz::Array<blitz::TinyVector<double,3>,1> colors;
       inFile.readDataset(colors, groupStream.str() + "/colors");
@@ -387,11 +387,11 @@ void AnnotationChannelMetaData::load(const std::string& h5FileName, int index)
     {
       std::cout << "Loading old style marker color map" << std::endl;
       for (std::vector<int>::const_iterator it = activeLabels.begin();
-           it != activeLabels.end(); ++it) 
+           it != activeLabels.end(); ++it)
       {
         std::stringstream attNameStream;
         attNameStream << "colorForLabel_" << *it;
-        if (inFile.existsAttribute(attNameStream.str(), groupStream.str())) 
+        if (inFile.existsAttribute(attNameStream.str(), groupStream.str()))
             inFile.readAttribute(
                 colorMap[*it], attNameStream.str(), groupStream.str());
         else colorMap[*it] = blitz::TinyVector<double,3>(0, 0, 0);
@@ -400,25 +400,25 @@ void AnnotationChannelMetaData::load(const std::string& h5FileName, int index)
   }
 }
 
-int AnnotationChannelMetaData::save(const std::string& h5FileName) 
+int AnnotationChannelMetaData::save(const std::string& h5FileName)
 {
   int index = ChannelMetaData::save(h5FileName);
   if (index == -1) return index;
   try
   {
     BlitzH5File outFile(h5FileName, BlitzH5File::Write);
-    
+
     std::stringstream groupStream;
     groupStream << "/.labelling_qt4/channel_" << index;
-    
+
     outFile.writeAttribute(int(markerType), "markerType", groupStream.str());
     if (activeLabels.size() != 0)
     {
       outFile.writeAttribute(activeLabels, "activeLabels", groupStream.str());
       blitz::Array<blitz::TinyVector<double,3>,1> colors(
           static_cast<ptrdiff_t>(activeLabels.size()));
-      for (size_t i = 0; i < activeLabels.size(); ++i) 
-          colors(static_cast<ptrdiff_t>(i)) = colorMap[activeLabels[i]];  
+      for (size_t i = 0; i < activeLabels.size(); ++i)
+          colors(static_cast<ptrdiff_t>(i)) = colorMap[activeLabels[i]];
       outFile.writeDataset(colors, groupStream.str() + "/colors");
     }
   }
@@ -447,7 +447,7 @@ std::ostream& operator<<(
 
 /*-----------------------------------------------------------------------
  *  VisualizationChannelMetaData
- *-----------------------------------------------------------------------*/ 
+ *-----------------------------------------------------------------------*/
 
 VisualizationChannelMetaData::VisualizationChannelMetaData()
         : ChannelMetaData()
@@ -470,7 +470,7 @@ void VisualizationChannelMetaData::load(
     const std::string& h5FileName, int index)
 {
   ChannelMetaData::load(h5FileName, index);
-  
+
   std::stringstream groupStream;
   groupStream << "/.labelling_qt4/channel_" << index;
 
@@ -485,7 +485,7 @@ void VisualizationChannelMetaData::load(
   }
 }
 
-int VisualizationChannelMetaData::save(const std::string& h5FileName) 
+int VisualizationChannelMetaData::save(const std::string& h5FileName)
 {
   int index = ChannelMetaData::save(h5FileName);
   if (index == -1) return index;
@@ -516,7 +516,7 @@ std::ostream& operator<<(
 
 /*-----------------------------------------------------------------------
  *  SplineCurveChannelMetaData
- *-----------------------------------------------------------------------*/ 
+ *-----------------------------------------------------------------------*/
 
 SplineCurveChannelMetaData::SplineCurveChannelMetaData()
         : ChannelMetaData(), color(1.0f, 1.0f, 1.0f)
@@ -539,7 +539,7 @@ void SplineCurveChannelMetaData::load(
     const std::string& h5FileName, int index)
 {
   ChannelMetaData::load(h5FileName, index);
-  
+
   std::stringstream groupStream;
   groupStream << "/.labelling_qt4/channel_" << index;
 
@@ -555,7 +555,7 @@ void SplineCurveChannelMetaData::load(
   }
 }
 
-int SplineCurveChannelMetaData::save(const std::string& h5FileName) 
+int SplineCurveChannelMetaData::save(const std::string& h5FileName)
 {
   int index = ChannelMetaData::save(h5FileName);
   if (index == -1) return index;
@@ -588,7 +588,7 @@ std::ostream& operator<<(
 
 /*-----------------------------------------------------------------------
  *  IRoCSChannelMetaData
- *-----------------------------------------------------------------------*/ 
+ *-----------------------------------------------------------------------*/
 
 IRoCSChannelMetaData::IRoCSChannelMetaData()
         : ChannelMetaData(), color(1.0f, 1.0f, 1.0f)
@@ -611,7 +611,7 @@ void IRoCSChannelMetaData::load(
     const std::string& h5FileName, int index)
 {
   ChannelMetaData::load(h5FileName, index);
-  
+
   std::stringstream groupStream;
   groupStream << "/.labelling_qt4/channel_" << index;
 
@@ -627,7 +627,7 @@ void IRoCSChannelMetaData::load(
   }
 }
 
-int IRoCSChannelMetaData::save(const std::string& h5FileName) 
+int IRoCSChannelMetaData::save(const std::string& h5FileName)
 {
   int index = ChannelMetaData::save(h5FileName);
   if (index == -1) return index;
@@ -660,7 +660,7 @@ std::ostream& operator<<(
 
 /*-----------------------------------------------------------------------
  *  IRoCSSCTChannelMetaData
- *-----------------------------------------------------------------------*/ 
+ *-----------------------------------------------------------------------*/
 
 IRoCSSCTChannelMetaData::IRoCSSCTChannelMetaData()
         : ChannelMetaData(), color(1.0f, 1.0f, 1.0f)
@@ -683,7 +683,7 @@ void IRoCSSCTChannelMetaData::load(
     const std::string& h5FileName, int index)
 {
   ChannelMetaData::load(h5FileName, index);
-  
+
   std::stringstream groupStream;
   groupStream << "/.labelling_qt4/channel_" << index;
 
@@ -699,7 +699,7 @@ void IRoCSSCTChannelMetaData::load(
   }
 }
 
-int IRoCSSCTChannelMetaData::save(const std::string& h5FileName) 
+int IRoCSSCTChannelMetaData::save(const std::string& h5FileName)
 {
   int index = ChannelMetaData::save(h5FileName);
   if (index == -1) return index;
@@ -736,15 +736,15 @@ std::ostream& operator<<(
 
 HDF5DataIO::HDF5DataIO(
     LabellingMainWidget *mainWidget, MultiChannelModel *model,
-    std::string const &fileName, DataAccessMode mode) 
+    std::string const &fileName, DataAccessMode mode)
         : QObject(), p_model(model), _fileName(fileName), _accessMode(mode),
           p_mainWidget(mainWidget), p_progress(NULL)
 {}
 
-HDF5DataIO::~HDF5DataIO() 
+HDF5DataIO::~HDF5DataIO()
 {}
 
-HDF5DataIO::RetVal HDF5DataIO::run() 
+HDF5DataIO::RetVal HDF5DataIO::run()
 {
   p_progress = p_mainWidget->progressReporter();
   p_progress->reset();
@@ -753,9 +753,9 @@ HDF5DataIO::RetVal HDF5DataIO::run()
   p_mainWidget->setUserInteractionEnabled(false);
 
   RetVal res = Ok;
-  switch (_accessMode) 
+  switch (_accessMode)
   {
-  case Open : 
+  case Open :
   {
     try
     {
@@ -810,7 +810,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
         }
         else if (metaData.channelType == "iRoCS Shell Coordinate Transform")
         {
-          IRoCSChannelMetaData md;
+          IRoCSSCTChannelMetaData md;
           md.load(_fileName, i);
           res = readChannel(md);
         }
@@ -920,7 +920,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
   }
   case ImportChannels :
   {
-    std::vector<std::string> selectedItems = 
+    std::vector<std::string> selectedItems =
         HDF5SelectionDialog::selectObjects(
             _fileName.c_str(), p_model, qApp->activeWindow());
     if (selectedItems.size() == 0)
@@ -930,7 +930,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
       p_mainWidget->setUserInteractionEnabled(true);
       return Abort;
     }
-    
+
     std::vector<DataChannelMetaData> dataChannels;
     std::vector<RGBChannelMetaData> rgbChannels;
     std::vector<AnnotationChannelMetaData> annotationChannels;
@@ -938,9 +938,9 @@ HDF5DataIO::RetVal HDF5DataIO::run()
     std::vector<SplineCurveChannelMetaData> splineCurveChannels;
     std::vector<IRoCSChannelMetaData> iRoCSChannels;
     std::vector<IRoCSSCTChannelMetaData> iRoCSSCTChannels;
-    
+
     std::vector<std::string> remainingItems;
-    
+
     // Check, whether there is corresponding MetaData available
     try
     {
@@ -1013,7 +1013,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
       // No labelling project .labelling_qt4 structure found
       remainingItems = selectedItems;
     }
-      
+
     for (std::vector<std::string>::const_iterator it = remainingItems.begin();
          it != remainingItems.end(); ++it)
     {
@@ -1025,7 +1025,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
       }
       catch (BlitzH5Error &)
       {}
-      
+
       if (isDataset)
       {
         try
@@ -1049,7 +1049,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
                 {
                   RGBChannelMetaData md;
                   md.channelName = *it;
-                  rgbChannels.push_back(md);                  
+                  rgbChannels.push_back(md);
                   break;
                 }
               }
@@ -1105,6 +1105,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
           SplineCurveChannelMetaData md;
           md.channelName = *it;
           splineCurveChannels.push_back(md);
+          continue;
         }
         catch (BlitzH5Error &)
         {}
@@ -1115,6 +1116,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
           IRoCSChannelMetaData md;
           md.channelName = *it;
           iRoCSChannels.push_back(md);
+          continue;
         }
         catch (BlitzH5Error &)
         {}
@@ -1125,6 +1127,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
           IRoCSSCTChannelMetaData md;
           md.channelName = *it;
           iRoCSSCTChannels.push_back(md);
+          continue;
         }
         catch (BlitzH5Error &)
         {}
@@ -1160,7 +1163,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
         {}
       }
     }
-      
+
     int nChannels = dataChannels.size() + rgbChannels.size() +
         visualizationChannels.size() + annotationChannels.size() +
         splineCurveChannels.size() + iRoCSChannels.size() +
@@ -1183,7 +1186,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
       }
       p_progress->updateProgress(p_progress->taskProgressMax());
     }
-    
+
     for (std::vector<RGBChannelMetaData>::const_iterator it =
              rgbChannels.begin(); it != rgbChannels.end() && res != Abort;
          ++it, ++i)
@@ -1201,7 +1204,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
       }
       p_progress->updateProgress(p_progress->taskProgressMax());
     }
-    
+
     for (std::vector<VisualizationChannelMetaData>::const_iterator it =
              visualizationChannels.begin();
          it != visualizationChannels.end() && res != Abort; ++it, ++i)
@@ -1219,7 +1222,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
       }
       p_progress->updateProgress(p_progress->taskProgressMax());
     }
-    
+
     if (!p_progress->isAborted() && p_model->nChannels() == 0)
     {
       QMessageBox::critical(
@@ -1231,7 +1234,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
              "gray value dataset!"));
       res = Abort;
     }
-    
+
     for (std::vector<AnnotationChannelMetaData>::const_iterator it =
              annotationChannels.begin();
          it != annotationChannels.end() && res != Abort; ++it, ++i)
@@ -1249,7 +1252,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
       }
       p_progress->updateProgress(p_progress->taskProgressMax());
     }
-    
+
     for (std::vector<SplineCurveChannelMetaData>::const_iterator it =
              splineCurveChannels.begin();
          it != splineCurveChannels.end() && res != Abort; ++it, ++i)
@@ -1267,7 +1270,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
       }
       p_progress->updateProgress(p_progress->taskProgressMax());
     }
-    
+
     for (std::vector<IRoCSChannelMetaData>::const_iterator it =
              iRoCSChannels.begin();
          it != iRoCSChannels.end() && res != Abort; ++it, ++i)
@@ -1346,7 +1349,7 @@ HDF5DataIO::RetVal HDF5DataIO::run()
     p_progress->updateProgress(p_progress->taskProgressMax());
     break;
   }
-  
+
   if (p_progress->isAborted()) res = Abort;
   p_progress->setVisible(false);
   p_progress->reset();
@@ -1391,7 +1394,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(const DataChannelMetaData& metaData)
       delete data;
       return Abort;
     }
-    
+
     DataChannelSpecs* specs = p_model->addDataChannel(data);
     if (specs == NULL) throw BlitzH5Error();
     specs->setUpdatesEnabled(false);
@@ -1448,7 +1451,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(const RGBChannelMetaData& metaData)
       delete data;
       return Abort;
     }
-    
+
     RGBChannelSpecs* specs = p_model->addRGBChannel(data);
     if (specs == NULL) throw BlitzH5Error();
     specs->setUpdatesEnabled(false);
@@ -1510,7 +1513,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
       delete data;
       return Abort;
     }
-    
+
     /*---------------------------------------------------------------------
      *  The following block searches for possible translation maps from
      *  segment indices to classes. This is used to apply a classification
@@ -1555,7 +1558,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
     }
     catch (BlitzH5Error &)
     {}
-    
+
     hid_t datasetTypeId = inFile.getDatasetType(metaData.channelName);
     sign = (H5Tget_sign(datasetTypeId) == H5T_SGN_2);
     bitDepth = static_cast<int>(H5Tget_size(datasetTypeId)) * 8;
@@ -1566,7 +1569,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
       delete data;
       return Abort;
     }
-    
+
     VisualizationChannelSpecs* specs = p_model->addVisualizationChannel(data);
     if (specs == NULL) throw BlitzH5Error();
     specs->setUpdatesEnabled(false);
@@ -1601,7 +1604,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
        metaData.channelName + "' of type " +
        Marker::markerTypeToString(metaData.markerType).toStdString()).c_str());
   AnnotationChannelSpecs* specs = 0;
-  try 
+  try
   {
     BlitzH5File inFile(_fileName);
     specs = p_model->addAnnotationChannel(metaData.markerType);
@@ -1648,7 +1651,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
   SplineCurveChannelSpecs* specs = NULL;
   int pMin = p_progress->taskProgressMin();
   int pMax = p_progress->taskProgressMax();
-  try 
+  try
   {
     atb::BSpline< blitz::TinyVector<double,3> > *spline =
         new atb::BSpline< blitz::TinyVector<double,3> >();
@@ -1689,7 +1692,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
   IRoCSChannelSpecs* specs = NULL;
   int pMin = p_progress->taskProgressMin();
   int pMax = p_progress->taskProgressMax();
-  try 
+  try
   {
     atb::IRoCS *rct = new atb::IRoCS(p_progress);
     rct->load(_fileName, metaData.channelName, true);
@@ -1758,7 +1761,7 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
   return (p_progress->updateProgress(pMax)) ? Ok : Abort;
 }
 
-HDF5DataIO::RetVal HDF5DataIO::writeChannel(DataChannelSpecs* specs) 
+HDF5DataIO::RetVal HDF5DataIO::writeChannel(DataChannelSpecs* specs)
 {
   p_progress->updateProgressMessage(
       ("Saving data channel '" + _fileName + ":" +
@@ -1766,7 +1769,7 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(DataChannelSpecs* specs)
 
   DataChannelMetaData metaData(specs);
 
-  try 
+  try
   {
     bool exists = false;
     {
@@ -1792,10 +1795,10 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(DataChannelSpecs* specs)
       }
       else
           outFile.writeAttribute(
-              specs->transformation(), "transformation", specs->name()); 
+              specs->transformation(), "transformation", specs->name());
     }
   }
-  catch (BlitzH5Error& e) 
+  catch (BlitzH5Error& e)
   {
     QMessageBox::critical(
         qApp->activeWindow(), tr("Save error"),
@@ -1808,14 +1811,14 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(DataChannelSpecs* specs)
   return Ok;
 }
 
-HDF5DataIO::RetVal HDF5DataIO::writeChannel(RGBChannelSpecs* specs) 
+HDF5DataIO::RetVal HDF5DataIO::writeChannel(RGBChannelSpecs* specs)
 {
   p_progress->updateProgressMessage(
       ("Saving RGB channel '" + _fileName + ":" + specs->name() + "'").c_str());
 
   RGBChannelMetaData metaData(specs);
 
-  try 
+  try
   {
     bool exists = false;
     {
@@ -1841,10 +1844,10 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(RGBChannelSpecs* specs)
       }
       else
           outFile.writeAttribute(
-              specs->transformation(), "transformation", specs->name()); 
+              specs->transformation(), "transformation", specs->name());
     }
   }
-  catch (BlitzH5Error& e) 
+  catch (BlitzH5Error& e)
   {
     QMessageBox::critical(
         qApp->activeWindow(), tr("Save error"),
@@ -1870,7 +1873,7 @@ void HDF5DataIO::writeVisualizationChannelAs(
   conv.save(fileName, channel->name(), compression, p_progress);
 }
 
-HDF5DataIO::RetVal HDF5DataIO::writeChannel(VisualizationChannelSpecs* specs) 
+HDF5DataIO::RetVal HDF5DataIO::writeChannel(VisualizationChannelSpecs* specs)
 {
   p_progress->updateProgressMessage(
       ("Saving indexed channel '" + _fileName + ":" +
@@ -1878,7 +1881,7 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(VisualizationChannelSpecs* specs)
 
   VisualizationChannelMetaData metaData(specs);
 
-  try 
+  try
   {
     bool exists = false;
     {
@@ -1946,10 +1949,10 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(VisualizationChannelSpecs* specs)
       }
       else
           outFile.writeAttribute(
-              specs->transformation(), "transformation", specs->name()); 
+              specs->transformation(), "transformation", specs->name());
     }
   }
-  catch (BlitzH5Error& e) 
+  catch (BlitzH5Error& e)
   {
     QMessageBox::critical(
         qApp->activeWindow(), tr("Save error"),
@@ -1962,7 +1965,7 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(VisualizationChannelSpecs* specs)
   return Ok;
 }
 
-HDF5DataIO::RetVal HDF5DataIO::writeChannel(AnnotationChannelSpecs* specs) 
+HDF5DataIO::RetVal HDF5DataIO::writeChannel(AnnotationChannelSpecs* specs)
 {
   p_progress->updateProgressMessage(
       ("Saving annotation channel '" + _fileName + ":" +
@@ -1971,25 +1974,25 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(AnnotationChannelSpecs* specs)
   AnnotationChannelMetaData metaData(specs);
 
   int pMax = p_progress->taskProgressMax();
-  try 
+  try
   {
     BlitzH5File outFile(_fileName, BlitzH5File::WriteOrNew);
     metaData.markerType = specs->markerType();
     specs->save(outFile);
   }
-  catch (BlitzH5Error& e) 
+  catch (BlitzH5Error& e)
   {
     QMessageBox::warning(
         qApp->activeWindow(), tr("Save error"),
         tr("Error while saving Annotation channel '") +
-        metaData.channelName.c_str() + tr("':\n") + e.str().c_str());    
+        metaData.channelName.c_str() + tr("':\n") + e.str().c_str());
     return (p_progress->updateProgress(pMax)) ? WriteError : Abort;
   }
   metaData.save(_fileName);
   return (p_progress->updateProgress(pMax)) ? Ok : Abort;
 }
 
-HDF5DataIO::RetVal HDF5DataIO::writeChannel(SplineCurveChannelSpecs* specs) 
+HDF5DataIO::RetVal HDF5DataIO::writeChannel(SplineCurveChannelSpecs* specs)
 {
   p_progress->updateProgressMessage(
       ("Saving spline curve channel '" + _fileName + ":" +
@@ -1997,11 +2000,11 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(SplineCurveChannelSpecs* specs)
   SplineCurveChannelMetaData metaData(specs);
 
   int pMax = p_progress->taskProgressMax();
-  try 
+  try
   {
     specs->save(_fileName, specs->name(), true);
   }
-  catch (BlitzH5Error& e) 
+  catch (BlitzH5Error& e)
   {
     QMessageBox::critical(
         qApp->activeWindow(), tr("Save error"),
@@ -2013,7 +2016,7 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(SplineCurveChannelSpecs* specs)
   return (p_progress->updateProgress(pMax)) ? Ok : Abort;
 }
 
-HDF5DataIO::RetVal HDF5DataIO::writeChannel(IRoCSChannelSpecs* specs) 
+HDF5DataIO::RetVal HDF5DataIO::writeChannel(IRoCSChannelSpecs* specs)
 {
   p_progress->updateProgressMessage(
       ("Saving iRoCS channel '" + _fileName + ":" +
@@ -2021,11 +2024,11 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(IRoCSChannelSpecs* specs)
   IRoCSChannelMetaData metaData(specs);
 
   int pMax = p_progress->taskProgressMax();
-  try 
+  try
   {
     specs->rct()->save(_fileName, specs->name(), true);
   }
-  catch (BlitzH5Error& e) 
+  catch (BlitzH5Error& e)
   {
     QMessageBox::critical(
         qApp->activeWindow(), tr("Save error"),
@@ -2037,7 +2040,7 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(IRoCSChannelSpecs* specs)
   return (p_progress->updateProgress(pMax)) ? Ok : Abort;
 }
 
-HDF5DataIO::RetVal HDF5DataIO::writeChannel(IRoCSSCTChannelSpecs* specs) 
+HDF5DataIO::RetVal HDF5DataIO::writeChannel(IRoCSSCTChannelSpecs* specs)
 {
   p_progress->updateProgressMessage(
       ("Saving iRoCS Shell Coordinate Transform channel '" + _fileName + ":" +
@@ -2045,11 +2048,11 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(IRoCSSCTChannelSpecs* specs)
   IRoCSSCTChannelMetaData metaData(specs);
 
   int pMax = p_progress->taskProgressMax();
-  try 
+  try
   {
     specs->sct()->save(_fileName, specs->name());
   }
-  catch (BlitzH5Error& e) 
+  catch (BlitzH5Error& e)
   {
     QMessageBox::critical(
         qApp->activeWindow(), tr("Save error"),
