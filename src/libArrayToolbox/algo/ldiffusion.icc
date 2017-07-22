@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Kun Liu, Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -89,4 +89,248 @@ void anisotropicDiffusion3D_explicit(
     }
   }
   pCopy(diffusedI, image);
+}
+
+template<typename GType>
+void get1DAOS_blitz(
+    blitz::Array<GType,1>& p, double delta_t, int len, int m,
+    double* alpha, double *beta, double *gamma, double* L, double *M,
+    double *R)
+{
+  double s = m * m * delta_t;
+
+  gamma[0] = -s * (p(0) + p(1)) / 2;
+  beta[0] = gamma[0];
+  alpha[0] = m - gamma[0];
+  for (int i = 1; i < len - 1; i++)
+  {
+    gamma[i] = -s * (p(i) + p(i + 1)) / 2;
+    beta[i] = gamma[i];
+    alpha[i] = m - (gamma[i - 1] + beta[i]);
+  }
+  alpha[len - 1] = m - beta[len - 2];
+
+  tridiagonal_Thomas_decomposition(alpha, beta, gamma, L, M, R, len);
+}
+
+template<typename Type, typename GType>
+void AOS_3D_blitz(
+    const blitz::Array<Type, 3>& u, blitz::Array<GType, 3>& g,
+    blitz::Array<Type, 3>& u_new, const double delta_t)
+{
+  int j = 0;
+  blitz::Range all = blitz::Range::all();
+  int lvls = g.extent(0);
+  int cols = g.extent(1);
+  int rows = g.extent(2);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (j = 0; j < cols; j++)
+  {
+    double *pout;
+    double *L = new double[lvls-1];
+    double *M = new double[lvls];
+    double *R = new double[lvls-1];
+    double *alpha = new double[lvls];
+    double *beta =  new double[lvls-1];
+    double *gamma = new double[lvls-1];
+    double *out = new double[lvls];
+    blitz::Array<Type, 1> line;
+    blitz::Array<GType, 1> gline;
+    for (int k = 0; k < rows; k++)
+    {
+      gline.reference(g(all, j, k));
+      get1DAOS_blitz(gline, delta_t, lvls, 3, alpha, beta, gamma, L, M, R);
+      line.reference(u(all, j, k));
+      tridiagonal_Thomas_solution_blitz(L, M, R, line, out, lvls);
+      line.reference(u_new(all, j, k));
+      pout = out;
+      for (typename blitz::Array<Type,1>::iterator it = line.begin();
+           it != line.end(); it++) *it = *pout++;
+    }
+    delete[] alpha;
+    delete[] beta;
+    delete[] gamma;
+    delete[] L;
+    delete[] M;
+    delete[] R;
+    delete[] out;
+  }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (j = 0; j < lvls; j++)
+  {
+    double *pout;
+    double *L = new double[cols-1];
+    double *M = new double[cols];
+    double *R = new double[cols-1];
+    double *alpha = new double[cols];
+    double *beta =  new double[cols-1];
+    double *gamma = new double[cols-1];
+    double *out = new double[cols];
+    blitz::Array<Type, 1> line;
+    blitz::Array<GType, 1> gline;
+    for (int k = 0; k < rows; k++)
+    {
+      gline.reference(g(j, all, k));
+      get1DAOS_blitz(gline, delta_t, cols, 3, alpha, beta, gamma, L, M, R);
+      line.reference(u(j, all, k));
+      tridiagonal_Thomas_solution_blitz(L, M, R, line, out, cols);
+      line.reference(u_new(j, all, k));
+      pout = out;
+      for (typename blitz::Array<Type, 1>::iterator it = line.begin();
+           it != line.end(); it++) *it += *pout++;
+    }
+    delete[] alpha;
+    delete[] beta;
+    delete[] gamma;
+    delete[] L;
+    delete[] M;
+    delete[] R;
+    delete[] out;
+  }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (j = 0; j < lvls; j++)
+  {
+    double *pout;
+    double *L = new double[rows-1];
+    double *M = new double[rows];
+    double *R = new double[rows-1];
+    double *alpha = new double[rows];
+    double *beta =  new double[rows-1];
+    double *gamma = new double[rows-1];
+    double *out = new double[rows];
+    blitz::Array<Type, 1> line;
+    blitz::Array<GType, 1> gline;
+    for (int k = 0; k < cols; k++)
+    {
+      gline.reference(g(j, k, all));
+      get1DAOS_blitz(gline, delta_t, rows, 3, alpha, beta, gamma, L, M, R);
+      line.reference(u(j, k, all));
+      tridiagonal_Thomas_solution_blitz(L, M, R, line, out, rows);
+      line.reference(u_new(j, k, all));
+      pout = out;
+      for (typename blitz::Array<Type, 1>::iterator it = line.begin();
+           it != line.end(); it++) *it += *pout++;
+    }
+    delete[] alpha;
+    delete[] beta;
+    delete[] gamma;
+    delete[] L;
+    delete[] M;
+    delete[] R;
+    delete[] out;
+  }
+}
+
+template<typename Type>
+void
+nonlinearDiffusion3D_AOS(
+    blitz::Array<Type, 3>& image,
+    const blitz::TinyVector<double, 3>& spacing, const int num_iter,
+    const double kappa, const double delta_t, const int mode, const int v)
+{
+  std::cout << "spacing: " << spacing << std::endl;
+  //Useful variables.
+  int lvls = image.extent(0);
+  int cols = image.extent(1);
+  int rows = image.extent(2);
+  blitz::Array<Type, 3> diffusedI(image.shape());
+  blitz::Array<double, 3> g(image.shape());
+  blitz::Array<Type, 3> smoothedImage(image.shape());
+
+  for (int t = 1; t <= num_iter; t++)
+  {
+    //regularization with presmooth
+    double sigma = 1;
+    if (v > 0)
+        std::cerr << "regularization with presmooth with sigma  " << sigma
+                  << std::flush << std::endl;
+    double smooth_t = sigma * sigma / 2;
+    g = 1;
+    AOS_3D_blitz(image, g, smoothedImage, smooth_t);
+
+    //nonlinear diffusion
+    int dr;
+    g = 0;
+
+    // calculate the diffusivity by central difference
+    if (v > 0)
+        std::cerr << "caculate the diffusivity by central difference  "
+                  << std::flush << std::endl;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (dr = 0; dr < 3; dr++)
+    {
+      int dz = dr == 0;
+      int dy = dr == 1;
+      int dx = dr == 2;
+
+      blitz::Range rangeX0(0, rows - 1 - 2 * dx), rangeY0(0, cols - 1 - 2 * dy),
+          rangeZ0(0, lvls - 1 - 2 * dz);
+      blitz::Range rangeX1(2 * dx, rows - 1), rangeY1(2 * dy, cols - 1),
+          rangeZ1(2 * dz, lvls - 1);
+      blitz::Range rangeX2(dx, rows - 1 - dx), rangeY2(dy, cols - 1 - dy),
+          rangeZ2(dz, lvls - 1 - dz);
+      blitz::Array<double, 3> diff(
+          lvls - 2 * dz, cols - 2 * dy, rows - 2 * dx);
+      diff = (smoothedImage(rangeZ1, rangeY1, rangeX1) - smoothedImage(
+                  rangeZ0, rangeY0, rangeX0)) / 2;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+      g(rangeZ2, rangeY2, rangeX2) = g(rangeZ2, rangeY2, rangeX2) +
+          blitz::pow2(diff);
+    }
+    switch (mode)
+    {
+    case 0:
+      g = blitz::exp(-g / (kappa * kappa));
+      break;
+    case 1:
+      g = 1 / (1 + g / (kappa * kappa));
+      break;
+    default:
+      std::cerr << "wrong mode for nonlinear diffusion" << std::endl;
+      break;
+    }
+    if (v > 0)
+        std::cerr << " do diffusion with AOS for one step, t = " << delta_t
+                  << std::flush << std::endl;
+    AOS_3D_blitz(image, g, diffusedI, delta_t);
+    std::cout << "Iteration" << t << std::endl;
+    image = diffusedI;
+  }
+}
+
+template<typename Type>
+void tridiagonal_Thomas_solution_blitz(
+    double* l, double* m, double* r, blitz::Array<Type, 1> &d, double* y,
+    unsigned long N)
+{
+  int i, idx;
+  double *yy = new double[N];
+
+  // forward
+  yy[0] = d(0);
+  for (i = 1; (unsigned int)(i) < N; ++i)
+      yy[i] = d(i) - l[i - 1] * yy[i - 1];
+
+  // backward
+  y[N - 1] = yy[N - 1] / m[N - 1];
+  for (i = N - 1; i > 0; i--)
+  {
+    idx = i - 1;
+    y[idx] = (yy[idx] - r[idx] * y[idx + 1]) / m[idx];
+  }
+
+  delete[] yy;
 }

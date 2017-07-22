@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Kun Liu, Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -34,10 +34,15 @@
 #include <config.hh>
 #endif
 
+#include <blitz/array.h>
+#include <vector>
+
 template<typename LabelT, int Dim>
 void randomColorMapping(
     blitz::Array<LabelT,Dim> &L,
     blitz::Array<unsigned char,Dim+1> &randomColor);
+
+std::vector< blitz::TinyVector<unsigned char,3> > getColorMap(int n);
 
 #include "ltransform.icc"
 

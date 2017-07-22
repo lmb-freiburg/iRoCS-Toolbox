@@ -16,7 +16,7 @@ set(ArrayToolbox_algo_SOURCES
   algo/DisjointSet.cc algo/RootCoordinateTransform.cc
   algo/ShellCoordinateTransform.cc algo/lRandomTree.cc algo/lRandomForest.cc
   algo/lBlitzRandomForest.cc algo/ldiffusion.cc algo/lmath.cc algo/lmorph.cc
-  algo/lrootShapeAnalysis.cc)
+  algo/lrootShapeAnalysis.cc algo/ltransform.cc)
 
 set(ArrayToolbox_HEADERS
   RuntimeError.hh TypeTraits.hh TypeTraits.icc Interpolator.hh Interpolator.icc

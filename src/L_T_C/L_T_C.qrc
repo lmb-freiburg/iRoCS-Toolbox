@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/new.png</file>
+        <file>images/print.png</file>
+        <file>images/save.png</file>
+        <file>images/undo.png</file>
+        <file>images/gundam-exia.png</file>
+        <file>images/ad.png</file>
+        <file>images/mw.png</file>
+    </qresource>
+</RCC>

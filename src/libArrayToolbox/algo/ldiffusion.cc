@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Kun Liu, Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -129,3 +129,37 @@ double CalculateDiffusionNewGreyValue(
   return u_new;
 }
 
+void tridiagonal_Thomas_decomposition(
+    double* alpha, double* beta, double* gamma,
+    double* l, double* m, double* r, unsigned long N)
+{
+  m[0] = alpha[0];
+  for (unsigned long int i = 0; i < N - 1; i++)
+  {
+    r[i] = beta[i];
+    l[i] = gamma[i] / m[i];
+    m[i + 1] = alpha[i + 1] - l[i] * beta[i];
+  }
+}
+
+void tridiagonal_Thomas_solution(
+    double* l, double* m, double* r, double* d, double* y, unsigned long N)
+{
+  unsigned long i, idx;
+  double *yy = new double[N];
+
+  // forward
+  yy[0] = d[0];
+  for (i = 1; i < N; ++i)
+      yy[i] = d[i] - l[i - 1] * yy[i - 1];
+
+  // backward
+  y[N - 1] = yy[N - 1] / m[N - 1];
+  for (i = N - 1; i > 0; i--)
+  {
+    idx = i - 1;
+    y[idx] = (yy[idx] - r[idx] * y[idx + 1]) / m[idx];
+  }
+
+  delete[] yy;
+}

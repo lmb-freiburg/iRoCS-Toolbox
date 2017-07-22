@@ -95,6 +95,7 @@ libArrayToolbox_la_SOURCES = \
 	algo/lmath.cc \
 	algo/lmorph.cc \
 	algo/lrootShapeAnalysis.cc \
+	algo/ltransform.cc \
 	RuntimeError.cc \
 	TypeTraits.cc \
 	SurfaceGeometry.cc \
