@@ -17,6 +17,17 @@ add_executable(L_T_C ${L_T_C_SOURCES} ${L_T_C_HEADERS} ${L_T_C_RESOURCES})
 target_link_libraries(L_T_C
   LINK_PUBLIC ArrayToolbox Qt4::QtCore Qt4::QtGui)
 
+# generate proper GUI program on Windows
+if(WIN32) # Check if we are on Windows
+  if(MSVC) # Check if we are using the Visual Studio compiler
+    set_target_properties(L_T_C PROPERTIES
+      WIN32_EXECUTABLE YES
+      LINK_FLAGS "/ENTRY:mainCRTStartup")
+  else()
+    message(WARNING "Only MSVC supported for GUI Application")
+  endif()
+endif()
+
 install(TARGETS L_T_C RUNTIME DESTINATION bin)
 
 set(CMAKE_AUTORCC OFF)

@@ -13,6 +13,7 @@ SUBDIRS = \
 	libsegmentation \
 	liblabelling_qt4 \
 	labelling \
+	L_T_C \
 	libIRoCS \
 	plugins \
 	tools

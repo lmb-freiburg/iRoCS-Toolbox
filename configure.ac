@@ -221,7 +221,7 @@ if test "x$PKG_CONFIG" != "x"; then
   fi
 fi
 
-# No pkg-config 
+# No pkg-config
 
 #
 # Check for blitz++
@@ -475,7 +475,7 @@ if test "x$HDF5_LIBS" == "x"; then
     AC_CHECK_LIB(hdf5, H5Dcreate2, [],
       AC_MSG_ERROR([Static hdf5 library not found.]))
     HDF5_STATIC_LIBS="$HDF5_LDFLAGS $LIBS"
-    AC_SUBST(HDF5_STATIC_LIBS)    
+    AC_SUBST(HDF5_STATIC_LIBS)
   fi
 
   CPPFLAGS="$tmp_CPPFLAGS"
@@ -534,7 +534,7 @@ if test "x$HDF5_CPP_LIBS" == "x"; then
       AC_MSG_ERROR([Static HDF5 C++ library (libhdf5_cpp) not found.])
     fi
     HDF5_CPP_STATIC_LIBS="$HDF5_CPP_LDFLAGS $LIBS"
-    AC_SUBST(HDF5_CPP_STATIC_LIBS)    
+    AC_SUBST(HDF5_CPP_STATIC_LIBS)
   fi
 
   CPPFLAGS="$tmp_CPPFLAGS"
@@ -692,10 +692,10 @@ if test "x$QT4_LIBS" == "x"; then
     LDFLAGS="-L$with_qt4/lib -L/usr/X11R6/lib"
     BINPATH="$with_qt4/bin"
   fi
- 
+
   AC_CHECK_HEADER(QtCore/QString,[],
     AC_MSG_ERROR([QT4 headers not found in $with_qt4/include]))
- 
+
   # Check Qt4 version (should be >= 4.6.0)
   AC_MSG_CHECKING([for suitable Qt 4 version])
   AC_COMPILE_IFELSE(
@@ -728,7 +728,7 @@ if test "x$QT4_LIBS" == "x"; then
     AC_MSG_ERROR([QT4 libraries not found in $with_qt4/lib]))
   AC_CHECK_LIB(QtSvg,main,[],
     AC_MSG_ERROR([QT4 libraries not found in $with_qt4/lib]))
-  
+
   AC_PATH_PROG(QT4_MOC, moc,
     AC_MSG_ERROR(
       [Could not find $with_qt4/bin/moc. Please correct your QT4 path]),
@@ -770,10 +770,10 @@ if test "x$QT5_LIBS" == "x" && test "x$with_qt5" != "xno"; then
     LDFLAGS="-L$with_qt5/lib -L/usr/X11R6/lib"
     BINPATH="$with_qt5/bin"
   fi
- 
+
   AC_CHECK_HEADER(Qt5Core/QString,[],
     AC_MSG_ERROR([QT5 headers not found in $with_qt5/include]))
- 
+
   # Check Qt5 version (should be >= 5.2.0)
   AC_MSG_CHECKING([for suitable Qt 5 version])
   AC_COMPILE_IFELSE(
@@ -808,7 +808,7 @@ if test "x$QT5_LIBS" == "x" && test "x$with_qt5" != "xno"; then
     AC_MSG_ERROR([QT5 libraries not found in $with_qt5/lib]))
   AC_CHECK_LIB(Qt5Svg,main,[],
     AC_MSG_ERROR([QT5 libraries not found in $with_qt5/lib]))
-  
+
   AC_PATH_PROG(QT5_MOC, moc,
     AC_MSG_ERROR(
       [Could not find $with_qt5/bin/moc. Please correct your QT5 path]),
@@ -860,6 +860,7 @@ AC_CONFIG_FILES([src/libArrayToolbox/Makefile])
 AC_CONFIG_FILES([src/libsegmentation/Makefile])
 AC_CONFIG_FILES([src/liblabelling_qt4/Makefile])
 AC_CONFIG_FILES([src/labelling/Makefile])
+AC_CONFIG_FILES([src/L_T_C/Makefile])
 AC_CONFIG_FILES([src/libIRoCS/Makefile])
 AC_CONFIG_FILES([src/plugins/Makefile])
 AC_CONFIG_FILES([src/plugins/PluginConvertMasksToMarkers/Makefile])
