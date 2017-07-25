@@ -313,66 +313,70 @@ endif(BUILD_TESTS)
 # Create iRoCS-Toolbox-config.cmake
 # =================================
 
-# Add all targets to the build-tree export set
-if (BUILD_SHARED_LIBS)
-  export(
-    TARGETS cmdline BaseFunctions ProgressReporter BlitzAnalyze
-    Blitz2DGraphics BlitzFFTW BlitzHdf5 svmtl lmbs2kit ArrayToolbox
-    segmentation IRoCS ProgressReporter_qt4 Labelling_qt4
-    FILE "${PROJECT_BINARY_DIR}/iRoCS-ToolboxTargets.cmake"
-    NAMESPACE iRoCS-Toolbox::)
-  if (Qt5Widgets_FOUND)
-    export(TARGETS ProgressReporter_qt5
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+
+  # Add all targets to the build-tree export set
+  if (BUILD_SHARED_LIBS)
+    export(
+      TARGETS cmdline BaseFunctions ProgressReporter BlitzAnalyze
+      Blitz2DGraphics BlitzFFTW BlitzHdf5 svmtl lmbs2kit ArrayToolbox
+      segmentation IRoCS ProgressReporter_qt4 Labelling_qt4
+      FILE "${PROJECT_BINARY_DIR}/iRoCS-ToolboxTargets.cmake"
+      NAMESPACE iRoCS-Toolbox::)
+    if (Qt5Widgets_FOUND)
+      export(TARGETS ProgressReporter_qt5
+	APPEND FILE "${PROJECT_BINARY_DIR}/iRoCS-ToolboxTargets.cmake"
+	NAMESPACE iRoCS-Toolbox::)
+    endif()
+  endif()
+
+  if (BUILD_STATIC_LIBS)
+    export(
+      TARGETS cmdline_static BaseFunctions_static ProgressReporter_static
+      BlitzAnalyze_static Blitz2DGraphics_static BlitzFFTW_static
+      BlitzHdf5_static svmtl_static lmbs2kit_static ArrayToolbox_static
+      segmentation_static IRoCS_static ProgressReporter_qt4_static
+      Labelling_qt4_static
       APPEND FILE "${PROJECT_BINARY_DIR}/iRoCS-ToolboxTargets.cmake"
       NAMESPACE iRoCS-Toolbox::)
+    if (Qt5Widgets_FOUND)
+      export(TARGETS ProgressReporter_qt5_static
+	APPEND FILE "${PROJECT_BINARY_DIR}/iRoCS-ToolboxTargets.cmake"
+	NAMESPACE iRoCS-Toolbox::)
+    endif()
   endif()
-endif()
 
-if (BUILD_STATIC_LIBS)
-  export(
-    TARGETS cmdline_static BaseFunctions_static ProgressReporter_static
-    BlitzAnalyze_static Blitz2DGraphics_static BlitzFFTW_static
-    BlitzHdf5_static svmtl_static lmbs2kit_static ArrayToolbox_static
-    segmentation_static IRoCS_static ProgressReporter_qt4_static
-    Labelling_qt4_static
-    APPEND FILE "${PROJECT_BINARY_DIR}/iRoCS-ToolboxTargets.cmake"
+  # Export package to use from build tree
+  export(PACKAGE iRoCS-Toolbox)
+
+  # Create iRoCS-ToolboxConfig.cmake and iRoCS-ToolboxConfigVersion files
+  file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}"
+    "${INSTALL_INCLUDE_DIR}")
+
+  # ... for the build tree
+  set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+  configure_file(iRoCS-ToolboxConfig.cmake.in
+    "${PROJECT_BINARY_DIR}/iRoCS-ToolboxConfig.cmake" @ONLY)
+
+  # ... for the install tree
+  set(CONF_INCLUDE_DIRS "\${iRoCS-Toolbox_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+  configure_file(iRoCS-ToolboxConfig.cmake.in
+    "${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/iRoCS-ToolboxConfig.cmake"
+    @ONLY)
+
+  # ... for both
+  configure_file(iRoCS-ToolboxConfigVersion.cmake.in
+    "${PROJECT_BINARY_DIR}/iRoCS-ToolboxConfigVersion.cmake" @ONLY)
+
+  # Install config files
+  install(FILES
+    "${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/iRoCS-ToolboxConfig.cmake"
+    "${PROJECT_BINARY_DIR}/iRoCS-ToolboxConfigVersion.cmake"
+    DESTINATION "${INSTALL_CMAKE_DIR}")
+
+  # Install the export set for use with the install tree
+  install(EXPORT iRoCS-ToolboxTargets
+    DESTINATION "${INSTALL_CMAKE_DIR}"
     NAMESPACE iRoCS-Toolbox::)
-  if (Qt5Widgets_FOUND)
-    export(TARGETS ProgressReporter_qt5_static
-      APPEND FILE "${PROJECT_BINARY_DIR}/iRoCS-ToolboxTargets.cmake"
-      NAMESPACE iRoCS-Toolbox::)
-  endif()
+
 endif()
-
-# Export package to use from build tree
-export(PACKAGE iRoCS-Toolbox)
-
-# Create iRoCS-ToolboxConfig.cmake and iRoCS-ToolboxConfigVersion files
-file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}"
-  "${INSTALL_INCLUDE_DIR}")
-
-# ... for the build tree
-set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
-configure_file(iRoCS-ToolboxConfig.cmake.in
-  "${PROJECT_BINARY_DIR}/iRoCS-ToolboxConfig.cmake" @ONLY)
-
-# ... for the install tree
-set(CONF_INCLUDE_DIRS "\${iRoCS-Toolbox_CMAKE_DIR}/${REL_INCLUDE_DIR}")
-configure_file(iRoCS-ToolboxConfig.cmake.in
-  "${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/iRoCS-ToolboxConfig.cmake"
-  @ONLY)
-
-# ... for both
-configure_file(iRoCS-ToolboxConfigVersion.cmake.in
-  "${PROJECT_BINARY_DIR}/iRoCS-ToolboxConfigVersion.cmake" @ONLY)
-
-# Install config files
-install(FILES
-  "${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/iRoCS-ToolboxConfig.cmake"
-  "${PROJECT_BINARY_DIR}/iRoCS-ToolboxConfigVersion.cmake"
-  DESTINATION "${INSTALL_CMAKE_DIR}")
-
-# Install the export set for use with the install tree
-install(EXPORT iRoCS-ToolboxTargets
-  DESTINATION "${INSTALL_CMAKE_DIR}"
-  NAMESPACE iRoCS-Toolbox::)
