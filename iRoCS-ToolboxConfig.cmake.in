@@ -1,0 +1,16 @@
+# - Config file for the iRoCS-Toolbox package
+# It defines the following variables
+#  iRoCS-Toolbox_INCLUDE_DIRS - Include directories for the iRoCS-Toolbox
+#  iRoCS-Toolbox_LIBRARIES    - Libraries to link against
+
+# Compute paths
+get_filename_component(iRoCS-Toolbox_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(iRoCS-Toolbox_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+
+# Library dependencies
+include("${iRoCS-Toolbox_CMAKE_DIR}/iRoCS-ToolboxTargets.cmake")
+
+# These are imported targets created by iRoCS-Toolbox-targets.cmake
+set(iRoCS-Toolbox_LIBRARIES Labelling_qt4 ProgressReporter_qt4 IRoCS segmentation
+  ArrayToolbox lmbs2kit svmtl BlitzHdf5 BlitzFFTW Blitz2DGraphics BlitzAnalyze
+  ProgressReporter BaseFunctions cmdline)

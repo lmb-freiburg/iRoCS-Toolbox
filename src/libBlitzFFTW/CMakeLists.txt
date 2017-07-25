@@ -7,43 +7,40 @@ set(BlitzFFTW_HEADERS
   BlitzFFTW.hh BlitzFFTW.icc BlitzFFTW-Impl.hh BlitzFFTWError.hh)
 set(BlitzFFTW_SOURCES BlitzFFTW.cc BlitzFFTW-Impl.cc)
 
-add_library(BlitzFFTW ${BlitzFFTW_SOURCES} ${BlitzFFTW_HEADERS})
-set_target_properties(BlitzFFTW PROPERTIES
-  VERSION ${BlitzFFTW_VERSION} SOVERSION ${BlitzFFTW_VERSION_MAJOR})
-target_include_directories(BlitzFFTW
-  PUBLIC ${BLITZ_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS} ${FFTW3F_INCLUDE_DIRS})
-target_link_libraries(BlitzFFTW
-  ${BLITZ_LIBRARIES} ${FFTW3_LIBRARIES} ${FFTW3F_LIBRARIES} BaseFunctions)
-
-if (_WIN32 AND BUILD_SHARED_LIBS)
-  target_compile_definitions(BlitzFFTW PRIVATE BaseFunctions_USE_DLL)
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${BlitzFFTW_HEADERS}
+    DESTINATION include/${PACKAGE}/libBlitzFFTW)
 endif()
 
-# Install development headers
-install(FILES ${BlitzFFTW_HEADERS} DESTINATION include/${PACKAGE}/libBlitzFFTW)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(BlitzFFTW SHARED ${BlitzFFTW_SOURCES} ${BlitzFFTW_HEADERS})
+  set_target_properties(BlitzFFTW PROPERTIES
+    VERSION ${BlitzFFTW_VERSION} SOVERSION ${BlitzFFTW_VERSION_MAJOR})
+  target_include_directories(BlitzFFTW
+    PUBLIC ${BLITZ_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS} ${FFTW3F_INCLUDE_DIRS})
+  target_link_libraries(BlitzFFTW
+    PUBLIC ${BLITZ_LIBRARIES} ${FFTW3_LIBRARIES} ${FFTW3F_LIBRARIES}
+    BaseFunctions)
   install(TARGETS BlitzFFTW
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS BlitzFFTW
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libBlitzFFTW)
 endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+if(BUILD_STATIC_LIBS)
   add_library(BlitzFFTW_static STATIC ${BlitzFFTW_SOURCES} ${BlitzFFTW_HEADERS})
   target_include_directories(BlitzFFTW_static
     PUBLIC ${BLITZ_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS} ${FFTW3F_INCLUDE_DIRS})
   target_link_libraries(BlitzFFTW_static
-    ${BLITZ_LIBRARIES} ${FFTW3_LIBRARIES} ${FFTW3F_LIBRARIES} BaseFunctions)
-  install(TARGETS BlitzFFTW_static ARCHIVE DESTINATION lib)
+    PUBLIC ${BLITZ_LIBRARIES} ${FFTW3_LIBRARIES} ${FFTW3F_LIBRARIES}
+    BaseFunctions_static)
+  install(TARGETS BlitzFFTW_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libBlitzFFTW)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
@@ -58,6 +55,6 @@ if(BUILD_STATIC_TOOLS)
   target_include_directories(BlitzFFTW_static_tools
     PUBLIC ${BLITZ_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS} ${FFTW3F_INCLUDE_DIRS})
   target_link_libraries(BlitzFFTW_static_tools
-    ${BLITZ_STATIC_LIBRARIES} ${FFTW3_STATIC_LIBRARIES}
+    PUBLIC ${BLITZ_STATIC_LIBRARIES} ${FFTW3_STATIC_LIBRARIES}
     ${FFTW3F_STATIC_LIBRARIES} BaseFunctions_static_tools)
 endif()

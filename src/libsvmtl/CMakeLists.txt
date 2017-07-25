@@ -51,41 +51,40 @@ set(svmtl_SOURCES
   Cache.cc StDataASCII.cc StDataASCIIFile.cc StDataCmdLine.cc CrossValidator.cc
   GridAxis.cc ClassificationStatistics.cc PrettyOptionPrinter.cc StDataHdf5.cc)
 
-add_library(svmtl
-  ${svmtl_SOURCES} ${svmtl_HEADERS} ${svmtl_svt_check_HEADERS}
-  ${svmtl_noinst_HEADERS})
-set_target_properties(svmtl PROPERTIES
-  VERSION ${svmtl_VERSION} SOVERSION ${svmtl_VERSION_MAJOR})
-target_include_directories(svmtl PUBLIC ${HDF5_INCLUDE_DIRS})
-target_link_libraries(svmtl ${HDF5_CXX_LIBRARIES})
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${svmtl_HEADERS} DESTINATION include/${PACKAGE}/libsvmtl)
+  install(FILES ${svmtl_svt_check_HEADERS}
+    DESTINATION include/${PACKAGE}/libsvmtl/svt_check)
+endif()
 
-# Install development headers
-install(FILES ${svmtl_HEADERS} DESTINATION include/${PACKAGE}/libsvmtl)
-install(FILES ${svmtl_svt_check_HEADERS}
-  DESTINATION include/${PACKAGE}/libsvmtl/svt_check)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(svmtl SHARED
+    ${svmtl_SOURCES} ${svmtl_HEADERS} ${svmtl_svt_check_HEADERS}
+    ${svmtl_noinst_HEADERS})
+  set_target_properties(svmtl PROPERTIES
+    VERSION ${svmtl_VERSION} SOVERSION ${svmtl_VERSION_MAJOR})
+  target_include_directories(svmtl PUBLIC ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(svmtl PUBLIC ${HDF5_CXX_LIBRARIES})
   install(TARGETS svmtl
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS svmtl
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libsvmtl)
+endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(svmtl_static STATIC
     ${svmtl_SOURCES} ${svmtl_HEADERS} ${svmtl_svt_check_HEADERS}
     ${svmtl_noinst_HEADERS})
   target_include_directories(svmtl_static PUBLIC ${HDF5_INCLUDE_DIRS})
-  target_link_libraries(svmtl_static ${HDF5_CXX_LIBRARIES})
-  install(TARGETS svmtl_static ARCHIVE DESTINATION lib)
+  target_link_libraries(svmtl_static PUBLIC ${HDF5_CXX_LIBRARIES})
+  install(TARGETS svmtl_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libsvmtl)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
@@ -100,5 +99,6 @@ if(BUILD_STATIC_TOOLS)
     ${svmtl_noinst_HEADERS})
   target_include_directories(svmtl_static_tools
     PUBLIC ${HDF5_STATIC_CXX_INCLUDE_DIRS})
-  target_link_libraries(svmtl_static_tools ${HDF5_STATIC_CXX_LIBRARIES})
+  target_link_libraries(svmtl_static_tools PUBLIC ${HDF5_STATIC_CXX_LIBRARIES})
+  add_dependencies(svmtl_static_tools hdf5_static)
 endif()

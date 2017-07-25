@@ -6,35 +6,34 @@ set(ProgressReporter_VERSION ${ProgressReporter_VERSION_MAJOR}.${ProgressReporte
 set(ProgressReporter_HEADERS ProgressReporter.hh ProgressReporterStream.hh)
 set(ProgressReporter_SOURCES ProgressReporter.cc ProgressReporterStream.cc)
 
-add_library(ProgressReporter
-  ${ProgressReporter_SOURCES} ${ProgressReporter_HEADERS})
-set_target_properties(ProgressReporter PROPERTIES
-  VERSION ${ProgressReporter_VERSION}
-  SOVERSION ${ProgressReporter_VERSION_MAJOR})
-
-# Install development headers
-install(FILES ${ProgressReporter_HEADERS}
-  DESTINATION include/${PACKAGE}/libProgressReporter)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
-  install(TARGETS ProgressReporter
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS ProgressReporter
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${ProgressReporter_HEADERS}
+    DESTINATION include/${PACKAGE}/libProgressReporter)
 endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(ProgressReporter SHARED
+    ${ProgressReporter_SOURCES} ${ProgressReporter_HEADERS})
+  set_target_properties(ProgressReporter PROPERTIES
+    VERSION ${ProgressReporter_VERSION}
+    SOVERSION ${ProgressReporter_VERSION_MAJOR})
+  install(TARGETS ProgressReporter
+    EXPORT iRoCS-ToolboxTargets
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libProgressReporter)
+endif()
+
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(ProgressReporter_static STATIC
     ${ProgressReporter_SOURCES} ${ProgressReporter_HEADERS})
-  install(TARGETS ProgressReporter_static ARCHIVE DESTINATION lib)
+  install(TARGETS ProgressReporter_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libProgressReporter)
 
   # On Linux rename static library to match shared library name
   if(UNIX)

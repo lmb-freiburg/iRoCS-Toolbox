@@ -8,39 +8,39 @@ set(cmdline_HEADERS
   CmdLine.icc CmdLineError.hh Compiler.hh Compilers.hh Errors.hh IStreamIter.hh)
 set(cmdline_SOURCES CmdArg.cc CmdLine.cc CmdLineError.cc Compiler.cc)
 
-add_library(cmdline ${cmdline_SOURCES} ${cmdline_HEADERS})
-set_target_properties(cmdline PROPERTIES
-  VERSION ${cmdline_VERSION} SOVERSION ${cmdline_VERSION_MAJOR})
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${cmdline_HEADERS}
+    DESTINATION include/${PACKAGE}/libcmdline)
+endif()
 
-# Install development headers
-install(FILES ${cmdline_HEADERS} DESTINATION include/${PACKAGE}/libcmdline)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(cmdline SHARED ${cmdline_SOURCES} ${cmdline_HEADERS})
+  set_target_properties(cmdline PROPERTIES
+    VERSION ${cmdline_VERSION} SOVERSION ${cmdline_VERSION_MAJOR})
   install(TARGETS cmdline
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS cmdline
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION "include/${PACKAGE}/libcmdline")
+endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if (BUILD_STATIC_LIBS)
   add_library(cmdline_static STATIC ${cmdline_SOURCES} ${cmdline_HEADERS})
-  install(TARGETS cmdline_static ARCHIVE DESTINATION lib)
+  install(TARGETS cmdline_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libcmdline)
 
   # On Linux rename static library to match shared library name
-  if(UNIX)
+  if (UNIX)
     SET_TARGET_PROPERTIES(cmdline_static PROPERTIES OUTPUT_NAME cmdline)
   endif()
 endif()
 
 # Explicitly add static library build for static binaries
-if(BUILD_STATIC_TOOLS)
+if (BUILD_STATIC_TOOLS)
   add_library(cmdline_static_tools STATIC ${cmdline_SOURCES} ${cmdline_HEADERS})
 endif()

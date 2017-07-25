@@ -1,12 +1,15 @@
 add_executable(segmentCells segmentCells.cc)
 
 if (BUILD_STATIC_TOOLS)
-  target_link_libraries(segmentCells PUBLIC "-static")
+  target_link_libraries(segmentCells PRIVATE "-static")
   target_link_libraries(segmentCells
-    LINK_PUBLIC IRoCS_static_tools segmentation_static_tools
+    PRIVATE IRoCS_static_tools segmentation_static_tools
     cmdline_static_tools)
-else()
-  target_link_libraries(segmentCells LINK_PUBLIC IRoCS segmentation cmdline)
+elseif (BUILD_STATIC_LIBS)
+  target_link_libraries(segmentCells
+    PRIVATE IRoCS_static segmentation_static cmdline_static)
+elseif (BUILD_SHARED_LIBS)
+  target_link_libraries(segmentCells PRIVATE IRoCS segmentation cmdline)
 endif()
 
 install(TARGETS segmentCells RUNTIME DESTINATION bin)

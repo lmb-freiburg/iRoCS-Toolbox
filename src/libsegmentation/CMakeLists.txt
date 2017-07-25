@@ -16,35 +16,36 @@ set(segmentation_SOURCES
   ProfileSampler.cc SegmentationModel.cc geodesic.cc SH_forward.cc
   SH_backward.cc SH_tools.cc SH_eval.cc gvf.cc)
 
-add_library(segmentation ${segmentation_SOURCES} ${segmentation_HEADERS})
-set_target_properties(segmentation PROPERTIES
-  VERSION ${segmentation_VERSION} SOVERSION ${segmentation_VERSION_MAJOR})
-target_link_libraries(segmentation ArrayToolbox lmbs2kit)
-
-# Install development headers
-install(FILES ${segmentation_HEADERS}
-  DESTINATION include/${PACKAGE}/libsegmentation)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
-  install(TARGETS segmentation
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS segmentation
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${segmentation_HEADERS}
+    DESTINATION include/${PACKAGE}/libsegmentation)
 endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(segmentation SHARED
+    ${segmentation_SOURCES} ${segmentation_HEADERS})
+  set_target_properties(segmentation PROPERTIES
+    VERSION ${segmentation_VERSION} SOVERSION ${segmentation_VERSION_MAJOR})
+  target_link_libraries(segmentation PUBLIC ArrayToolbox lmbs2kit)
+  install(TARGETS segmentation
+    EXPORT iRoCS-ToolboxTargets
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libsegmentation)
+endif()
+
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(segmentation_static STATIC
     ${segmentation_SOURCES} ${segmentation_HEADERS})
-  target_link_libraries(segmentation_static ArrayToolbox lmbs2kit)
-  install(TARGETS segmentation_static ARCHIVE DESTINATION lib)
+  target_link_libraries(segmentation_static
+    PUBLIC ArrayToolbox_static lmbs2kit_static)
+  install(TARGETS segmentation_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libsegmentation)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
@@ -58,5 +59,5 @@ if(BUILD_STATIC_TOOLS)
   add_library(segmentation_static_tools STATIC
     ${segmentation_SOURCES} ${segmentation_HEADERS})
   target_link_libraries(segmentation_static_tools
-    ArrayToolbox_static_tools lmbs2kit_static_tools)
+    PUBLIC ArrayToolbox_static_tools lmbs2kit_static_tools)
 endif()

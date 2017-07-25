@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -30,18 +30,20 @@
 #include <string>
 
 #ifdef _WIN32
-#ifdef ProgressReporter_EXPORTS
-#define PROGRESSREPORTERDLL_API __declspec(dllexport)
+  #if defined(ProgressReporter_EXPORTS)
+    #define PROGRESSREPORTERDLL_API __declspec(dllexport)
+  #elif defined(ProgressReporter_USE_DLL)
+    #define PROGRESSREPORTERDLL_API __declspec(dllimport)
+  #else
+    #define PROGRESSREPORTERDLL_API
+  #endif
 #else
-#define PROGRESSREPORTERDLL_API __declspec(dllimport)
-#endif
-#else
-#define PROGRESSREPORTERDLL_API
+  #define PROGRESSREPORTERDLL_API
 #endif
 
 namespace iRoCS
 {
-  
+
   class PROGRESSREPORTERDLL_API ProgressReporter
   {
 
@@ -79,9 +81,9 @@ namespace iRoCS
     virtual void setProgressMessage(std::string const &message) = 0;
 
     virtual std::string progressMessage() const = 0;
-  
+
     virtual void setProgress(int progress) = 0;
-  
+
     virtual int progress() const = 0;
 
     virtual void setAborted(bool abort) = 0;
@@ -97,7 +99,7 @@ namespace iRoCS
     virtual bool updateProgressMessage(std::string const &message) = 0;
 
   protected:
-    
+
     int _taskProgressMin, _taskProgressMax;
 
   };

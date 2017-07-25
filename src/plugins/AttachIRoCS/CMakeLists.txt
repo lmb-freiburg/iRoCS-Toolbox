@@ -10,41 +10,13 @@ set(PluginAttachIRoCS_HEADERS
 set(PluginAttachIRoCS_SOURCES
   AttachIRoCSParametersDialog.cc AttachIRoCSThread.cc PluginAttachIRoCS.cc)
 
-add_library(PluginAttachIRoCS
+add_library(PluginAttachIRoCS MODULE
   ${PluginAttachIRoCS_SOURCES} ${PluginAttachIRoCS_HEADERS})
-target_link_libraries(PluginAttachIRoCS Labelling_qt4 IRoCS)
 
-# Install development headers
-install(FILES ${PluginAttachIRoCS_HEADERS}
-  DESTINATION include/${PACKAGE}/plugins/libPluginAttachIRoCS)
+target_link_libraries(PluginAttachIRoCS PRIVATE Labelling_qt4 IRoCS)
 
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
-  install(TARGETS PluginAttachIRoCS
-    LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
-    RUNTIME DESTINATION share/${PACKAGE}/plugins
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS PluginAttachIRoCS
-    LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
-
-# Explicitly add static library build if both static and shared libraries are
-# requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
-  add_library(PluginAttachIRoCS_static STATIC
-    ${PluginAttachIRoCS_SOURCES} ${PluginAttachIRoCS_HEADERS})
-  target_link_libraries(PluginAttachIRoCS_static Labelling_qt4 IRoCS)
-  install(TARGETS PluginAttachIRoCS_static ARCHIVE DESTINATION lib)
-
-  # On Linux rename static library to match shared library name
-  if(UNIX)
-    SET_TARGET_PROPERTIES(PluginAttachIRoCS_static PROPERTIES
-      OUTPUT_NAME PluginAttachIRoCS CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
-
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+install(TARGETS PluginAttachIRoCS
+  LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
+  RUNTIME DESTINATION share/${PACKAGE}/plugins)
 
 set(CMAKE_AUTOMOC OFF)

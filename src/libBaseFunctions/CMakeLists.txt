@@ -7,33 +7,36 @@ set(BaseFunctions_VERSION
 set(BaseFunctions_HEADERS BaseEnvironment.hh BaseFile.hh)
 set(BaseFunctions_SOURCES BaseEnvironment.cc BaseFile.cc)
 
-add_library(BaseFunctions ${BaseFunctions_SOURCES} ${BaseFunctions_HEADERS})
-set_target_properties(BaseFunctions PROPERTIES
-  VERSION ${BaseFunctions_VERSION} SOVERSION ${BaseFunctions_VERSION_MAJOR})
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${BaseFunctions_HEADERS}
+    DESTINATION include/${PACKAGE}/libBaseFunctions)
+endif()
 
-# Install development headers
-install(FILES ${BaseFunctions_HEADERS}
-  DESTINATION include/${PACKAGE}/libBaseFunctions)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(BaseFunctions SHARED
+    ${BaseFunctions_SOURCES} ${BaseFunctions_HEADERS})
+  set_target_properties(BaseFunctions PROPERTIES
+    VERSION ${BaseFunctions_VERSION} SOVERSION ${BaseFunctions_VERSION_MAJOR})
+  if (WIN32)
+    target_compile_definitions(BaseFunctions INTERFACE BaseFunctions_USE_DLL)
+  endif()
   install(TARGETS BaseFunctions
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS BaseFunctions
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libBaseFunctions)
+endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(BaseFunctions_static STATIC
     ${BaseFunctions_SOURCES} ${BaseFunctions_HEADERS})
-  install(TARGETS BaseFunctions_static ARCHIVE DESTINATION lib)
+  install(TARGETS BaseFunctions_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libBaseFunctions)
 
   # On Linux rename static library to match shared library name
   if(UNIX)

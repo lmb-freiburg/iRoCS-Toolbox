@@ -14,41 +14,15 @@ set(PluginTrainEpidermisLabelling_SOURCES
   TrainEpidermisLabellingParametersDialog.cc TrainEpidermisLabellingThread.cc
   PluginTrainEpidermisLabelling.cc)
 
-add_library(PluginTrainEpidermisLabelling
-  ${PluginTrainEpidermisLabelling_SOURCES} ${PluginTrainEpidermisLabelling_HEADERS})
-target_link_libraries(PluginTrainEpidermisLabelling Labelling_qt4 IRoCS)
+add_library(PluginTrainEpidermisLabelling MODULE
+  ${PluginTrainEpidermisLabelling_SOURCES}
+  ${PluginTrainEpidermisLabelling_HEADERS})
 
-# Install development headers
-install(FILES ${PluginTrainEpidermisLabelling_HEADERS}
-  DESTINATION include/${PACKAGE}/plugins/libPluginTrainEpidermisLabelling)
+target_link_libraries(PluginTrainEpidermisLabelling
+  PRIVATE Labelling_qt4 IRoCS)
 
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
-  install(TARGETS PluginTrainEpidermisLabelling
-    LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
-    RUNTIME DESTINATION share/${PACKAGE}/plugins
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS PluginTrainEpidermisLabelling
-    LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
-
-# Explicitly add static library build if both static and shared libraries are
-# requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
-  add_library(PluginTrainEpidermisLabelling_static STATIC
-    ${PluginTrainEpidermisLabelling_SOURCES} ${PluginTrainEpidermisLabelling_HEADERS})
-  target_link_libraries(PluginTrainEpidermisLabelling_static Labelling_qt4 IRoCS)
-  install(TARGETS PluginTrainEpidermisLabelling_static ARCHIVE DESTINATION lib)
-
-  # On Linux rename static library to match shared library name
-  if(UNIX)
-    SET_TARGET_PROPERTIES(PluginTrainEpidermisLabelling_static PROPERTIES
-      OUTPUT_NAME PluginTrainEpidermisLabelling CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
-
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+install(TARGETS PluginTrainEpidermisLabelling
+  LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
+  RUNTIME DESTINATION share/${PACKAGE}/plugins)
 
 set(CMAKE_AUTOMOC OFF)

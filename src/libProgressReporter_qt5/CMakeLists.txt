@@ -8,38 +8,38 @@ set(ProgressReporter_qt5_SOURCES ProgressReporterQt5.cc)
 
 set(CMAKE_AUTOMOC ON)
 
-add_library(ProgressReporter_qt5
-  ${ProgressReporter_qt5_SOURCES} ${ProgressReporter_qt5_HEADERS})
-set_target_properties(ProgressReporter_qt5 PROPERTIES
-  VERSION ${ProgressReporter_qt5_VERSION}
-  SOVERSION ${ProgressReporter_qt5_VERSION_MAJOR})
-target_link_libraries(ProgressReporter_qt5 Qt5::Widgets ProgressReporter)
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${ProgressReporter_qt5_HEADERS}
+    DESTINATION include/${PACKAGE}/libProgressReporter_qt5)
+endif()
 
-# Install development headers
-install(FILES ${ProgressReporter_qt5_HEADERS}
-  DESTINATION include/${PACKAGE}/libProgressReporter_qt5)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(ProgressReporter_qt5 SHARED
+    ${ProgressReporter_qt5_SOURCES} ${ProgressReporter_qt5_HEADERS})
+  set_target_properties(ProgressReporter_qt5 PROPERTIES
+    VERSION ${ProgressReporter_qt5_VERSION}
+    SOVERSION ${ProgressReporter_qt5_VERSION_MAJOR})
+  target_link_libraries(ProgressReporter_qt5
+    PUBLIC Qt5::Widgets ProgressReporter)
   install(TARGETS ProgressReporter_qt5
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS ProgressReporter_qt5
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libProgressReporter_qt5)
+endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(ProgressReporter_qt5_static STATIC
     ${ProgressReporter_qt5_SOURCES} ${ProgressReporter_qt5_HEADERS})
   target_link_libraries(ProgressReporter_qt5_static
-    Qt5::Widgets ProgressReporter)
-  install(TARGETS ProgressReporter_qt5_static ARCHIVE DESTINATION lib)
+    PUBLIC Qt5::Widgets ProgressReporter_static)
+  install(TARGETS ProgressReporter_qt5_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libProgressReporter_qt5)
 
   # On Linux rename static library to match shared library name
   if(UNIX)

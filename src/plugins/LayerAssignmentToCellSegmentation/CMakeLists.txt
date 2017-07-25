@@ -14,47 +14,15 @@ set(PluginAssignLayersToCellSegmentation_SOURCES
   AssignLayersToCellSegmentationThread.cc
   PluginAssignLayersToCellSegmentation.cc)
 
-add_library(PluginAssignLayersToCellSegmentation
+add_library(PluginAssignLayersToCellSegmentation MODULE
   ${PluginAssignLayersToCellSegmentation_SOURCES}
   ${PluginAssignLayersToCellSegmentation_HEADERS})
-target_link_libraries(PluginAssignLayersToCellSegmentation Labelling_qt4 IRoCS)
 
-# Install development headers
-install(FILES ${PluginAssignLayersToCellSegmentation_HEADERS}
-  DESTINATION
-  include/${PACKAGE}/plugins/libPluginAssignLayersToCellSegmentation)
+target_link_libraries(PluginAssignLayersToCellSegmentation
+  PRIVATE Labelling_qt4 IRoCS)
 
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
-  install(TARGETS PluginAssignLayersToCellSegmentation
-    LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
-    RUNTIME DESTINATION share/${PACKAGE}/plugins
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS PluginAssignLayersToCellSegmentation
-    LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
-
-# Explicitly add static library build if both static and shared libraries are
-# requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
-  add_library(PluginAssignLayersToCellSegmentation_static STATIC
-    ${PluginAssignLayersToCellSegmentation_SOURCES}
-    ${PluginAssignLayersToCellSegmentation_HEADERS})
-  target_link_libraries(PluginAssignLayersToCellSegmentation_static
-    Labelling_qt4 IRoCS)
-  install(TARGETS PluginAssignLayersToCellSegmentation_static
-    ARCHIVE DESTINATION lib)
-
-  # On Linux rename static library to match shared library name
-  if(UNIX)
-    SET_TARGET_PROPERTIES(PluginAssignLayersToCellSegmentation_static
-      PROPERTIES
-      OUTPUT_NAME PluginAssignLayersToCellSegmentation CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
-
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+install(TARGETS PluginAssignLayersToCellSegmentation
+  LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
+  RUNTIME DESTINATION share/${PACKAGE}/plugins)
 
 set(CMAKE_AUTOMOC OFF)

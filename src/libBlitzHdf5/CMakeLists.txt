@@ -8,40 +8,39 @@ set(BlitzHdf5_HEADERS
   FileIOWrapper.hh FileIOWrapper.icc)
 set(BlitzHdf5_SOURCES BlitzH5Traits.cc BlitzHdf5Light.cc)
 
-add_library(BlitzHdf5 ${BlitzHdf5_SOURCES} ${BlitzHdf5_HEADERS})
-set_target_properties(BlitzHdf5 PROPERTIES
-  VERSION ${BlitzHdf5_VERSION} SOVERSION ${BlitzHdf5_VERSION_MAJOR})
-target_include_directories(BlitzHdf5
-  PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS})
-target_link_libraries(BlitzHdf5
-  ${BLITZ_LIBRARIES} ${HDF5_C_LIBRARIES} ProgressReporter)
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${BlitzHdf5_HEADERS}
+    DESTINATION include/${PACKAGE}/libBlitzHdf5)
+endif()
 
-# Install development headers
-install(FILES ${BlitzHdf5_HEADERS}
-  DESTINATION include/${PACKAGE}/libBlitzHdf5)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(BlitzHdf5 SHARED ${BlitzHdf5_SOURCES} ${BlitzHdf5_HEADERS})
+  set_target_properties(BlitzHdf5 PROPERTIES
+    VERSION ${BlitzHdf5_VERSION} SOVERSION ${BlitzHdf5_VERSION_MAJOR})
+  target_include_directories(BlitzHdf5
+    PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(BlitzHdf5
+    PUBLIC ${BLITZ_LIBRARIES} ${HDF5_C_LIBRARIES} ProgressReporter)
   install(TARGETS BlitzHdf5
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS BlitzHdf5
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libBlitzHdf5)
+endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(BlitzHdf5_static STATIC ${BlitzHdf5_SOURCES} ${BlitzHdf5_HEADERS})
   target_include_directories(BlitzHdf5_static
     PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS})
   target_link_libraries(BlitzHdf5_static
-    ${BLITZ_LIBRARIES} ${HDF5_C_LIBRARIES} ProgressReporter)
-  install(TARGETS BlitzHdf5_static ARCHIVE DESTINATION lib)
+    PUBLIC ${BLITZ_LIBRARIES} ${HDF5_C_LIBRARIES} ProgressReporter_static)
+  install(TARGETS BlitzHdf5_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libBlitzHdf5)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
@@ -56,6 +55,7 @@ if(BUILD_STATIC_TOOLS)
   target_include_directories(BlitzHdf5_static_tools
     PUBLIC ${BLITZ_INCLUDE_DIRS} ${HDF5_STATIC_C_INCLUDE_DIRS})
   target_link_libraries(BlitzHdf5_static_tools
-    ${BLITZ_STATIC_LIBRARIES} ${HDF5_STATIC_C_LIBRARIES}
+    PUBLIC ${BLITZ_STATIC_LIBRARIES} ${HDF5_STATIC_C_LIBRARIES}
     ProgressReporter_static_tools)
+  add_dependencies(BlitzHdf5_static_tools hdf5_static)
 endif()

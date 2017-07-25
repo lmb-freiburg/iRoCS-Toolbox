@@ -108,45 +108,47 @@ set(Labelling_qt4_RESOURCES
   icons/oxygen/32x32/actions/zoom-original.png
   icons/oxygen/32x32/actions/zoom-out.png)
 
-add_library(Labelling_qt4 ${Labelling_qt4_SOURCES} ${Labelling_qt4_HEADERS})
-set_target_properties(Labelling_qt4 PROPERTIES
-  VERSION ${Labelling_qt4_VERSION} SOVERSION ${Labelling_qt4_VERSION_MAJOR})
-target_include_directories(Labelling_qt4 PUBLIC ${OPENGL_INCLUDE_DIRS})
-target_link_libraries(Labelling_qt4
-  segmentation ProgressReporter_qt4 BlitzAnalyze Qt4::QtCore Qt4::QtOpenGL
-  Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES})
-if(WIN32 AND BUILD_SHARED_LIBS)
-  target_compile_definitions(Labelling_qt4 INTERFACE -DLabelling_qt4_USE_DLL)
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${Labelling_qt4_HEADERS}
+    DESTINATION include/${PACKAGE}/libLabelling_qt4)
 endif()
 
-# Install development headers
-install(FILES ${Labelling_qt4_HEADERS}
-  DESTINATION include/${PACKAGE}/libLabelling_qt4)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(Labelling_qt4 SHARED
+    ${Labelling_qt4_SOURCES} ${Labelling_qt4_HEADERS}
+    ${Labelling_qt4_RESOURCES})
+  set_target_properties(Labelling_qt4 PROPERTIES
+    VERSION ${Labelling_qt4_VERSION} SOVERSION ${Labelling_qt4_VERSION_MAJOR})
+  target_include_directories(Labelling_qt4 PUBLIC ${OPENGL_INCLUDE_DIRS})
+  target_link_libraries(Labelling_qt4
+    PUBLIC segmentation ProgressReporter_qt4 BlitzAnalyze Qt4::QtCore
+    Qt4::QtOpenGL Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES})
+  if(WIN32 AND BUILD_SHARED_LIBS)
+    target_compile_definitions(Labelling_qt4 INTERFACE -DLabelling_qt4_USE_DLL)
+  endif()
   install(TARGETS Labelling_qt4
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS Labelling_qt4
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libLabelling_qt4)
+endif()
 
-# Explicitly add static library build if both static and shared libraries are
-# requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(Labelling_qt4_static STATIC
-    ${Labelling_qt4_SOURCES} ${Labelling_qt4_HEADERS} )
-  target_include_directories(Labelling_qt4_static PUBLIC
-    ${OPENGL_INCLUDE_DIRS})
+    ${Labelling_qt4_SOURCES} ${Labelling_qt4_HEADERS}
+    ${Labelling_qt4_RESOURCES})
+  target_include_directories(Labelling_qt4_static
+    PUBLIC ${OPENGL_INCLUDE_DIRS})
   target_link_libraries(Labelling_qt4_static
-    segmentation ProgressReporter_qt4 BlitzAnalyze
+    PUBLIC segmentation_static ProgressReporter_qt4_static BlitzAnalyze_static
     Qt4::QtCore Qt4::QtOpenGL Qt4::QtXml Qt4::QtSvg ${OPENGL_LIBRARIES})
-  install(TARGETS Labelling_qt4_static ARCHIVE DESTINATION lib)
+  install(TARGETS Labelling_qt4_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libLabelling_qt4)
 
   # On Linux rename static library to match shared library name
   if(UNIX)

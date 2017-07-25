@@ -11,44 +11,46 @@ set(Blitz2DGraphics_SOURCES
   ImageAccessWrapper.cc BlitzImageReader.cc BlitzImageWriter.cc
   BlitzRGBColor.cc ColorConvert.cc)
 
-add_library(Blitz2DGraphics
-  ${Blitz2DGraphics_SOURCES} ${Blitz2DGraphics_HEADERS})
-set_target_properties(Blitz2DGraphics PROPERTIES
-  VERSION ${Blitz2DGraphics_VERSION} SOVERSION ${Blitz2DGraphics_VERSION_MAJOR})
-target_include_directories(Blitz2DGraphics PUBLIC
-  ${BLITZ_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${TIFF_INCLUDE_DIRS}
-  ${JPEG_INCLUDE_DIRS} )
-target_link_libraries(Blitz2DGraphics
-  ${BLITZ_LIBRARIES} ${PNG_LIBRARIES} ${TIFF_LIBRARIES} ${JPEG_LIBRARIES} )
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${Blitz2DGraphics_HEADERS}
+    DESTINATION include/${PACKAGE}/libBlitz2DGraphics)
+endif()
 
-# Install development headers
-install(FILES ${Blitz2DGraphics_HEADERS}
-  DESTINATION include/${PACKAGE}/libBlitz2DGraphics)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(Blitz2DGraphics SHARED
+    ${Blitz2DGraphics_SOURCES} ${Blitz2DGraphics_HEADERS})
+  set_target_properties(Blitz2DGraphics PROPERTIES
+    VERSION ${Blitz2DGraphics_VERSION}
+    SOVERSION ${Blitz2DGraphics_VERSION_MAJOR})
+  target_include_directories(Blitz2DGraphics
+    PUBLIC ${BLITZ_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${TIFF_INCLUDE_DIRS}
+    ${JPEG_INCLUDE_DIRS})
+  target_link_libraries(Blitz2DGraphics
+    PUBLIC ${BLITZ_LIBRARIES} ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
+    ${JPEG_LIBRARIES})
   install(TARGETS Blitz2DGraphics
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS Blitz2DGraphics
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libBlitz2DGraphics)
+endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(Blitz2DGraphics_static STATIC
     ${Blitz2DGraphics_SOURCES} ${Blitz2DGraphics_HEADERS})
-  target_include_directories(Blitz2DGraphics_static PUBLIC
-    ${BLITZ_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${TIFF_INCLUDE_DIRS}
+  target_include_directories(Blitz2DGraphics_static
+    PUBLIC ${BLITZ_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${TIFF_INCLUDE_DIRS}
     ${JPEG_INCLUDE_DIRS})
   target_link_libraries(Blitz2DGraphics_static
-    ${BLITZ_LIBRARIES} ${PNG_LIBRARIES} ${TIFF_LIBRARIES} ${JPEG_LIBRARIES})
-  install(TARGETS Blitz2DGraphics_static ARCHIVE DESTINATION lib)
+    PUBLIC ${BLITZ_LIBRARIES} ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
+    ${JPEG_LIBRARIES})
+  install(TARGETS Blitz2DGraphics_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libBlitz2DGraphics)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
@@ -61,10 +63,10 @@ endif()
 if(BUILD_STATIC_TOOLS)
   add_library(Blitz2DGraphics_static_tools STATIC
     ${Blitz2DGraphics_SOURCES} ${Blitz2DGraphics_HEADERS})
-  target_include_directories(Blitz2DGraphics_static_tools PUBLIC
-    ${BLITZ_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${TIFF_INCLUDE_DIRS}
+  target_include_directories(Blitz2DGraphics_static_tools
+    PUBLIC ${BLITZ_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS} ${TIFF_INCLUDE_DIRS}
     ${JPEG_INCLUDE_DIRS})
   target_link_libraries(Blitz2DGraphics_static_tools
-    ${BLITZ_STATIC_LIBRARIES} ${PNG_STATIC_LIBRARIES} ${TIFF_STATIC_LIBRARIES}
-    ${JPEG_STATIC_LIBRARIES})
+    PUBLIC ${BLITZ_STATIC_LIBRARIES} ${PNG_STATIC_LIBRARIES}
+    ${TIFF_STATIC_LIBRARIES} ${JPEG_STATIC_LIBRARIES})
 endif()

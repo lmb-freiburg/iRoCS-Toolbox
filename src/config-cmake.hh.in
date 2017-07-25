@@ -10,7 +10,9 @@
 #cmakedefine DEBUG
 
 // blitz++ specific defines
+#ifdef _OPENMP
 #cmakedefine BZ_THREADSAFE
+#endif
 #cmakedefine BZ_DEBUG
 
 // Undefine problematic defines as e.g. introduced by windows.h

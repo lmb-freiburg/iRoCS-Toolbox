@@ -61,50 +61,49 @@ set(ArrayToolbox_SOURCES
   iRoCS.cc SphericalTensor.cc
   HoughTransform.cc Random.cc ATBThinPlateSpline.cc )
 
-add_library(ArrayToolbox
-  ${ArrayToolbox_SOURCES} ${ArrayToolbox_algo_SOURCES}
-  ${ArrayToolbox_HEADERS} ${ArrayToolbox_algo_HEADERS})
-set_target_properties(ArrayToolbox PROPERTIES
-  VERSION ${ArrayToolbox_VERSION} SOVERSION ${ArrayToolbox_VERSION_MAJOR})
-target_include_directories(ArrayToolbox
-  PUBLIC ${GSL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(ArrayToolbox
-   BlitzFFTW BlitzHdf5 ${GSL_LIBRARIES} ${OpenCV_LIBRARIES})
-if(WIN32 AND BUILD_SHARED_LIBS)
-  target_compile_definitions(ArrayToolbox INTERFACE -DArrayToolbox_USE_DLL)
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${ArrayToolbox_HEADERS}
+    DESTINATION include/${PACKAGE}/libArrayToolbox)
+  install(FILES ${ArrayToolbox_algo_HEADERS}
+    DESTINATION include/${PACKAGE}/libArrayToolbox/algo)
 endif()
 
-
-# Install development headers
-install(FILES ${ArrayToolbox_HEADERS}
-  DESTINATION include/${PACKAGE}/libArrayToolbox)
-install(FILES ${ArrayToolbox_algo_HEADERS}
-  DESTINATION include/${PACKAGE}/libArrayToolbox/algo)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(ArrayToolbox SHARED
+    ${ArrayToolbox_SOURCES} ${ArrayToolbox_algo_SOURCES}
+    ${ArrayToolbox_HEADERS} ${ArrayToolbox_algo_HEADERS})
+  set_target_properties(ArrayToolbox PROPERTIES
+    VERSION ${ArrayToolbox_VERSION} SOVERSION ${ArrayToolbox_VERSION_MAJOR})
+  target_include_directories(ArrayToolbox
+    PUBLIC ${GSL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+  target_link_libraries(ArrayToolbox
+    PUBLIC BlitzFFTW BlitzHdf5 ${GSL_LIBRARIES} ${OpenCV_LIBRARIES})
+  if(WIN32)
+    target_compile_definitions(ArrayToolbox INTERFACE ArrayToolbox_USE_DLL)
+  endif()
   install(TARGETS ArrayToolbox
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS ArrayToolbox
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libArrayToolbox)
+endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(ArrayToolbox_static STATIC
     ${ArrayToolbox_SOURCES} ${ArrayToolbox_algo_SOURCES}
     ${ArrayToolbox_HEADERS} ${ArrayToolbox_algo_HEADERS})
   target_include_directories(ArrayToolbox_static
     PUBLIC ${GSL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
   target_link_libraries(ArrayToolbox_static
-    BlitzFFTW BlitzHdf5 ${GSL_LIBRARIES} ${OpenCV_LIBRARIES})
-  install(TARGETS ArrayToolbox_static ARCHIVE DESTINATION lib)
+    PUBLIC BlitzFFTW_static BlitzHdf5_static ${GSL_LIBRARIES}
+    ${OpenCV_LIBRARIES})
+  install(TARGETS ArrayToolbox_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libArrayToolbox)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
@@ -121,6 +120,7 @@ if(BUILD_STATIC_TOOLS)
   target_include_directories(ArrayToolbox_static_tools
     PUBLIC ${GSL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
   target_link_libraries(ArrayToolbox_static_tools
-    BlitzFFTW_static_tools BlitzHdf5_static_tools ${GSL_STATIC_LIBRARIES}
+    PUBLIC BlitzFFTW_static_tools BlitzHdf5_static_tools ${GSL_STATIC_LIBRARIES}
     ${OpenCV_STATIC_LIBRARIES})
+  add_dependencies(ArrayToolbox_static_tools OpenCV_static)
 endif()

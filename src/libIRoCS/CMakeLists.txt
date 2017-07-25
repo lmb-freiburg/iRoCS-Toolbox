@@ -20,33 +20,32 @@ set(IRoCS_SOURCES
   TrainingParameters.cc TrainDetectorWorker.cc TrainEpidermisLabellingWorker.cc
   TrainLayerAssignmentWorker.cc DetectSpheresWorker.cc)
 
-add_library(IRoCS ${IRoCS_SOURCES} ${IRoCS_HEADERS})
-set_target_properties(IRoCS PROPERTIES
-  VERSION ${IRoCS_VERSION} SOVERSION ${IRoCS_VERSION_MAJOR})
-target_link_libraries(IRoCS ArrayToolbox svmtl)
+if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
+  # Install development headers
+  install(FILES ${IRoCS_HEADERS} DESTINATION include/${PACKAGE}/libIRoCS)
+endif()
 
-# Install development headers
-install(FILES ${IRoCS_HEADERS} DESTINATION include/${PACKAGE}/libIRoCS)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
+# Build shared library if requested
+if (BUILD_SHARED_LIBS)
+  add_library(IRoCS SHARED ${IRoCS_SOURCES} ${IRoCS_HEADERS})
+  set_target_properties(IRoCS PROPERTIES
+    VERSION ${IRoCS_VERSION} SOVERSION ${IRoCS_VERSION_MAJOR})
+  target_link_libraries(IRoCS PUBLIC ArrayToolbox svmtl)
   install(TARGETS IRoCS
-    LIBRARY DESTINATION bin
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS IRoCS
+    EXPORT iRoCS-ToolboxTargets
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include/${PACKAGE}/libIRoCS)
+endif()
 
-# Explicitly add static library build if both static and shared libraries
-# are requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+# Build static library if requested
+if(BUILD_STATIC_LIBS)
   add_library(IRoCS_static STATIC ${IRoCS_SOURCES} ${IRoCS_HEADERS})
-  target_link_libraries(IRoCS_static ArrayToolbox svmtl)
-  install(TARGETS IRoCS_static ARCHIVE DESTINATION lib)
+  target_link_libraries(IRoCS_static PUBLIC ArrayToolbox_static svmtl_static)
+  install(TARGETS IRoCS_static
+    EXPORT iRoCS-ToolboxTargets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include/${PACKAGE}/libIRoCS)
 
   # On Linux rename static library to match shared library name
   if(UNIX)
@@ -58,5 +57,5 @@ endif()
 if(BUILD_STATIC_TOOLS)
   add_library(IRoCS_static_tools STATIC ${IRoCS_SOURCES} ${IRoCS_HEADERS})
   target_link_libraries(IRoCS_static_tools
-    ArrayToolbox_static_tools svmtl_static_tools)
+    PUBLIC ArrayToolbox_static_tools svmtl_static_tools)
 endif()

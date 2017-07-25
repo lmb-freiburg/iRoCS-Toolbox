@@ -14,48 +14,15 @@ set(PluginAttachIRoCSSCTToCellSegmentation_SOURCES
   AttachIRoCSSCTToCellSegmentationThread.cc
   PluginAttachIRoCSSCTToCellSegmentation.cc)
 
-add_library(PluginAttachIRoCSSCTToCellSegmentation
+add_library(PluginAttachIRoCSSCTToCellSegmentation MODULE
   ${PluginAttachIRoCSSCTToCellSegmentation_SOURCES}
   ${PluginAttachIRoCSSCTToCellSegmentation_HEADERS})
-target_link_libraries(PluginAttachIRoCSSCTToCellSegmentation
+
+target_link_libraries(PluginAttachIRoCSSCTToCellSegmentation PRIVATE
   Labelling_qt4 IRoCS)
 
-# Install development headers
-install(FILES ${PluginAttachIRoCSSCTToCellSegmentation_HEADERS}
-  DESTINATION
-  include/${PACKAGE}/plugins/libPluginAttachIRoCSSCTToCellSegmentation)
-
-# Install libraries
-if(WIN32)
-  # On windows store DLLs alongside the binaries
-  install(TARGETS PluginAttachIRoCSSCTToCellSegmentation
-    LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
-    RUNTIME DESTINATION share/${PACKAGE}/plugins
-    ARCHIVE DESTINATION lib)
-else()
-  install(TARGETS PluginAttachIRoCSSCTToCellSegmentation
-    LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
-    ARCHIVE DESTINATION lib)
-endif(WIN32)
-
-# Explicitly add static library build if both static and shared libraries are
-# requested
-if(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
-  add_library(PluginAttachIRoCSSCTToCellSegmentation_static STATIC
-    ${PluginAttachIRoCSSCTToCellSegmentation_SOURCES}
-    ${PluginAttachIRoCSSCTToCellSegmentation_HEADERS})
-  target_link_libraries(PluginAttachIRoCSSCTToCellSegmentation_static
-    Labelling_qt4 IRoCS)
-  install(TARGETS PluginAttachIRoCSSCTToCellSegmentation_static
-    ARCHIVE DESTINATION lib)
-
-  # On Linux rename static library to match shared library name
-  if(UNIX)
-    SET_TARGET_PROPERTIES(PluginAttachIRoCSSCTToCellSegmentation_static
-      PROPERTIES
-      OUTPUT_NAME PluginAttachIRoCSSCTToCellSegmentation CLEAN_DIRECT_OUTPUT 1)
-  endif(UNIX)
-
-endif(BUILD_STATIC_LIBS AND BUILD_SHARED_LIBS)
+install(TARGETS PluginAttachIRoCSSCTToCellSegmentation
+  LIBRARY DESTINATION share/${PACKAGE}/plugins NAMELINK_SKIP
+  RUNTIME DESTINATION share/${PACKAGE}/plugins)
 
 set(CMAKE_AUTOMOC OFF)
