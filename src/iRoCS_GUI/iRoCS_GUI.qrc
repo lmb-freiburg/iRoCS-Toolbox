@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+  <qresource>
+    <file alias="zoom-in.png">icons/oxygen/32x32/actions/zoom-in.png</file>
+    <file alias="zoom-out.png">icons/oxygen/32x32/actions/zoom-out.png</file>
+    <file alias="zoom-original.png">icons/oxygen/32x32/actions/zoom-original.png</file>
+    <file alias="edit-delete.png">icons/oxygen/32x32/actions/edit-delete.png</file>
+    <file alias="process-stop.png">icons/oxygen/32x32/actions/process-stop.png</file>
+    <file alias="document-properties.png">icons/oxygen/32x32/actions/document-properties.png</file>
+    <file alias="iRoCSToolboxIcon.svg">icons/iRoCSToolboxIcon.svg</file>
+    <file alias="show-scalebar.svg">icons/show-scalebar.svg</file>
+  </qresource>
+</RCC>
