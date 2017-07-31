@@ -8,6 +8,7 @@
 #define PACKAGE_URL       "@PACKAGE_URL@"
 
 #cmakedefine DEBUG
+#cmakedefine DEBUG_VERBOSE_XML
 
 // blitz++ specific defines
 #ifdef _OPENMP
