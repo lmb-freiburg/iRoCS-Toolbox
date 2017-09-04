@@ -58,7 +58,8 @@ namespace iRoCS {
 
   void FloatChannel::setElementSizeUm(
     blitz::TinyVector<double, 3> const &elementSizeUm) {
-    if (blitz::all(elementSizeUm == _data.elementSizeUm())) return;
+    if (blitz::all(elementSizeUm == _data.elementSizeUm()) &&
+        blitz::all(elementSizeUm == this->elementSizeUm())) return;
 #ifdef DEBUG_VERBOSE_XML
     std::cerr << "<FloatChannel@" << this
       << "::setElementSizeUm elementSizeUm=\"" << elementSizeUm(0)
@@ -68,7 +69,8 @@ namespace iRoCS {
       << "," << _data.elementSizeUm()(2) << "\" _colormap=\""
       << &_colormap << "\">" << std::endl;
 #endif
-    _data.setElementSizeUm(elementSizeUm);
+    if (blitz::any(elementSizeUm != _data.elementSizeUm()))
+        _data.setElementSizeUm(elementSizeUm);
     Channel::setElementSizeUm(elementSizeUm);
 #ifdef DEBUG_VERBOSE_XML
     std::cerr << "</FloatChannel@" << this << "::setElementSizeUm>"
@@ -78,7 +80,26 @@ namespace iRoCS {
 
   void FloatChannel::setTransformation(
     blitz::TinyMatrix<double, 4, 4> const &transformation) {
-    _data.setTransformation(transformation);
+    if (blitz::all(transformation == _data.transformation()) &&
+        blitz::all(transformation == this->transformation())) return;
+#ifdef DEBUG_VERBOSE_XML
+    blitz::TinyMatrix<double,4,4> const &tP = transformation;
+    blitz::TinyMatrix<double,4,4> const &tD = _data.transformation();
+    std::cerr << "<FloatChannel@" << this
+      << "::setTransformation transformation=("
+      << tP(0,0) << "," << tP(0,1) << "," << tP(0,2) << "," << tP(0,3) << ";"
+      << tP(1,0) << "," << tP(1,1) << "," << tP(1,2) << "," << tP(1,3) << ";"
+      << tP(2,0) << "," << tP(2,1) << "," << tP(2,2) << "," << tP(2,3) << ";"
+      << tP(3,0) << "," << tP(3,1) << "," << tP(3,2) << "," << tP(3,3) << ")"
+      << " _data=\"" << &_data << "\" _data.transformation=("
+      << tD(0,0) << "," << tD(0,1) << "," << tD(0,2) << "," << tD(0,3) << ";"
+      << tD(1,0) << "," << tD(1,1) << "," << tD(1,2) << "," << tD(1,3) << ";"
+      << tD(2,0) << "," << tD(2,1) << "," << tD(2,2) << "," << tD(2,3) << ";"
+      << tD(3,0) << "," << tD(3,1) << "," << tD(3,2) << "," << tD(3,3) << ")"
+      << ") _colormap=\"" << &_colormap << "\">" << std::endl;
+#endif
+    if (blitz::any(transformation != _data.transformation()))
+        _data.setTransformation(transformation);
     Channel::setTransformation(transformation);
   }
 

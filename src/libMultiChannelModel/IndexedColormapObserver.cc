@@ -30,7 +30,7 @@ namespace iRoCS {
 #ifdef DEBUG_VERBOSE_XML
     std::cerr << "<IndexedColormapObserver@" << this
       << "::IndexedColormapObserver colormap=\"" << &colormap
-      << "\" _colormap=\"" << _colormap << "\">" << std::endl;
+      << "\" _colormap=\"" << &_colormap << "\">" << std::endl;
     _colormap._observers.insert(this);
     std::cerr << "</IndexedColormapObserver@" << this
       << "::IndexedColormapObserver>" << std::endl;
@@ -40,7 +40,7 @@ namespace iRoCS {
   IndexedColormapObserver::~IndexedColormapObserver() {
 #ifdef DEBUG_VERBOSE_XML
     std::cerr << "<IndexedColormapObserver@" << this
-      << "::~IndexedColormapObserver _colormap=\"" << _colormap
+      << "::~IndexedColormapObserver _colormap=\"" << &_colormap
       << "\">" << std::endl;
     _colormap._observers.erase(this);
     std::cerr << "</IndexedColormapObserver@" << this
@@ -49,4 +49,3 @@ namespace iRoCS {
   }
 
 }
-

@@ -25,6 +25,7 @@ option(BUILD_TESTS "Build tests" OFF)
 option(VERBOSE_DEBUG "Enable verbose debugging output" OFF)
 if(VERBOSE_DEBUG)
   set(DEBUG "1")
+  set(DEBUG_VERBOSE_XML "1")
 endif()
 option(BLITZ_DEBUG
   "Enable Blitz++ debugging (e.g. range checking) (very slow!)" OFF)

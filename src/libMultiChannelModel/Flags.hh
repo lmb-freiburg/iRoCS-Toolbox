@@ -94,7 +94,7 @@ namespace iRoCS {
 
   };
 
-  class IncompatibleFlag {
+  class MULTICHANNELMODELDLL_API IncompatibleFlag {
 
     int value;
 
@@ -106,7 +106,7 @@ namespace iRoCS {
   };
 
   template<typename Enum>
-  class Flags {
+  class MULTICHANNELMODELDLL_API Flags {
 
     typedef void **Zero;
     int value;
