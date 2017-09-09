@@ -113,18 +113,18 @@ namespace iRoCS {
     ColorT endColor() const;
 
     // Intermediate colors for smooth interpolation
-/*======================================================================*/
-/*!
- *   Set the intermediate color at the given position in (0, 1) relative to
- *   the colormap range, i.e. 0 = startIndex, 1 = endIndex. If a position
- *   outside the (0, 1) range is requested, this method is a noop. If there
- *   is no intermediate color at the given position, it will be added to
- *   the intermediate color map.
- *
- *   \param position The position relative to the colormap range
- *   \param color    The intermediate color to set
- */
- /*======================================================================*/
+    /*======================================================================*/
+    /*!
+     *   Set the intermediate color at the given position in (0, 1) relative to
+     *   the colormap range, i.e. 0 = startIndex, 1 = endIndex. If a position
+     *   outside the (0, 1) range is requested, this method is a noop. If there
+     *   is no intermediate color at the given position, it will be added to
+     *   the intermediate color map.
+     *
+     *   \param position The position relative to the colormap range
+     *   \param color    The intermediate color to set
+     */
+     /*======================================================================*/
     void setIntermediateColor(double position, ColorT const &color);
 
     /*======================================================================*/
@@ -151,21 +151,21 @@ namespace iRoCS {
     std::map<double, ColorT> const &intermediateColors() const;
 
     // Intermediate colors replacing the interpolated ones
-/*======================================================================*/
-/*!
- *   Set the override color for the given intensity value (index).
- *   If an override color is given, the intensity is replaced by this
- *   color independent of the set monochrome color or color transition
- *   defined by the intermediate color map. Only range indication is
- *   preceding the override colors. In contrast to intermediate colors,
- *   override colors are handled irrespective of the current index range.
- *   If there is no override color for the given index, it will be added
- *   to the override color map.
- *
- *   \param position The intensity to map the color to
- *   \param color    The override color to set
- */
- /*======================================================================*/
+    /*======================================================================*/
+    /*!
+     *   Set the override color for the given intensity value (index).
+     *   If an override color is given, the intensity is replaced by this
+     *   color independent of the set monochrome color or color transition
+     *   defined by the intermediate color map. Only range indication is
+     *   preceding the override colors. In contrast to intermediate colors,
+     *   override colors are handled irrespective of the current index range.
+     *   If there is no override color for the given index, it will be added
+     *   to the override color map.
+     *
+     *   \param position The intensity to map the color to
+     *   \param color    The override color to set
+     */
+     /*======================================================================*/
     void setOverrideColor(int index, ColorT const &color);
 
     /*======================================================================*/
@@ -253,5 +253,3 @@ namespace iRoCS {
 }
 
 #endif
-
-

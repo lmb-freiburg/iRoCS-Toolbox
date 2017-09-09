@@ -136,10 +136,11 @@ namespace iRoCS {
 
     /*======================================================================*/
     /*!
-     *   This method is called when the monochrome color of the Colormap changes.
+     *   This method is called when the monochrome color of the Colormap
+     *   changes.
      *   The monochrome color is only used if the color map is monochrome,
-     *   otherwise the colors are defined by the start, end and intermediate color
-     *   mapping.
+     *   otherwise the colors are defined by the start, end and intermediate
+     *   color mapping.
      */
      /*======================================================================*/
     virtual void updateMonochromeColor() = 0;

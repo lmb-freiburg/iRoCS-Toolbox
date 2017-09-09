@@ -113,18 +113,18 @@ namespace iRoCS {
     ColorT endColor() const;
 
     // Intermediate colors for smooth interpolation
-/*======================================================================*/
-/*!
- *   Set the intermediate color at the given position in (0, 1) relative to
- *   the colormap range, i.e. 0 = startIndex, 1 = endIndex. If a position
- *   outside the (0, 1) range is requested, this method is a noop. If there
- *   is no intermediate color at the given position, it will be added to
- *   the intermediate color map.
- *
- *   \param position The position relative to the colormap range
- *   \param color    The intermediate color to set
- */
- /*======================================================================*/
+    /*======================================================================*/
+    /*!
+     *   Set the intermediate color at the given position in (0, 1) relative to
+     *   the colormap range, i.e. 0 = startIndex, 1 = endIndex. If a position
+     *   outside the (0, 1) range is requested, this method is a noop. If there
+     *   is no intermediate color at the given position, it will be added to
+     *   the intermediate color map.
+     *
+     *   \param position The position relative to the colormap range
+     *   \param color    The intermediate color to set
+     */
+     /*======================================================================*/
     void setIntermediateColor(double position, ColorT const &color);
 
     /*======================================================================*/
@@ -204,5 +204,3 @@ namespace iRoCS {
 }
 
 #endif
-
-

@@ -124,9 +124,9 @@ namespace iRoCS {
     /*======================================================================*/
     /*!
      *   This method is called when the monochrome color of the FloatColormap
-     *   changes. The monochrome color is only used if the color map is monochrome,
-     *   otherwise the colors are defined by the start, end and intermediate color
-     *   mapping.
+     *   changes. The monochrome color is only used if the color map is
+     *   monochrome, otherwise the colors are defined by the start, end and
+     *   intermediate color mapping.
      */
      /*======================================================================*/
     void updateMonochromeColor();

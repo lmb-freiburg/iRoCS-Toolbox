@@ -60,6 +60,7 @@ namespace iRoCS {
       << tr("Custom");
     p_presetSelector = new QComboBox();
     p_presetSelector->addItems(presetStrings);
+    _updatePresetSelector();
     connect(p_presetSelector, SIGNAL(currentIndexChanged(int)),
       SLOT(setPresetInColormap()));
     layout->addRow(tr("Preset"), p_presetSelector);
@@ -72,7 +73,7 @@ namespace iRoCS {
       << tr("Custom");
     p_indexRangeSelector = new QComboBox();
     p_indexRangeSelector->addItems(indexRangeStrings);
-    p_indexRangeSelector->setCurrentIndex(5);
+    _updateIndexRangeSelector();
     connect(p_indexRangeSelector, SIGNAL(currentIndexChanged(int)),
       SLOT(setIndexRangeInColormap()));
     rangeLayout->addWidget(p_indexRangeSelector);
@@ -84,8 +85,9 @@ namespace iRoCS {
     QHBoxLayout *colorbarLayout = new QHBoxLayout;
     p_startIndexControl = new QDoubleSpinBox;
     p_startIndexControl->setMinimum(-std::numeric_limits<double>::infinity());
-    p_startIndexControl->setValue(0.0);
-    p_startIndexControl->setMaximum(1.0);
+    p_startIndexControl->setMaximum(
+        _colormap.endIndex() - std::numeric_limits<double>::epsilon());
+    p_startIndexControl->setValue(_colormap.startIndex());
     p_startIndexControl->setSingleStep(0.1);
     p_startIndexControl->setDecimals(6);
     connect(p_startIndexControl, SIGNAL(valueChanged(double)),
@@ -94,25 +96,30 @@ namespace iRoCS {
 
     p_startColorButton = new QToolButton;
     QPixmap startColorPixmap(15, 15);
-    startColorPixmap.fill(Qt::black);
+    startColorPixmap.fill(
+        QColor(_colormap.startColor()(0), _colormap.startColor()(1),
+               _colormap.startColor()(2)));
     p_startColorButton->setIcon(QIcon(startColorPixmap));
     connect(p_startColorButton, SIGNAL(clicked()), SLOT(selectStartColor()));
     colorbarLayout->addWidget(p_startColorButton);
 
-    p_colorbar = new FloatColormapBarWidget(colormap);
+    p_colorbar = new FloatColormapBarWidget(_colormap);
     colorbarLayout->addWidget(p_colorbar);
 
     p_endColorButton = new QToolButton;
     QPixmap endColorPixmap(15, 15);
-    endColorPixmap.fill(Qt::white);
+    endColorPixmap.fill(
+        QColor(_colormap.endColor()(0), _colormap.endColor()(1),
+               _colormap.endColor()(2)));
     p_endColorButton->setIcon(QIcon(endColorPixmap));
     connect(p_endColorButton, SIGNAL(clicked()), SLOT(selectEndColor()));
     colorbarLayout->addWidget(p_endColorButton);
 
     p_endIndexControl = new QDoubleSpinBox;
-    p_endIndexControl->setMinimum(0.0);
-    p_endIndexControl->setValue(1.0);
+    p_endIndexControl->setMinimum(
+        _colormap.startIndex() + std::numeric_limits<double>::epsilon());
     p_endIndexControl->setMaximum(std::numeric_limits<double>::infinity());
+    p_endIndexControl->setValue(_colormap.endIndex());
     p_endIndexControl->setSingleStep(0.1);
     p_endIndexControl->setDecimals(6);
     connect(p_endIndexControl, SIGNAL(valueChanged(double)),
@@ -122,7 +129,9 @@ namespace iRoCS {
     layout->addRow(colorbarLayout);
 
     p_monochromeColorControl = new ColorControlElement(tr("Monochrome Color"));
-    p_monochromeColorControl->setValue(FloatColormap::ColorT(255, 255, 255));
+    p_monochromeColorControl->setValue(_colormap.monochromeColor());
+    p_monochromeColorControl->controlWidget()->setEnabled(
+      _colormap.type() == FloatColormap::Monochrome);
     connect(p_monochromeColorControl, SIGNAL(valueChanged()),
       SLOT(setMonochromeColorInColormap()));
     layout->addRow(p_monochromeColorControl->label(),
@@ -131,13 +140,14 @@ namespace iRoCS {
     p_gammaControl = new DoubleControlElement(tr("Gamma"));
     p_gammaControl->setSliderVisible(true);
     p_gammaControl->setRange(0.001, 10.0);
-    p_gammaControl->setValue(1.0);
+    p_gammaControl->setValue(_colormap.gamma());
     p_gammaControl->setSingleStep(0.1);
     p_gammaControl->setDecimals(3);
     connect(p_gammaControl, SIGNAL(valueChanged()), SLOT(setGammaInColormap()));
     layout->addRow(p_gammaControl->label(), p_gammaControl->controlWidget());
 
     p_rangeIndicatorControl = new BoolControlElement(tr("Range Indicator"));
+    p_rangeIndicatorControl->setValue(_colormap.rangeIndicatorEnabled());
     connect(p_rangeIndicatorControl, SIGNAL(valueChanged()),
       SLOT(setRangeIndicatorFlagInColormap()));
     layout->addRow(p_rangeIndicatorControl->label(),
