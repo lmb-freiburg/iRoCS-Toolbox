@@ -84,7 +84,7 @@ namespace iRoCS {
         blitz::all(transformation == this->transformation())) return;
 #ifdef DEBUG_VERBOSE_XML
     blitz::TinyMatrix<double,4,4> const &tP = transformation;
-    blitz::TinyMatrix<double,4,4> const &tD = _data.transformation(); 
+    blitz::TinyMatrix<double,4,4> const &tD = _data.transformation();
     std::cerr << "<FloatChannel@" << this
       << "::setTransformation transformation=("
       << tP(0,0) << "," << tP(0,1) << "," << tP(0,2) << "," << tP(0,3) << ";"
