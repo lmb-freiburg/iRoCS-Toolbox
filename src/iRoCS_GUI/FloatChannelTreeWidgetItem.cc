@@ -29,13 +29,15 @@ namespace iRoCS {
 
   FloatChannelTreeWidgetItem::FloatChannelTreeWidgetItem(
     FloatChannel &channel, MultichannelModelTreeWidget *treeWidget)
-    : ChannelTreeWidgetItem(channel, treeWidget) {
+      : ChannelTreeWidgetItem(channel, treeWidget),
+        FloatColormapObserver(channel.colormap()) {
 #ifdef DEBUG_VERBOSE_XML
     std::cerr << "<FloatChannelTreeWidgetItem@" << this
       << "::FloatChannelTreeWidgetItem channel=\"" << &channel
       << "\" treeWidget=\"" << &treeWidget << "\">" << std::endl;
 #endif
     setText(2, "32-Bit float");
+    updateIcon();
 #ifdef DEBUG_VERBOSE_XML
     std::cerr << "</FloatChannelTreeWidgetItem@" << this
       << "::FloatChannelTreeWidgetItem>" << std::endl;
@@ -55,6 +57,50 @@ namespace iRoCS {
 
   void FloatChannelTreeWidgetItem::updateData() {}
 
+  void FloatChannelTreeWidgetItem::updateIndexRange() {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateStartColor() {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateEndColor() {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateIntermediateColor(double) {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateMoveIntermediateColor(double, double) {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateRemoveIntermediateColor(double) {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateClearIntermediateColors() {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateMonochromeColor() {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateRangeIndicator() {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateGamma() {
+    updateIcon();
+  }
+  
+  void FloatChannelTreeWidgetItem::updateColormap() {
+    updateIcon();
+  }
+  
   FloatChannelTreeWidgetItem *FloatChannelTreeWidgetItem::instance(
     FloatChannel &channel, MultichannelModelTreeWidget *treeWidget) {
 #ifdef DEBUG_VERBOSE_XML
@@ -85,4 +131,17 @@ namespace iRoCS {
     return item;
   }
 
+  void FloatChannelTreeWidgetItem::updateIcon() {
+    QImage colorbar(16, 16, QImage::Format_RGB32);
+    for (int x = 0; x < 16; ++x) {
+      FloatColormap::ColorT color = _colormap.color(
+        static_cast<double>(x) / 15.0 *
+        (_colormap.endIndex() - _colormap.startIndex()) +
+        _colormap.startIndex());
+      for (int y = 0; y < 16; ++y)
+        colorbar.setPixel(x, y, QColor(color(0), color(1), color(2)).rgb());
+    }
+    setIcon(0, QIcon(QPixmap::fromImage(colorbar)));    
+  }
+  
 }
