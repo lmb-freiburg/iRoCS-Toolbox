@@ -60,8 +60,6 @@
 #define PACKAGE_BUGREPORT "falk@cs.uni-freiburg.de"
 #endif
 
-#define DEBUG
-
 namespace iRoCS {
 
 #ifdef DEBUG
@@ -98,8 +96,11 @@ namespace iRoCS {
     QTextEdit *logTextEdit = new QTextEdit;
     logTextEdit->setReadOnly(true);
     p_logBuffer = new StreamBufTextEditQt4(logTextEdit);
-#ifndef DEBUG
+#if !defined(DEBUG)
     p_origCoutBuffer = std::cout.rdbuf(p_logBuffer);
+#elif defined(_WIN32)
+    _coutFile.open("stdout.txt", std::ios::trunc);
+    p_origCoutBuffer = std::cout.rdbuf(_coutFile.rdbuf());
 #endif
     logWidget->setWidget(logTextEdit);
     addDockWidget(Qt::BottomDockWidgetArea, logWidget);
@@ -109,8 +110,11 @@ namespace iRoCS {
     QTextEdit *debugTextEdit = new QTextEdit;
     debugTextEdit->setReadOnly(true);
     p_debugBuffer = new StreamBufTextEditQt4(debugTextEdit);
-#ifndef DEBUG
+#if !defined(DEBUG)
     p_origCerrBuffer = std::cerr.rdbuf(p_debugBuffer);
+#elif defined(_WIN32)
+    _cerrFile.open("stderr.txt", std::ios::trunc);
+    p_origCerrBuffer = std::cerr.rdbuf(_cerrFile.rdbuf());
 #endif
     debugWidget->setWidget(debugTextEdit);
     addDockWidget(Qt::BottomDockWidgetArea, debugWidget);
@@ -272,13 +276,15 @@ namespace iRoCS {
     delete p_model;
     delete p_progressReporter;
 
-#ifndef DEBUG
+#if defined(_WIN32) || !defined(DEBUG)
     std::cout.rdbuf(p_origCoutBuffer);
-#endif
-    delete p_logBuffer;
-#ifndef DEBUG
     std::cerr.rdbuf(p_origCerrBuffer);
 #endif
+#if defined(_WIN32) && defined(DEBUG)
+    _coutFile.close();
+    _cerrFile.close();
+#endif
+    delete p_logBuffer;
     delete p_debugBuffer;
   }
 

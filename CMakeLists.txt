@@ -24,13 +24,13 @@ option(BUILD_STATIC_TOOLS "Build statically linked tools" OFF)
 option(BUILD_TESTS "Build tests" OFF)
 option(VERBOSE_DEBUG "Enable verbose debugging output" OFF)
 if(VERBOSE_DEBUG)
-  set(DEBUG "1")
-  set(DEBUG_VERBOSE_XML "1")
+  add_definitions(-DDEBUG)
+  add_definitions(-DDEBUG_VERBOSE_XML)
 endif()
 option(BLITZ_DEBUG
   "Enable Blitz++ debugging (e.g. range checking) (very slow!)" OFF)
 if(BLITZ_DEBUG)
-  set(BZ_DEBUG "1")
+  add_definitions(-DBZ_DEBUG)
 endif()
 
 # ==================================

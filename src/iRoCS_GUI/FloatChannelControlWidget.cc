@@ -66,8 +66,9 @@ namespace iRoCS {
     FloatChannel &channel,
     MultichannelModelControlWidgetStack *controlStack, bool advancedMode) {
 #ifdef DEBUG_VERBOSE_XML
-    std::cerr << "<FloatChannelControlWidget::instance channel=\"" << &channel
-      << "\" controlStack=\"" << controlStack << "\">" << std::endl;
+    std::cerr << "<FloatChannelControlWidget::instance channel=\""
+      << typeid(channel).name() << "@" << &channel << "(" << channel.name()
+      << ")\" controlStack=\"" << controlStack << "\">" << std::endl;
 #endif
     // First check whether an Observer for this channel/stack combination
     // already exists. If so return the pointer to the existing Observer.

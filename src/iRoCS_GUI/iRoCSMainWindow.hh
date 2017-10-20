@@ -34,6 +34,10 @@
 
 #include <blitz/array.h>
 
+#if defined(DEBUG) && defined(_WIN32)
+#include <fstream>
+#endif
+
 class QAction;
 class QLineEdit;
 class QTreeWidgetItem;
@@ -109,6 +113,10 @@ namespace iRoCS {
     QAction *p_deleteChannelsAction;
 
     iRoCS::ProgressReporterQt4 *p_progressReporter;
+
+#if defined(DEBUG) && defined(_WIN32)
+    std::ofstream _coutFile, _cerrFile;
+#endif
 
   };
 

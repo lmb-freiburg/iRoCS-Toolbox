@@ -104,8 +104,10 @@ namespace iRoCS {
   FloatChannelTreeWidgetItem *FloatChannelTreeWidgetItem::instance(
     FloatChannel &channel, MultichannelModelTreeWidget *treeWidget) {
 #ifdef DEBUG_VERBOSE_XML
-    std::cerr << "<FloatChannelTreeWidgetItem::instance channel=\"" << &channel
-      << "\" treeWidget=\"" << treeWidget << "\">" << std::endl;
+    std::cerr << "<FloatChannelTreeWidgetItem::instance channel=\""
+      << typeid(channel).name() << "@" << &channel
+      << "(" << channel.name() << ")\" treeWidget=\"" << treeWidget << "\">"
+      << std::endl;
 #endif
     // First check whether an Observer for this channel/tree combination
     // already exists. If so return the pointer to the existing Observer.

@@ -55,7 +55,8 @@ namespace iRoCS {
     OrthoviewWidget &view, Channel &channel) {
 #ifdef DEBUG_VERBOSE_XML
     std::cerr << "<ChannelOrthoviewRenderer::instance view=\"" << &view
-      << "\" channel=\"" << &channel << "\">" << std::endl;
+      << "\" channel=\"" << typeid(channel).name() << "@" << &channel
+      << "(" << channel.name() << ")\">" << std::endl;
 #endif
     try {
       FloatChannelOrthoviewRenderer *renderer =
