@@ -43,6 +43,8 @@ namespace iRoCS {
       << "\" treeWidget=\"" << treeWidget << "\">" << std::endl;
 #endif
     if (treeWidget != NULL) {
+
+      // Get root item. If it does not exist yet, create it on the fly
       QTreeWidgetItem *currentItem = NULL;
       if (treeWidget->topLevelItemCount() == 0) {
         QStringList rootItemLabels;
@@ -57,13 +59,8 @@ namespace iRoCS {
 
       // Extract group structure from channel name string
       std::vector<std::string> pathComponents(_channel.nameComponents());
-      if (pathComponents.size() == 0) {
-        if (_channel.model() != NULL)
-          _channel.setName(_channel.model()->ensureValidName(&_channel));
-        else _channel.setName("channel");
-        pathComponents = _channel.nameComponents();
-      }
 
+      // Traverse tree and create necessary intermediate group nodes
       for (size_t i = 0; i < pathComponents.size() - 1; ++i) {
         int j = 0;
         for (; j < currentItem->childCount(); ++j)
@@ -97,7 +94,7 @@ namespace iRoCS {
         }
       }
 
-      // Create leaf for channel
+      // Create leaf node for channel
       int j = 0;
       for (; j < currentItem->childCount(); ++j)
         if (currentItem->child(j)->text(0) == pathComponents.back().c_str())
@@ -121,7 +118,6 @@ namespace iRoCS {
       setFlags(Qt::ItemIsEnabled | Qt::ItemIsDragEnabled |
         Qt::ItemIsUserCheckable | Qt::ItemIsEditable |
         Qt::ItemIsSelectable);
-      setSelected(true);
     }
     else {
       setText(0, _channel.name().c_str());
@@ -161,9 +157,18 @@ namespace iRoCS {
   void ChannelTreeWidgetItem::updateName() {
     if (_nameUpdateInProgress) return;
     _nameUpdateInProgress = true;
+
     if (treeWidget() == NULL) {
+#ifdef DEBUG_VERBOSE_XML
+      std::cerr << "<ChannelTreeWidgetItem@" << this << "::updateName>"
+        << std::endl;
+#endif
       setText(0, _channel.name().c_str());
       _nameUpdateInProgress = false;
+#ifdef DEBUG_VERBOSE_XML
+      std::cerr << "</ChannelTreeWidgetItem@" << this << "::updateName>"
+        << std::endl;
+#endif
       return;
     }
 
@@ -199,11 +204,20 @@ namespace iRoCS {
       return;
     }
 
+#ifdef DEBUG_VERBOSE_XML
+    std::cerr << "<ChannelTreeWidgetItem@" << this << "::updateName>"
+      << std::endl;
+#endif
+
     // Simple renaming
     if (startGroupItem == parent() &&
       startGroupIndex == nameComponents.size() - 1) {
       setText(0, nameComponents.back().c_str());
       _nameUpdateInProgress = false;
+#ifdef DEBUG_VERBOSE_XML
+      std::cerr << "</ChannelTreeWidgetItem@" << this << "::updateName>"
+        << std::endl;
+#endif
       return;
     }
 
@@ -243,6 +257,10 @@ namespace iRoCS {
       treeWidget())->adjustColumnWidths();
 
     _nameUpdateInProgress = false;
+#ifdef DEBUG_VERBOSE_XML
+    std::cerr << "</ChannelTreeWidgetItem@" << this << "::updateName>"
+      << std::endl;
+#endif
   }
 
   void ChannelTreeWidgetItem::updateFilename() {}

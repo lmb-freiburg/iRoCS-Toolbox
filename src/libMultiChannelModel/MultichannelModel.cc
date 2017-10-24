@@ -79,7 +79,7 @@ namespace iRoCS {
 
 #ifdef DEBUG_VERBOSE_XML
     std::cerr << "<MultichannelModel@" << this << "::addChannel channel=\""
-      << channel << " " << printState() << ">" << std::endl;
+      << channel << "\" " << printState() << ">" << std::endl;
 #endif
 
     std::cout << "Adding channel '" << channel->name()
@@ -91,7 +91,6 @@ namespace iRoCS {
     std::cout << "  Channel bounding box = "
       << channel->boundingBoxLowerBoundUm() << " - "
       << channel->boundingBoxUpperBoundUm() << std::endl;
-
     channel->setName(ensureValidName(channel));
     _channels.insert(channel);
     channel->setModel(this);

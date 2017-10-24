@@ -96,7 +96,9 @@ namespace iRoCS {
 #endif
     clearSelection();
     bool initiallyEmpty = (topLevelItemCount() == 0);
-    ChannelTreeWidgetItem::instance(*channel, this);
+    ChannelTreeWidgetItem *item =
+      ChannelTreeWidgetItem::instance(*channel, this);
+    item->setSelected(true);
     adjustColumnWidths();
     if (initiallyEmpty && topLevelItemCount() != 0)
       emit isEmptyChanged(false);

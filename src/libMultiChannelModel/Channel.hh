@@ -166,7 +166,7 @@ namespace iRoCS {
      *   \exception A read-only reference to the set of ChannelObservers
      */
      /*======================================================================*/
-    std::set<ChannelObserver*> const observers() const;
+    std::set<ChannelObserver*> const &observers() const;
 
     /*======================================================================*/
     /*!
@@ -195,10 +195,10 @@ namespace iRoCS {
     /*!
      *   Set the name of this Channel. The name can in principle be
      *   an arbitrary string, but it must conform to an hdf5 path description
-     *   if you want to save the model to hdf5. Nor the channel nor the parent
-     *   model enforce unique names or compliance to hdf5 standards. Changing the
-     *   name alters the modified flag of the MultichannelModel, but it does not
-     *   alter the modified flag of the channel!
+     *   if you want to save the model to hdf5. The given string will be
+     *   converted to a unique hdf5 path in the model.
+     *   Changing the name alters the modified flag of the MultichannelModel,
+     *   but it does not alter the modified flag of the channel!
      *
      *   If the name changes, associated observers will be notified via
      *   updateName().

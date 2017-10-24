@@ -126,7 +126,7 @@ namespace iRoCS {
 #endif
   }
 
-  std::set<ChannelObserver*> const Channel::observers() const {
+  std::set<ChannelObserver*> const &Channel::observers() const {
     return _observers;
   }
 
@@ -154,11 +154,19 @@ namespace iRoCS {
   void Channel::setName(std::string const &name) {
     std::string simpleName = simplified(name);
     if (_name == simpleName) return;
+#ifdef DEBUG_VERBOSE_XML
+    std::cerr << "<Channel@" << this << "::setName name=\"" << name
+              << "\" p_model=\"" << p_model << "\" " << printState() << ">"
+              << std::endl;
+#endif
     _name = simpleName;
     if (p_model != NULL) _name = p_model->ensureValidName(this);
     for (std::set<ChannelObserver*>::const_iterator it = _observers.begin();
       it != _observers.end(); ++it) (*it)->updateName();
     if (p_model != NULL) p_model->setModified(true);
+#ifdef DEBUG_VERBOSE_XML
+    std::cerr << "</Channel@" << this << "::setName>" << std::endl;
+#endif
   }
 
   std::string const &Channel::name() const {
