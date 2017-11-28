@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -57,7 +57,7 @@
 // #include <blitz/tinyvec-et.h>
 
 AnnotationChannelSpecs::AnnotationChannelSpecs(
-    Marker::MarkerType markerType, MultiChannelModel *model) 
+    Marker::MarkerType markerType, MultiChannelModel *model)
         : ChannelSpecs(model), _markerType(markerType), _selectedMarker(NULL)
 {
   disconnect(
@@ -104,7 +104,7 @@ AnnotationChannelSpecs::AnnotationChannelSpecs(
           SLOT(updateCoordinates()));
   p_channelControlLayout->addWidget(p_coordinateUpdateButton);
 
-  switch (markerType) 
+  switch (markerType)
   {
   case Marker::Point :
     p_presetWidget = new PointMarkerPresetWidget(this);
@@ -162,7 +162,7 @@ AnnotationChannelSpecs::AnnotationChannelSpecs(
   connect(this, SIGNAL(featureSizeChanged(int)),
           p_controlWidget, SLOT(resizeFeatures(int)));
   p_controlWidget->setEnabled(false);
-  
+
   p_channelControlLayout->addStretch(1);
 }
 
@@ -273,7 +273,7 @@ Marker *AnnotationChannelSpecs::closestMarker(
     blitz::TinyVector<double,3> const &positionUm, bool intersecting)
 {
   if (_markers.size() == 0) return NULL;
-  
+
   Marker *res = NULL;
   double minSqDistance = std::numeric_limits<double>::infinity();
   for (const_iterator it = _markers.begin(); it != _markers.end(); ++it)
@@ -291,12 +291,12 @@ Marker *AnnotationChannelSpecs::closestMarker(
 }
 
 Marker *AnnotationChannelSpecs::addMarker(
-    blitz::TinyVector<double,3> const &positionUm) 
+    blitz::TinyVector<double,3> const &positionUm)
 {
   Marker *marker = NULL;
-  switch(_markerType) 
+  switch(_markerType)
   {
-  case Marker::Point : 
+  case Marker::Point :
     marker = new PointMarker(positionUm);
     break;
   case Marker::Sphere :
@@ -328,7 +328,7 @@ Marker *AnnotationChannelSpecs::addMarker(
   return marker;
 }
 
-void AnnotationChannelSpecs::addMarker(Marker *marker) 
+void AnnotationChannelSpecs::addMarker(Marker *marker)
 {
   if (marker == NULL) return;
 
@@ -337,7 +337,7 @@ void AnnotationChannelSpecs::addMarker(Marker *marker)
   if (_markers.size() != 0 &&
       marker->_features.size() != _markers.front()->_features.size())
       marker->_features.resize(_markers.front()->_features.size());
-  if (_colorMap.find(marker->label()) == _colorMap.end()) 
+  if (_colorMap.find(marker->label()) == _colorMap.end())
   {
     _colorMap.insert(
         std::pair< int, blitz::TinyVector<float,3> >(
@@ -421,7 +421,7 @@ void AnnotationChannelSpecs::selectMarker(Marker *marker)
   emit viewChanged();
 }
 
-Marker *AnnotationChannelSpecs::selectedMarker() 
+Marker *AnnotationChannelSpecs::selectedMarker()
 {
   return _selectedMarker;
 }
@@ -431,7 +431,7 @@ Marker const *AnnotationChannelSpecs::selectedMarker() const
   return _selectedMarker;
 }
 
-Marker::MarkerType AnnotationChannelSpecs::markerType() const 
+Marker::MarkerType AnnotationChannelSpecs::markerType() const
 {
   return _markerType;
 }
@@ -696,7 +696,7 @@ void AnnotationChannelSpecs::saveCSV(std::string const &fileName) const
         qApp->activeWindow(), tr("CSV annotation export error"),
         tr("The channel '%1' does not contain markers. Nothing to save.").arg(
             name().c_str()));
-    return;    
+    return;
   }
 
  try
@@ -705,7 +705,7 @@ void AnnotationChannelSpecs::saveCSV(std::string const &fileName) const
     std::ofstream outFile(fileName.c_str(), std::ios::trunc);
     _markers[0]->writeCSVHeader(outFile);
     outFile << "\n";
-    
+
     // Write markers
     for (size_t i = 0; i < _markers.size(); ++i)
     {
@@ -758,7 +758,7 @@ AnnotationChannelSpecs *AnnotationChannelSpecs::loadCSV(
           headerLine.find(";") + 1, std::string::npos);
       if (headerStrings.back() == "x (micron)") hasPosX = true;
       if (headerStrings.back() == "y (micron)") hasPosY = true;
-      if (headerStrings.back() == "z (micron)") hasPosZ = true;      
+      if (headerStrings.back() == "z (micron)") hasPosZ = true;
       if (headerStrings.back() == "radius (micron)") isSphere = true;
       if (headerStrings.back() == "coefficients") isSHSurface = true;
       if (headerStrings.back() == "length (micron)" ||
@@ -779,7 +779,7 @@ AnnotationChannelSpecs *AnnotationChannelSpecs::loadCSV(
           headerStrings.back() == "distance from border (micron)" ||
           headerStrings.back() == "volume (cube microns)") isBiological = true;
     }
-    
+
     if (!hasPosX || !hasPosY || !hasPosZ)
     {
       QMessageBox::critical(
@@ -824,7 +824,7 @@ AnnotationChannelSpecs *AnnotationChannelSpecs::loadCSV(
     std::map<std::string,std::string> attValueMap;
     for (size_t i = 0; i < headerStrings.size(); ++i)
         attValueMap[headerStrings[i]] = "";
-    
+
     // Read file data
     int lineNo = 2;
     while (inFile.good())
@@ -836,7 +836,7 @@ AnnotationChannelSpecs *AnnotationChannelSpecs::loadCSV(
       for (std::vector<std::string>::const_iterator it = headerStrings.begin();
            it != headerStrings.end(); ++it)
       {
-        if (line == "$") 
+        if (line == "$")
         {
           std::stringstream headerStream;
           headerStream << "Header fields: ";
@@ -853,7 +853,7 @@ AnnotationChannelSpecs *AnnotationChannelSpecs::loadCSV(
         }
         attValueMap[*it] = line.substr(0, line.find(";"));
         if (line.find(";") == std::string::npos) line = "$";
-        else line = line.substr(line.find(";") + 1, std::string::npos);        
+        else line = line.substr(line.find(";") + 1, std::string::npos);
       }
 
       Marker *marker = channel->addMarker(blitz::TinyVector<double,3>(0.0));
@@ -909,7 +909,7 @@ void AnnotationChannelSpecs::updateBoundingBox()
   emit boundingBoxChanged(_lowerBoundUm, _upperBoundUm);
 }
 
-void AnnotationChannelSpecs::updateSelectedMarker() 
+void AnnotationChannelSpecs::updateSelectedMarker()
 {
   if (_selectedMarker != NULL) p_controlWidget->getValues(_selectedMarker);
 }
@@ -920,7 +920,7 @@ void AnnotationChannelSpecs::updateCoordinates()
   // contain an iRoCS channel give up
   if (p_model == NULL || p_model->nChannels(
           ChannelSpecs::IRoCS | ChannelSpecs::IRoCSSCT) == 0) return;
-  
+
   atb::IRoCS *rct = NULL;
   ShellCoordinateTransform *sct = NULL;
   if (p_model->nChannels(ChannelSpecs::IRoCS | ChannelSpecs::IRoCSSCT) > 1)
@@ -977,14 +977,14 @@ void AnnotationChannelSpecs::updateCoordinates()
     }
   }
   if (rct == NULL && sct == NULL) return;
-  
+
   std::cout << "Updating iRoCS coordinates of channel '" << name() << "'"
             << std::endl;
   for (iterator it = _markers.begin(); it != _markers.end(); ++it)
   {
     blitz::TinyVector<double,3> coords;
-    if (rct != NULL) rct->getCoordinates((*it)->positionUm());
-    if (sct != NULL) sct->getCoordinates((*it)->positionUm());
+    if (rct != NULL) coords = rct->getCoordinates((*it)->positionUm());
+    if (sct != NULL) coords = sct->getCoordinates((*it)->positionUm());
     (*it)->setQcDistanceUm(coords(0));
     (*it)->setRadialDistanceUm(coords(1));
     (*it)->setPhi(coords(2));
