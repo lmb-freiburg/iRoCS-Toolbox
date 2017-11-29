@@ -84,12 +84,12 @@ int main(int argc, char **argv )
   CmdArgType<std::string> inFileName(
       "infile",
       "input file (HDF5). If the file contains a labelling project it will be "
-      "opened, if not a selection dialog let's the user choose data sets and "
+      "opened, if not a selection dialog lets the user choose data sets and "
       "annotations to load. The import mode can be forced by giving the "
       "-i (--interactive) command line flag", CmdArg::isPOSVALOPT);
   CmdArgSwitch forceImport(
       'i', "interactive", "Disregard any project information contained in the "
-      "input file and let the user select chennels using an import channel "
+      "input file and let the user select channels using an import channel "
       "dialog.");
 
   CmdLine cmd(argv[0], "Annotate 3D volumes from hdf5 datasets in an "
