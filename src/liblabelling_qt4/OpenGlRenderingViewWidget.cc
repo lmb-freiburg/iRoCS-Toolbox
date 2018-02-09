@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -43,7 +43,7 @@ OpenGlRenderingViewWidget::OpenGlRenderingViewWidget(
       this, this, Qt::Window);
   p_renderingSettings->setWindowTitle(tr("iRoCS Toolbox - Rendering Settings"));
   p_renderingSettings->setVisible(isVisible());
-  
+
   QVBoxLayout *layout = new QVBoxLayout;
 
   QToolBar *toolbar = new QToolBar;
@@ -82,7 +82,7 @@ OpenGlRenderingViewWidget::OpenGlRenderingViewWidget(
   layout->addLayout(progressLayout);
 
   setLayout(layout);
-  
+
   p_model->addView(this);
 }
 
@@ -134,7 +134,7 @@ bool OpenGlRenderingViewWidget::positionVisible(
     blitz::TinyVector<double,3> const &positionUm) const
 {
   if (p_renderingSettings->clippingChannel() == NULL) return true;
-  
+
   ChannelSpecs *clippingChannel = p_renderingSettings->clippingChannel();
   blitz::TinyVector<double,3> iRoCSPos(0.0);
   switch (clippingChannel->channelType())
@@ -172,6 +172,12 @@ bool OpenGlRenderingViewWidget::positionVisible(
 OpenGlRenderingWidget *OpenGlRenderingViewWidget::renderingWidget()
 {
   return p_renderingWidget;
+}
+
+OpenGlRenderingSettingsWidget *
+OpenGlRenderingViewWidget::renderingSettingsWidget()
+{
+  return p_renderingSettings;
 }
 
 void OpenGlRenderingViewWidget::redraw()

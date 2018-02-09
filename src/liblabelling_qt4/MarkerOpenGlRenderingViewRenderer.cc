@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -25,6 +25,7 @@
 #include "MarkerOpenGlRenderingViewRenderer.hh"
 
 #include "OpenGlRenderingViewWidget.hh"
+#include "OpenGlRenderingSettingsWidget.hh"
 #include "AnnotationChannelSpecs.hh"
 #include "NucleusMarker.hh"
 #include "CellMarker.hh"
@@ -50,6 +51,10 @@ MarkerOpenGlRenderingViewRenderer::~MarkerOpenGlRenderingViewRenderer()
 
 void MarkerOpenGlRenderingViewRenderer::_setPenColor(bool hilighted) const
 {
+  float ambientFactor =
+      static_cast<OpenGlRenderingViewWidget*>(
+          p_view)->renderingSettingsWidget()->ambientFactor();
+
   AnnotationChannelSpecs *channel = p_marker->channel();
   blitz::TinyVector<float,4> diffuseColor, ambientColor, specularColor;
   switch (channel->selectedViewType())
@@ -65,11 +70,12 @@ void MarkerOpenGlRenderingViewRenderer::_setPenColor(bool hilighted) const
         sublabel = static_cast<CellMarker*>(p_marker)->subtype();
     if (sublabel > 0) c += static_cast<float>(sublabel) * 0.2f;
     for (int d = 0; d < 3; ++d) if (c(d) > 1.0f) c(d) = 1.0f;
-    
+
     diffuseColor = c(0), c(1), c(2),
         channel->alpha() * channel->alphaForLabel(p_marker->label());
-    ambientColor = 0.1f * diffuseColor(0), 0.1f * diffuseColor(1),
-        0.1f * diffuseColor(2), diffuseColor(3);
+    ambientColor = ambientFactor * diffuseColor(0),
+        ambientFactor * diffuseColor(1),
+        ambientFactor * diffuseColor(2), diffuseColor(3);
     specularColor = 1.0f, 1.0f, 1.0f, diffuseColor(3);
     break;
   }
@@ -85,11 +91,12 @@ void MarkerOpenGlRenderingViewRenderer::_setPenColor(bool hilighted) const
         sublabel = static_cast<CellMarker*>(p_marker)->predictedSubtype();
     if (sublabel > 0) c += static_cast<float>(sublabel) * 0.2f;
     for (int d = 0; d < 3; ++d) if (c(d) > 1.0f) c(d) = 1.0f;
-    
+
     diffuseColor = c(0), c(1), c(2),
         channel->alpha() * channel->alphaForLabel(p_marker->predictedLabel());
-    ambientColor = 0.1f * diffuseColor(0), 0.1f * diffuseColor(1),
-        0.1f * diffuseColor(2), diffuseColor(3);
+    ambientColor = ambientFactor * diffuseColor(0),
+        ambientFactor * diffuseColor(1),
+        ambientFactor * diffuseColor(2), diffuseColor(3);
     specularColor = 1.0f, 1.0f, 1.0f, diffuseColor(3);
     break;
   }
@@ -104,8 +111,9 @@ void MarkerOpenGlRenderingViewRenderer::_setPenColor(bool hilighted) const
     }
     else col = 1.0f, 1.0f, 0.0f;
     diffuseColor = col(0), col(1), col(2), channel->alpha();
-    ambientColor = 0.1f * diffuseColor(0), 0.1f * diffuseColor(1),
-        0.1f * diffuseColor(2), diffuseColor(3);
+    ambientColor = ambientFactor * diffuseColor(0),
+        ambientFactor * diffuseColor(1),
+        ambientFactor * diffuseColor(2), diffuseColor(3);
     specularColor = 1.0f, 1.0f, 1.0f, diffuseColor(3);
     break;
   }
@@ -113,30 +121,30 @@ void MarkerOpenGlRenderingViewRenderer::_setPenColor(bool hilighted) const
   {
     blitz::TinyVector<float,3> const &col = p_marker->randomColor();
     diffuseColor = col(0), col(1), col(2), channel->alpha();
-    ambientColor = 0.1f * diffuseColor(0), 0.1f * diffuseColor(1),
-        0.1f * diffuseColor(2), diffuseColor(3);
+    ambientColor = ambientFactor * diffuseColor(0),
+        ambientFactor * diffuseColor(1),
+        ambientFactor * diffuseColor(2), diffuseColor(3);
     specularColor = 1.0f, 1.0f, 1.0f, diffuseColor(3);
-    break;    
+    break;
   }
   default:
     std::cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation"
               << std::endl;
     exit(-1);
   }
-  
+
   if (hilighted)
   {
-    ambientColor(0) = 0.7f * diffuseColor(0);
-    ambientColor(1) = 0.7f * diffuseColor(1);
-    ambientColor(2) = 0.7f * diffuseColor(2);
+    ambientColor(0) = 2.0f * ambientFactor * diffuseColor(0);
+    ambientColor(1) = 2.0f * ambientFactor * diffuseColor(1);
+    ambientColor(2) = 2.0f * ambientFactor * diffuseColor(2);
   }
 
   // Unlit case
   glColor4f(diffuseColor(0), diffuseColor(1), diffuseColor(2), diffuseColor(3));
-  
+
   // With lighting enabled
   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambientColor.data());
   glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseColor.data());
   glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specularColor.data());
 }
-

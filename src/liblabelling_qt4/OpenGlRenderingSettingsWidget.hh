@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -29,9 +29,12 @@
 #include <config.hh>
 #endif
 
+#include <blitz/array.h>
+
 #include <QtGui/QWidget>
 
 class OpenGlRenderingViewWidget;
+class ColorControlElement;
 class StringSelectionControlElement;
 class BoolControlElement;
 class DoubleControlElement;
@@ -46,21 +49,23 @@ class OpenGlRenderingSettingsWidget : public QWidget
 {
 
   Q_OBJECT
-  
+
   public:
-  
+
   enum RenderingState { Solid = 0, Wireframe = 1, Dots = 2 };
 
   OpenGlRenderingSettingsWidget(
       OpenGlRenderingViewWidget *view, QWidget *parent = 0,
       Qt::WindowFlags f = 0);
-  
+
   ~OpenGlRenderingSettingsWidget();
 
+  blitz::TinyVector<unsigned char,3> backgroundColor() const;
   RenderingState frontFaceRendering() const;
   RenderingState backFaceRendering() const;
   bool backFaceCullingEnabled() const;
   bool lightEnabled() const;
+  float ambientFactor() const;
   float materialShininess() const;
   double latitudeSamplingUm() const;
   int longitudeSampling() const;
@@ -74,7 +79,7 @@ class OpenGlRenderingSettingsWidget : public QWidget
   double phiMax() const;
 
 signals:
-  
+
   // This signal indicates, that the OpenGl renderer needs to be reinitialized
   // and should trigger an intializeGL() and updateGL()
   void renderingStateChanged();
@@ -84,7 +89,7 @@ signals:
   void clippingStateChanged();
 
 private slots:
-  
+
   void _setLiveUpdateEnabled(bool enable);
 
 private:
@@ -92,10 +97,12 @@ private:
   OpenGlRenderingViewWidget *p_view;
 
   BoolControlElement *p_liveUpdateControl;
+  ColorControlElement *p_backgroundColorControl;
   StringSelectionControlElement *p_frontFaceRenderingControl;
   StringSelectionControlElement *p_backFaceRenderingControl;
   BoolControlElement *p_backFaceCullingControl;
   BoolControlElement *p_lightControl;
+  DoubleControlElement *p_ambientFactorControl;
   DoubleControlElement *p_materialShininessControl;
   DoubleControlElement *p_latitudeSamplingControl;
   IntControlElement *p_longitudeSamplingControl;

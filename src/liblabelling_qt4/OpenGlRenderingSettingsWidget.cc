@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -30,6 +30,7 @@
 #include <QtGui/QPushButton>
 
 #include "StringSelectionControlElement.hh"
+#include "ColorControlElement.hh"
 #include "BoolControlElement.hh"
 #include "DoubleControlElement.hh"
 #include "IntControlElement.hh"
@@ -45,9 +46,9 @@ OpenGlRenderingSettingsWidget::OpenGlRenderingSettingsWidget(
         : QWidget(parent, f), p_view(view)
 {
   QVBoxLayout *layout = new QVBoxLayout;
-  
+
   QHBoxLayout *updateLayout = new QHBoxLayout;
-  
+
   p_liveUpdateControl = new BoolControlElement(tr("Live update"));
   p_liveUpdateControl->setValue(false);
   connect(p_liveUpdateControl, SIGNAL(valueChanged(bool)),
@@ -61,7 +62,10 @@ OpenGlRenderingSettingsWidget::OpenGlRenderingSettingsWidget(
 
   QGroupBox *renderingGroup = new QGroupBox(tr("Rendering State"));
   QVBoxLayout *renderingLayout = new QVBoxLayout;
-    
+
+  p_backgroundColorControl = new ColorControlElement(tr("Background Color"));
+  renderingLayout->addWidget(p_backgroundColorControl);
+
   QStringList renderingModes;
   renderingModes << "Solid" << "Wireframe" << "Points";
 
@@ -78,11 +82,17 @@ OpenGlRenderingSettingsWidget::OpenGlRenderingSettingsWidget(
   p_backFaceCullingControl = new BoolControlElement(tr("Back face culling"));
   p_backFaceCullingControl->setValue(true);
   renderingLayout->addWidget(p_backFaceCullingControl);
-  
+
   p_lightControl = new BoolControlElement(tr("Light enabled"));
   p_lightControl->setValue(true);
   renderingLayout->addWidget(p_lightControl);
-  
+
+  p_ambientFactorControl = new DoubleControlElement(tr("Ambient factor"));
+  p_ambientFactorControl->setRange(0.0, 1.0);
+  p_ambientFactorControl->setValue(0.1);
+  p_ambientFactorControl->setSingleStep(0.05);
+  renderingLayout->addWidget(p_ambientFactorControl);
+
   p_materialShininessControl = new DoubleControlElement(
       tr("Material shininess"));
   p_materialShininessControl->setRange(0.0, 1000.0);
@@ -102,9 +112,9 @@ OpenGlRenderingSettingsWidget::OpenGlRenderingSettingsWidget(
   renderingLayout->addWidget(p_longitudeSamplingControl);
 
   renderingGroup->setLayout(renderingLayout);
-  
+
   layout->addWidget(renderingGroup);
-  
+
   QGroupBox *clippingGroup = new QGroupBox(tr("Clipping"));
   QVBoxLayout *clippingLayout = new QVBoxLayout;
 
@@ -112,7 +122,7 @@ OpenGlRenderingSettingsWidget::OpenGlRenderingSettingsWidget(
       tr("iRoCS channel"), view->model(),
       ChannelSpecs::IRoCS | ChannelSpecs::IRoCSSCT);
   clippingLayout->addWidget(p_channelControl);
-  
+
   p_zRangeControl = new DoubleRangeControlElement(tr("z Range"));
   p_zRangeControl->setRange(
       -std::numeric_limits<double>::infinity(),
@@ -164,13 +174,19 @@ OpenGlRenderingSettingsWidget::OpenGlRenderingSettingsWidget(
 
   clippingLayout->addLayout(phiRangeLayout);
   clippingGroup->setLayout(clippingLayout);
-  
+
   layout->addWidget(clippingGroup);
   setLayout(layout);
 }
 
 OpenGlRenderingSettingsWidget::~OpenGlRenderingSettingsWidget()
 {}
+
+blitz::TinyVector<unsigned char,3>
+OpenGlRenderingSettingsWidget::backgroundColor() const
+{
+  return p_backgroundColorControl->value();
+}
 
 OpenGlRenderingSettingsWidget::RenderingState
 OpenGlRenderingSettingsWidget::frontFaceRendering() const
@@ -216,6 +232,11 @@ bool OpenGlRenderingSettingsWidget::backFaceCullingEnabled() const
 bool OpenGlRenderingSettingsWidget::lightEnabled() const
 {
   return p_lightControl->value();
+}
+
+float OpenGlRenderingSettingsWidget::ambientFactor() const
+{
+  return static_cast<float>(p_ambientFactorControl->value());
 }
 
 float OpenGlRenderingSettingsWidget::materialShininess() const
@@ -272,6 +293,8 @@ void OpenGlRenderingSettingsWidget::_setLiveUpdateEnabled(bool enable)
 {
   if (enable)
   {
+    connect(p_backgroundColorControl, SIGNAL(valueChanged()),
+            SIGNAL(renderingStateChanged()));
     connect(p_frontFaceRenderingControl, SIGNAL(valueChanged()),
             SIGNAL(renderingStateChanged()));
     connect(p_backFaceRenderingControl, SIGNAL(valueChanged()),
@@ -279,6 +302,8 @@ void OpenGlRenderingSettingsWidget::_setLiveUpdateEnabled(bool enable)
     connect(p_backFaceCullingControl, SIGNAL(valueChanged()),
             SIGNAL(renderingStateChanged()));
     connect(p_lightControl, SIGNAL(valueChanged()),
+            SIGNAL(renderingStateChanged()));
+    connect(p_ambientFactorControl, SIGNAL(valueChanged()),
             SIGNAL(renderingStateChanged()));
     connect(p_materialShininessControl, SIGNAL(valueChanged()),
             SIGNAL(renderingStateChanged()));
@@ -299,6 +324,8 @@ void OpenGlRenderingSettingsWidget::_setLiveUpdateEnabled(bool enable)
   }
   else
   {
+    disconnect(p_backgroundColorControl, SIGNAL(valueChanged()),
+               this, SIGNAL(renderingStateChanged()));
     disconnect(p_frontFaceRenderingControl, SIGNAL(valueChanged()),
                this, SIGNAL(renderingStateChanged()));
     disconnect(p_backFaceRenderingControl, SIGNAL(valueChanged()),
@@ -306,6 +333,8 @@ void OpenGlRenderingSettingsWidget::_setLiveUpdateEnabled(bool enable)
     disconnect(p_backFaceCullingControl, SIGNAL(valueChanged()),
                this, SIGNAL(renderingStateChanged()));
     disconnect(p_lightControl, SIGNAL(valueChanged()),
+               this, SIGNAL(renderingStateChanged()));
+    disconnect(p_ambientFactorControl, SIGNAL(valueChanged()),
                this, SIGNAL(renderingStateChanged()));
     disconnect(p_materialShininessControl, SIGNAL(valueChanged()),
                this, SIGNAL(renderingStateChanged()));
