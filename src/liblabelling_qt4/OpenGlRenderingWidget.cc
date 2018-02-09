@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -52,7 +52,9 @@ OpenGlRenderingWidget::~OpenGlRenderingWidget()
 
 void OpenGlRenderingWidget::initializeGL()
 {
-  glClearColor(0.0, 0.0, 0.0, 0.0);
+  blitz::TinyVector<float,3> bgCol(
+      p_view->p_renderingSettings->backgroundColor() / 255.0f);
+  glClearColor(bgCol(0), bgCol(1), bgCol(2), 0.0);
   glCullFace(GL_BACK);
   glShadeModel(GL_SMOOTH);
   glEnable(GL_DEPTH_TEST);
@@ -183,7 +185,7 @@ void OpenGlRenderingWidget::mouseMoveEvent(QMouseEvent *e)
         glMatrixMode(GL_MODELVIEW);
         glLoadMatrixd(_rotation.data());
         glRotated(offset, 0.0, 0.0, 1.0);
-        glGetDoublev(GL_MODELVIEW_MATRIX, _rotation.data());        
+        glGetDoublev(GL_MODELVIEW_MATRIX, _rotation.data());
       }
       else // Rotate aximuth and elevation
       {
@@ -192,7 +194,7 @@ void OpenGlRenderingWidget::mouseMoveEvent(QMouseEvent *e)
             180.0,
             10.0 * M_PI * static_cast<double>(_lastMousePosition.y() - e->y()) /
             180.0);
-        
+
         glMatrixMode(GL_MODELVIEW);
         glLoadMatrixd(_rotation.data());
         blitz::TinyVector<double,3> axis(-offset(1), offset(0), 0.0);
