@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Margret Keuper, Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -61,7 +61,7 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (atb::BlitzIndexT i = 0; i < gradient.size(); ++i)
+    for (size_t i = 0; i < gradient.size(); ++i)
     {
       gradient_norm_sq.data()[i] =
           gradient.data()[i](0) * gradient.data()[i](0)
@@ -73,16 +73,16 @@ namespace segmentation
       if (gradient_norm_sq.data()[i] > max_norm_sq)
           max_norm_sq = gradient_norm_sq.data()[i];
     }
-    
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (atb::BlitzIndexT i = 0; i < gradient.size(); ++i)
+    for (size_t i = 0; i < gradient.size(); ++i)
     {
       gradient.data()[i] /= std::sqrt(max_norm_sq);
       gradient_norm_sq.data()[i] /= max_norm_sq;
     }
-  
+
     // normalizer
 
     T max_el_size = blitz::max(el_size_um);
@@ -118,7 +118,7 @@ namespace segmentation
             T a_ii = -6 - gradient_norm_sq(lev, row, col)/mu;
             // const part
             const blitz::TinyVector<T, 3>& b =  -b_arr(lev, row, col)/mu;
-            
+
             // other coefficients * x
             // this is just the finite-difference laplacian
             blitz::TinyVector<T, 3> a_ij_x =
@@ -145,7 +145,7 @@ namespace segmentation
   {
     std::cout << "MSGVF - Initializing" << std::endl;
     T scaling=el_size_um(2)/el_size_um(0);
-    T hz=hs*scaling; 
+    T hz=hs*scaling;
     blitz::TinyVector<atb::BlitzIndexT,3> Shape(gradient.shape());
     hr*=hr;
     hz=std::floor(hz);
@@ -156,7 +156,7 @@ namespace segmentation
     blitz::Array<T,3> dy2(dx2.shape());
     blitz::Array<T,3> dz2(dx2.shape());
 
-    blitz::Array<T,3> gradient_norm(Shape); 
+    blitz::Array<T,3> gradient_norm(Shape);
     gradient_norm =
         blitz::sqrt(blitz::pow2(gradient[0]) +
                     blitz::pow2(gradient[1]) +
@@ -187,7 +187,7 @@ namespace segmentation
 
     blitz::TinyVector<atb::BlitzIndexT,3> ShapeL(dx2.shape());
     blitz::Array<T,3> b(ShapeL);
-  
+
     b = dx2 * dx2 + dy2 * dy2 + dz2 * dz2;
 
     blitz::Array<T,3> c1(ShapeL);
@@ -210,7 +210,7 @@ namespace segmentation
 
     int count;
     /************* Solve GVF = (u,v) iteratively ***************/
-    for (count = 1; count <= max_iter; count++) 
+    for (count = 1; count <= max_iter; count++)
     {
       if (progress != NULL && !progress->updateProgress(
               static_cast<double>(count) / static_cast<double>(max_iter) *
@@ -220,10 +220,10 @@ namespace segmentation
       //    /* IV: Compute Laplace operator using Neuman condition */
       //    blitz::Array<float,2> Lu = laplacian(u);
       //    blitz::Array<float,2> Lv = laplacian(v);
-      //      
+      //
       //    /******** V: Update GVF ************/
-      //    u = (1-b) * u + mu * Lu + c1; 
-      //    v = (1-b) * v + mu * Lv + c2; 
+      //    u = (1-b) * u + mu * Lu + c1;
+      //    v = (1-b) * v + mu * Lv + c2;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -234,13 +234,13 @@ namespace segmentation
         for(atb::BlitzIndexT row = hs_int; row < ShapeL(1) - hs_int; ++row)
         {
           for(atb::BlitzIndexT col = hs_int; col < ShapeL(2) - hs_int; ++col)
-          { 
+          {
             ms_f(lev, row, col)[0]=0;
             ms_f(lev, row, col)[1]=0;
             ms_f(lev, row, col)[2]=0;
 
             T count=0;
-	      
+
             T dx_l=dx2(lev, row, col);
             T dy_l=dy2(lev, row, col);
             T dz_l=dz2(lev, row, col);
@@ -270,9 +270,9 @@ namespace segmentation
                         static_cast<T>(row - row2) +
                         static_cast<T>(col - col2) *
                         static_cast<T>(col - col2))) / hssq;
-		      
+
                   if(distv < 1)
-                  {    
+                  {
                     //float dweight=1-distv;
                     //count+=dweight;
                     count++;
@@ -286,7 +286,7 @@ namespace segmentation
             if(count > 0.5)
             {
               ms_f(lev, row, col)[0] /= count;
-              ms_f(lev, row, col)[1] /= count;		
+              ms_f(lev, row, col)[1] /= count;
               ms_f(lev, row, col)[2] /= count;
             }
           }
@@ -304,7 +304,7 @@ namespace segmentation
         for(atb::BlitzIndexT row = 1; row < ShapeL(1) - 1; ++row)
         {
           for(atb::BlitzIndexT col = 1; col < ShapeL(2) - 1; ++col)
-          { 
+          {
             dx2(lev, row, col) =
                 ((b(lev, row, col)) * dx2(lev, row, col) +
                  mu * ((dx2(lev - 1, row, col) +
@@ -340,9 +340,9 @@ namespace segmentation
                        dy2(lev, row + 1, col) +
                        dy2(lev, row, col - 1) +
                        dy2(lev, row, col + 1) -
-                       4 * dy2(lev, row, col)) + c2(lev, row, col)); 
+                       4 * dy2(lev, row, col)) + c2(lev, row, col));
           }
-        }	  
+        }
       }
       if (progress != NULL && progress->isAborted()) return;
 
@@ -372,7 +372,7 @@ namespace segmentation
       }
     }
     if (progress != NULL && progress->isAborted()) return;
-    
+
     gradient[0] = dx2(
         blitz::Range(hz_int, hz_int + Shape(0) - 1),
         blitz::Range(hs_int, hs_int + Shape(1) - 1),
@@ -384,12 +384,12 @@ namespace segmentation
     gradient[2] = dz2(
         blitz::Range(hz_int, hz_int + Shape(0) - 1),
         blitz::Range(hs_int, hs_int + Shape(1) - 1),
-        blitz::Range(hs_int, hs_int + Shape(2) - 1)); 
+        blitz::Range(hs_int, hs_int + Shape(2) - 1));
 
     std::cout << "MSGVF done after " << count - 1 << " of " << max_iter
               << " iterations" << std::endl;
   }
-  
+
 } // namespace
 
 #endif //guard

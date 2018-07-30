@@ -982,9 +982,9 @@ void AnnotationChannelSpecs::updateCoordinates()
             << std::endl;
   for (iterator it = _markers.begin(); it != _markers.end(); ++it)
   {
-    blitz::TinyVector<double,3> coords;
-    if (rct != NULL) coords = rct->getCoordinates((*it)->positionUm());
-    if (sct != NULL) coords = sct->getCoordinates((*it)->positionUm());
+    blitz::TinyVector<double,3> coords(
+        (rct != NULL) ? rct->getCoordinates((*it)->positionUm()) :
+        sct->getCoordinates((*it)->positionUm()));
     (*it)->setQcDistanceUm(coords(0));
     (*it)->setRadialDistanceUm(coords(1));
     (*it)->setPhi(coords(2));

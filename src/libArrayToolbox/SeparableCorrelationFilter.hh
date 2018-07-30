@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -38,7 +38,7 @@
 
 namespace atb
 {
-  
+
 /*======================================================================*/
 /*!
  *  \class SeparableCorrelationFilter SeparableCorrelationFilter.hh "libArrayToolbox/SeparableCorrelationFilter.hh"
@@ -60,9 +60,9 @@ namespace atb
   {
 
   public:
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   Default Constructor.
  *
  *   \param btType        Defines the border treatment of this filter.
@@ -77,7 +77,7 @@ namespace atb
         DataT const &boundaryValue = traits<DataT>::zero);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Constructor with kernel intialization.
  *
  *   \param kernels   Pointers to the filter kernels for all data dimensions.
@@ -96,14 +96,14 @@ namespace atb
         DataT const &boundaryValue = traits<DataT>::zero);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Destructor.
  */
 /*======================================================================*/
     ~SeparableCorrelationFilter();
 
 /*======================================================================*/
-/*! 
+/*!
  *   Set the filtering kernel component for the specified dimension.
  *   You can pass the \c NULL pointer if you don't want to filter in the
  *   specified direction. The filter will create and manage a copy of the
@@ -118,7 +118,7 @@ namespace atb
     void setKernelForDim(blitz::Array<DataT,1> const *kernel, int dim);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Set the kernels for all data dimensions. You can pass \c NULL pointers
  *   if you don't want to filter along some dimensions. The filter will
  *   create and manage copies of the given kernels, and will not work
@@ -133,7 +133,7 @@ namespace atb
         blitz::TinyVector<blitz::Array<DataT,1> *,Dim> const &kernels);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Correlation of the data Array with the kernel along the specified
  *   dimension.
  *
@@ -154,7 +154,7 @@ namespace atb
     using atb::SeparableFilter<DataT,Dim,DataT>::applyAlongDim;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Correlate the given data Array with this filter.
  *
  *   \param data          The data Array to correlate
@@ -173,7 +173,7 @@ namespace atb
     using atb::Filter<DataT,Dim,DataT>::apply;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Correlate the data Array with the given kernels using the specified
  *   boundary treatment policy.
  *
@@ -196,9 +196,9 @@ namespace atb
         BoundaryTreatmentType btType = ValueBT,
         DataT const &boundaryValue = traits<DataT>::zero,
         iRoCS::ProgressReporter *pr = NULL);
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   Correlate the data Array with the given kernels using the specified
  *   boundary treatment policy.
  *
@@ -220,7 +220,13 @@ namespace atb
         iRoCS::ProgressReporter *pr = NULL);
 
   private:
-    
+
+    void applyAlongDimNaive(
+        blitz::Array<DataT,Dim> const &data,
+        blitz::TinyVector<double,Dim> const &elementSizeUm,
+        blitz::Array<DataT,Dim> &filtered, int dim,
+        iRoCS::ProgressReporter *pr = NULL) const;
+
     blitz::TinyVector<blitz::Array<DataT,1>*,Dim> _kernels;
 
   };

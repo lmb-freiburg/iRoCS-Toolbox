@@ -3,7 +3,7 @@
  * Copyright (C) 2010 Robert Bensch
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -99,8 +99,7 @@ protected:
    *   Creates a stub BlitzAnalyzeTraits object.
    */
   /*======================================================================*/
-  BlitzAnalyzeTraits()
-  throw(BlitzAnalyzeError);
+  BlitzAnalyzeTraits();
 
 private:
 

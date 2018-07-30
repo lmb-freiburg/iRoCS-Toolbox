@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -53,7 +53,7 @@ namespace atb
   {
     for (int d = 0; d < Dim; ++d) delete _kernels(d);
   }
-  
+
   template<typename DataT, int Dim>
   void SeparableCorrelationFilter<DataT,Dim>::setKernelForDim(
       blitz::Array<DataT,1> const *kernel, int dim)
@@ -67,7 +67,7 @@ namespace atb
                   kernel->size() * sizeof(DataT));
     }
   }
-  
+
   template<typename DataT, int Dim>
   void SeparableCorrelationFilter<DataT,Dim>::setKernels(
       blitz::TinyVector<blitz::Array<DataT,1> *,Dim> const &kernels)
@@ -78,7 +78,7 @@ namespace atb
   template<typename DataT, int Dim>
   void SeparableCorrelationFilter<DataT,Dim>::applyAlongDim(
       blitz::Array<DataT,Dim> const &data,
-      blitz::TinyVector<double,Dim> const &,
+      blitz::TinyVector<double,Dim> const &elementSizeUm,
       blitz::Array<DataT,Dim> &filtered, int dim,
       iRoCS::ProgressReporter *pr) const
   {
@@ -95,6 +95,12 @@ namespace atb
     DataT const *kernel = _kernels(dim)->data();
     ptrdiff_t n = data.extent(dim);
     ptrdiff_t m = _kernels(dim)->size();
+
+    if (m > n) {
+      applyAlongDimNaive(data, elementSizeUm, filtered, dim, pr);
+      return;
+    }
+
     ptrdiff_t center = m / 2;
 
     // If CropBT is used pre-compute the border weights
@@ -118,26 +124,26 @@ namespace atb
       for (ptrdiff_t i = 1; i < center; ++i)
       {
         weights[i] = weights[i - 1] + kernel[center - i];
-        
+
         // Data smaller than kernel, remove kernel element that is no longer
         // over data element
         ptrdiff_t deleteIndex = n + center - i;
         if (deleteIndex < m) weights[i] -= kernel[deleteIndex];
       }
-      
+
       // Initialize last weight with kernel center
       weights[m - 2] = kernel[center];
-      
+
       // Add residual kernel entries from right to left as long as the
       // kernel overlaps with the data
       for (ptrdiff_t j = center - 1; j >= 0 && n - j + center >= 0; --j)
           weights[m - 2] += kernel[j];
-      
+
       // Incrementally compute the weights for the shifted kernels
       for (ptrdiff_t i = m - 3; i >= center; --i)
       {
         weights[i] = weights[i + 1] + kernel[center - i + m - 2];
-        
+
         // Data smaller than kernel, remove kernel element that is no longer
         // over data element
         ptrdiff_t deleteIndex = center - i + m - 2 - n;
@@ -148,7 +154,7 @@ namespace atb
 #endif
       for (ptrdiff_t i = 0; i < m - 1; ++i) weights[i] /= kernelSum;
     }
-    
+
     // ToDo: If the kernel is bigger than the image there is still a problem
     // Write a test case and fix the problem
 
@@ -185,19 +191,19 @@ namespace atb
         }
       }
       pos(dim) = 0;
-      
+
       ptrdiff_t stride = data.stride(dim);
       DataT const *constLineIter = &data(pos);
-      
+
       // Copy the Array line into a temporary processing buffer
       DataT *tmp = new DataT[n];
       for (ptrdiff_t j = 0; j < n; ++j, constLineIter += stride)
-          tmp[j] = *constLineIter;      
-      
+          tmp[j] = *constLineIter;
+
       DataT *f = new DataT[n];
-      
+
       ptrdiff_t p = 0;
-      
+
       // Left border
       for (; p < center; ++p)
       {
@@ -228,15 +234,15 @@ namespace atb
       // Central part
       for (; p < n - center; ++p)
       {
-        f[p] = traits<DataT>::zero;        
+        f[p] = traits<DataT>::zero;
         for (ptrdiff_t k = 0; k < m; ++k)
             f[p] += kernel[k] * tmp[p + k - center];
       }
-      
+
       // Right border
       for (; p < n; ++p)
       {
-        f[p] = traits<DataT>::zero;        
+        f[p] = traits<DataT>::zero;
         if (this->p_bt->type() == CropBT)
         {
           for (ptrdiff_t k = 0; k < m - 1 - p + n - center; ++k)
@@ -264,7 +270,113 @@ namespace atb
           *lineIter = f[j];
 
       delete[] tmp;
-      delete[] f;      
+      delete[] f;
+    }
+    if (pr != NULL) pr->setProgress(pr->taskProgressMax());
+    delete[] weights;
+  }
+
+  template<typename DataT, int Dim>
+  void SeparableCorrelationFilter<DataT,Dim>::applyAlongDimNaive(
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &,
+      blitz::Array<DataT,Dim> &filtered, int dim,
+      iRoCS::ProgressReporter *pr) const
+  {
+    if (&data != &filtered) filtered.resize(data.shape());
+
+    if (_kernels(dim) == NULL || _kernels(dim)->size() == 0)
+    {
+      if (&data != &filtered)
+          std::memcpy(
+              filtered.data(), data.data(), data.size() * sizeof(DataT));
+      return;
+    }
+
+    DataT const *kernel = _kernels(dim)->data();
+    ptrdiff_t n = data.extent(dim);
+    ptrdiff_t m = _kernels(dim)->size();
+    ptrdiff_t center = m / 2;
+
+    // If CropBT is used pre-compute the border weights
+    DataT *weights = NULL;
+    if (this->p_bt->type() == CropBT)
+    {
+      weights = new DataT[n];
+      std::memset(weights, 0, n * sizeof(DataT));
+      DataT kernelSum = kernel[0];
+      for (ptrdiff_t j = 1; j < m; ++j) kernelSum += kernel[j];
+      for (ptrdiff_t i = 0; i < n; ++i) {
+        for (ptrdiff_t j = 0; j < m; ++j) {
+          ptrdiff_t idx = i + j - center;
+          if (idx >= 0 && idx < n) weights[i] += kernel[j];
+        }
+      }
+      for (ptrdiff_t i = 0; i < n; ++i) weights[i] /= kernelSum;
+    }
+
+    ptrdiff_t currentVoxel = 0;
+    int totalProgress = (pr != NULL) ?
+        (pr->taskProgressMax() - pr->taskProgressMin()) : 1;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (ptrdiff_t c = 0; c < static_cast<ptrdiff_t>(data.size()) / n; ++c)
+    {
+      if (pr != NULL)
+      {
+        if (pr->isAborted()) continue;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+        {
+          if (currentVoxel % 1000 == 0)
+              pr->updateProgress(
+                  pr->taskProgressMin() + (totalProgress * currentVoxel) /
+                  (data.size() / n - 1));
+          ++currentVoxel;
+        }
+      }
+      blitz::TinyVector<ptrdiff_t,Dim> pos;
+      ptrdiff_t resid = c;
+      for (int d = Dim - 1; d >= 0; --d)
+      {
+        if (d != dim)
+        {
+          pos(d) = resid % data.extent(d);
+          resid /= data.extent(d);
+        }
+      }
+      pos(dim) = 0;
+
+      ptrdiff_t stride = data.stride(dim);
+      DataT const *constLineIter = &data(pos);
+
+      // Copy the Array line into a temporary processing buffer
+      DataT *tmp = new DataT[n];
+      for (ptrdiff_t i = 0; i < n; ++i, constLineIter += stride)
+          tmp[i] = *constLineIter;
+
+      DataT *f = new DataT[n];
+
+      for (ptrdiff_t i = 0; i < n; ++i) {
+        f[i] = DataT(0);
+        for (ptrdiff_t j = 0; j < m; ++j) {
+          ptrdiff_t idx = i + j - center;
+          if (this->p_bt->type() == CropBT) {
+            if (idx >= 0 && idx < n) f[i] += tmp[idx];
+          }
+          else f[i] += kernel[j - center] * this->p_bt->get(tmp, idx, n);
+        }
+        if (this->p_bt->type() == CropBT) f[i] /= weights[i];
+      }
+
+      DataT *lineIter = &filtered(pos);
+      for (ptrdiff_t i = 0; i < n; ++i, lineIter += stride)
+          *lineIter = f[i];
+
+      delete[] tmp;
+      delete[] f;
     }
     if (pr != NULL) pr->setProgress(pr->taskProgressMax());
     delete[] weights;
@@ -281,7 +393,7 @@ namespace atb
       filtered.resize(data.shape());
       std::memcpy(filtered.data(), data.data(), data.size() * sizeof(DataT));
     }
-    
+
     int progressMin = (pr != NULL) ? pr->taskProgressMin() : 0;
     int progressMax = (pr != NULL) ? pr->taskProgressMax() : 100;
     for (int d = 0; d < Dim; ++d)
@@ -316,7 +428,7 @@ namespace atb
     SeparableCorrelationFilter<DataT,Dim> f(kernels, btType, boundaryValue);
     f.apply(data, elementSizeUm, filtered, pr);
   }
-  
+
   template<typename DataT, int Dim>
   void SeparableCorrelationFilter<DataT,Dim>::apply(
       Array<DataT,Dim> const &data, Array<DataT,Dim> &filtered,

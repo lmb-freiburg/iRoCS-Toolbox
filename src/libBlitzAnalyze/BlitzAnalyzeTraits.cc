@@ -31,24 +31,22 @@
    *  ==> see headerfile
    *=======================================================================*/
 template<>
-BlitzAnalyzeTraits<unsigned char>::BlitzAnalyzeTraits()
-throw(BlitzAnalyzeError) {}
+BlitzAnalyzeTraits<unsigned char>::BlitzAnalyzeTraits() {}
 
 /*=========================================================================
  *  DESCRIPTION OF FUNCTION:
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-BlitzAnalyzeTraits<short int>::BlitzAnalyzeTraits()
-throw(BlitzAnalyzeError) {}
+BlitzAnalyzeTraits<short int>::BlitzAnalyzeTraits() {}
 
 /*=========================================================================
  *  DESCRIPTION OF FUNCTION:
  *  ==> see headerfile
  *=======================================================================*/
 template<>
-BlitzAnalyzeTraits< blitz::TinyVector<unsigned char, 3> >::BlitzAnalyzeTraits()
-throw(BlitzAnalyzeError) {}
+BlitzAnalyzeTraits< blitz::TinyVector<unsigned char, 3> >::
+BlitzAnalyzeTraits() {}
 
 /*-----------------------------------------------------------------------
  *  Implementations of Type()
@@ -146,7 +144,7 @@ int BlitzAnalyzeTraits<short int>::min(
  *=======================================================================*/
 template<>
 int BlitzAnalyzeTraits< blitz::TinyVector<unsigned char, 3> >::min(
-  const blitz::Array< blitz::TinyVector<unsigned char, 3>, 3>& inArray) {
+    const blitz::Array< blitz::TinyVector<unsigned char, 3>, 3>& /*inArray*/) {
   return 0;
 }
 
