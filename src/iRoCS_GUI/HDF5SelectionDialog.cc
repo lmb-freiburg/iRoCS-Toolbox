@@ -206,8 +206,11 @@ namespace iRoCS {
           case 4:
             item->setText(2, tr("32-Bit Signed Integer"));
             break;
-          default:
+          case 8:
             item->setText(2, tr("64-Bit Signed Integer"));
+            break;
+          default:
+            item->setText(2, tr("Signed Integer"));
         }
       }
       else {
@@ -221,8 +224,11 @@ namespace iRoCS {
           case 4:
             item->setText(2, tr("32-Bit Unsigned Integer"));
             break;
-          default:
+          case 8:
             item->setText(2, tr("64-Bit Unsigned Integer"));
+            break;
+          default:
+            item->setText(2, tr("Unsigned Integer"));
         }
       }
       _itemChannelTypes[item] = Channel::Indexed;
@@ -232,8 +238,12 @@ namespace iRoCS {
       switch (H5Tget_size(datasetTypeId)) {
         case 4:
           item->setText(2, tr("32-Bit Float"));
+          break;
         case 8:
           item->setText(2, tr("64-Bit Float"));
+          break;
+        default:
+          item->setText(2, tr("Float"));
       }
       _itemChannelTypes[item] = Channel::Float;
     }

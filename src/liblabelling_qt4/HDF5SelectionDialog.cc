@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -57,7 +57,7 @@ HDF5TreeWidget::HDF5TreeWidget(
 
 HDF5TreeWidget::~HDF5TreeWidget()
 {}
-  
+
 void HDF5TreeWidget::setFileName(std::string const &fileName)
 {
   if (_fileName == fileName) return;
@@ -115,7 +115,7 @@ std::string HDF5TreeWidget::absoluteItemPath(QTreeWidgetItem const *item) const
 {
   std::string absName;
   const QTreeWidgetItem* current = item;
-  while (current->text(0) != "/") 
+  while (current->text(0) != "/")
   {
     absName = "/" + current->text(0).toStdString() + absName;
     current = current->parent();
@@ -138,7 +138,7 @@ void HDF5TreeWidget::_createGroupItem(
   // Initially set the item Incompatible. If it is an annotation or colormap
   // it will be changed accordingly
   _itemTypes[item] = Incompatible;
-  
+
   if (inFile.existsDataset(groupName + "/position_um"))
   {
     if (inFile.existsDataset(groupName + "/radius_um"))
@@ -173,14 +173,14 @@ void HDF5TreeWidget::_createGroupItem(
       _itemChannelTypes[item] = ChannelSpecs::SplineCurve;
     }
     catch(BlitzH5Error &)
-    {}  
+    {}
     try
     {
       atb::IRoCS rct;
       rct.load(inFile, groupName);
       item->setText(1, tr("iRoCS"));
       _itemTypes[item] = Annotation;
-      _itemChannelTypes[item] = ChannelSpecs::IRoCS;      
+      _itemChannelTypes[item] = ChannelSpecs::IRoCS;
     }
     catch(BlitzH5Error &)
     {}
@@ -230,8 +230,11 @@ void HDF5TreeWidget::_createDatasetItem(
       case 4 :
         item->setText(2, tr("32-Bit Signed Integer"));
         break;
-      default :
+      case 8 :
         item->setText(2, tr("64-Bit Signed Integer"));
+        break;
+      default:
+        item->setText(2, tr("Signed Integer"));
       }
     }
     else
@@ -247,8 +250,11 @@ void HDF5TreeWidget::_createDatasetItem(
       case 4 :
         item->setText(2, tr("32-Bit Unsigned Integer"));
         break;
-      default :
+      case 8 :
         item->setText(2, tr("64-Bit Unsigned Integer"));
+        break;
+      default:
+        item->setText(2, tr("Unsigned Integer"));
       }
     }
     _itemChannelTypes[item] = ChannelSpecs::Visualization;
@@ -260,13 +266,17 @@ void HDF5TreeWidget::_createDatasetItem(
     {
     case 4 :
       item->setText(2, tr("32-Bit Float"));
+      break;
     case 8 :
       item->setText(2, tr("64-Bit Float"));
+      break;
+    default:
+      item->setText(2, tr("Float"));
     }
     _itemChannelTypes[item] = ChannelSpecs::Data;
   }
   H5Tclose(datasetTypeId);
-  
+
   std::vector<hsize_t> extents(inFile.getDatasetShape(dsName));
   size_t nDims = extents.size();
 
@@ -337,7 +347,7 @@ void HDF5TreeWidget::_addH5Objects(
   std::vector<std::string> objects(inFile.getObjects(groupName));
 
   for (std::vector<std::string>::iterator it = objects.begin();
-       it != objects.end(); ++it) 
+       it != objects.end(); ++it)
   {
     QTreeWidgetItem *newItem = new QTreeWidgetItem(group);
     newItem->setText(0, it->c_str());
@@ -351,7 +361,7 @@ void HDF5TreeWidget::_addH5Objects(
       _createGroupItem(newItem, inFile, groupName + "/" + *it);
       _addH5Objects(newItem, inFile);
     }
-    else if (inFile.existsDataset(groupName + "/" + *it)) 
+    else if (inFile.existsDataset(groupName + "/" + *it))
         _createDatasetItem(newItem, inFile, groupName + "/" + *it);
   }
 }
@@ -371,7 +381,7 @@ void HDF5TreeWidget::_generateTree()
   connect(this, SIGNAL(expanded(const QModelIndex&)),
           SLOT(adjustColumnWidths()));
   connect(this, SIGNAL(collapsed(const QModelIndex&)),
-          SLOT(adjustColumnWidths()));  
+          SLOT(adjustColumnWidths()));
   QTreeWidgetItem* root = new QTreeWidgetItem;
   root->setText(0, "/");
   root->setText(1, "");
@@ -426,13 +436,13 @@ HDF5ColorMapSelectionDialog::HDF5ColorMapSelectionDialog(
 {
   QVBoxLayout* layout = new QVBoxLayout;
   setLayout(layout);
-  
+
   p_h5TreeWidget = new HDF5TreeWidget(_filename.toStdString());
   p_h5TreeWidget->setSelectionMode(QAbstractItemView::SingleSelection);
   p_h5TreeWidget->setSelectable(HDF5TreeWidget::Colormap);
 
   layout->addWidget(p_h5TreeWidget);
-  
+
   QDialogButtonBox* buttonBox =
       new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
   connect(buttonBox, SIGNAL(accepted()), SLOT(accept()));
@@ -444,7 +454,7 @@ HDF5ColorMapSelectionDialog::HDF5ColorMapSelectionDialog(
 
 HDF5ColorMapSelectionDialog::~HDF5ColorMapSelectionDialog()
 {}
-  
+
 std::string HDF5ColorMapSelectionDialog::selectedItem() const
 {
   if (p_h5TreeWidget->selectedItems().size() == 0) return "";
@@ -455,7 +465,7 @@ std::string HDF5ColorMapSelectionDialog::selectedItem() const
 
 /*-----------------------------------------------------------------------
  *  The HDF5 Channel Selection Dialog
- *-----------------------------------------------------------------------*/ 
+ *-----------------------------------------------------------------------*/
 
 std::vector<std::string> HDF5SelectionDialog::selectObjects(
     QString const &filename, MultiChannelModel *model, QWidget *parent,
@@ -512,13 +522,13 @@ HDF5SelectionDialog::HDF5SelectionDialog(
 {
   QVBoxLayout* layout = new QVBoxLayout;
   setLayout(layout);
-  
+
   p_h5TreeWidget = new HDF5TreeWidget(filename.toStdString());
   p_h5TreeWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
   p_h5TreeWidget->setSelectable(types);
 
   layout->addWidget(p_h5TreeWidget);
-  
+
   QDialogButtonBox* buttonBox =
       new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
   connect(buttonBox, SIGNAL(accepted()), SLOT(accept()));
@@ -530,12 +540,12 @@ HDF5SelectionDialog::HDF5SelectionDialog(
 
 HDF5SelectionDialog::~HDF5SelectionDialog()
 {}
-  
+
 std::vector<std::string> HDF5SelectionDialog::selectedItems() const
 {
   int nSelectedItems =  p_h5TreeWidget->selectedItems().size();
   std::vector<std::string> result;
-  for (int i = 0; i < nSelectedItems; ++i) 
+  for (int i = 0; i < nSelectedItems; ++i)
   {
     result.push_back(
         p_h5TreeWidget->absoluteItemPath(

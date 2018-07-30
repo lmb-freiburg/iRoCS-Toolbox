@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Margret Keuper, Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -54,7 +54,7 @@ namespace segmentation
   {
     blitz::TinyVector<ptrdiff_t,Dim> lbPx(lbUm / elSize);
     blitz::TinyVector<ptrdiff_t,Dim> ubPx(ubUm / elSize);
-    
+
     for (int d = 0; d < Dim; ++d)
     {
       if (lbPx(d) < 0) lbPx(d) = 0;
@@ -81,7 +81,7 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (ptrdiff_t i = 0; i < result.size(); ++i)
+    for (size_t i = 0; i < result.size(); ++i)
     {
       if (progress != NULL)
       {
@@ -118,7 +118,7 @@ namespace segmentation
         T d = dist(*(pdfs[j]), profile);
         if (d < minDist) minDist = d;
       }
-      
+
       if(minDist == std::numeric_limits<T>::infinity())
       {
         if (blitz::any(srcPosUm != centerUm))
@@ -144,7 +144,7 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (ptrdiff_t i = 0; i < result.size(); ++i)
+    for (size_t i = 0; i < result.size(); ++i)
         result.data()[i] = (result.data()[i] == -1) ? maxVal : result.data()[i];
 
     std::cout << "profile filter max val " << maxVal << std::endl;
@@ -153,7 +153,7 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (ptrdiff_t i = 0; i < result.size(); ++i)
+    for (size_t i = 0; i < result.size(); ++i)
         result.data()[i] = static_cast<T>(1) - result.data()[i] / maxVal;
 
     return roi;

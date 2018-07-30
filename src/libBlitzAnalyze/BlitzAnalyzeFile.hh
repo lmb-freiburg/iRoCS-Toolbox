@@ -102,8 +102,9 @@ public:
     */
     /*======================================================================*/
   template<typename T>
-  void saveArrayWithElemSize(const blitz::Array<T, 3>& inArray, const blitz::TinyVector<float, 3>& element_size_um)
-    throw(BlitzAnalyzeError);
+  void saveArrayWithElemSize(
+      const blitz::Array<T, 3>& inArray,
+      const blitz::TinyVector<float, 3>& element_size_um);
 
 private:
 

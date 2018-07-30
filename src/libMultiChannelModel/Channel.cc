@@ -458,8 +458,9 @@ namespace iRoCS {
             throw std::runtime_error(msg.str().c_str());
             // channel = new RGBChannel();
             // static_cast<RGBChannel*>(channel)->load(inFile, name, pr);
-            break;
+            // break;
           }
+          __attribute__ ((fallthrough));
         }
         default:
 #ifdef DEBUG_VERBOSE_XML
