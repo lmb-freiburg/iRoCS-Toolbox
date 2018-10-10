@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -47,18 +47,18 @@ class OrthoViewOverlay;
 class ChannelSpecs;
 class ChannelSpecsOrthoViewRenderer;
 
-class OrthoViewPlane : public QWidget 
+class OrthoViewPlane : public QWidget
 {
 
   Q_OBJECT
 
   public:
-  
+
   OrthoViewPlane(
       OrthoViewWidget* orthoView, int orthogonalDimension,
       QWidget* parent = NULL);
   ~OrthoViewPlane();
-  
+
   void addOverlay(OrthoViewOverlay* overlay);
   void removeOverlay(OrthoViewOverlay* overlay);
   blitz::TinyVector<double,3> mousePositionUm(int x, int y) const;
@@ -78,13 +78,15 @@ class OrthoViewPlane : public QWidget
       std::string const &font, double fontSizePt,
       iRoCS::ProgressReporter *pr = NULL);
 
+  blitz::Array<blitz::TinyVector<unsigned char,4>,2> const &image() const;
+
 public slots:
-  
+
   void adjustSize();
 
 /*======================================================================*/
-/*! 
- *   Repaint the RGB Array containing the fused information of all Data, 
+/*!
+ *   Repaint the RGB Array containing the fused information of all Data,
  *   Visualization and RGBChannels. This must be called before a view update,
  *   if the cache of one of those channels changed.
  */
@@ -92,7 +94,7 @@ public slots:
   void updateData();
 
 private:
-  
+
   void paintEvent(QPaintEvent*);
   void mousePressEvent(QMouseEvent* e);
   void mouseMoveEvent(QMouseEvent* e);

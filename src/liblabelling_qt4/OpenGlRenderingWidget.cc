@@ -28,6 +28,8 @@
 #include "OpenGlRenderingSettingsWidget.hh"
 #include "MultiChannelModel.hh"
 #include "ChannelSpecsRenderer.hh"
+#include "OrthoViewWidget.hh"
+#include "OrthoViewPlane.hh"
 
 #include <GL/glu.h>
 
@@ -49,6 +51,27 @@ OpenGlRenderingWidget::OpenGlRenderingWidget(
 
 OpenGlRenderingWidget::~OpenGlRenderingWidget()
 {}
+
+void OpenGlRenderingWidget::_paintPlane(
+    GLuint textureID,
+    blitz::Array<blitz::TinyVector<unsigned char,4>,2> const &image,
+    blitz::TinyVector<blitz::TinyVector<float,3>,4> const &corners) {
+  if (image.size() == 0) return;
+  glBindTexture(GL_TEXTURE_2D, textureID);
+  glTexImage2D(
+      GL_TEXTURE_2D, 0, GL_RGBA, image.extent(1), image.extent(0),
+      0, GL_BGRA, GL_UNSIGNED_BYTE, image.dataFirst());
+  glBegin(GL_QUADS);
+  glTexCoord2f(0.0, 0.0);
+  glVertex3f(corners(0)(0), corners(0)(1), corners(0)(2));
+  glTexCoord2f(0.0, 1.0);
+  glVertex3f(corners(1)(0), corners(1)(1), corners(1)(2));
+  glTexCoord2f(1.0, 1.0);
+  glVertex3f(corners(2)(0), corners(2)(1), corners(2)(2));
+  glTexCoord2f(1.0, 0.0);
+  glVertex3f(corners(3)(0), corners(3)(1), corners(3)(2));
+  glEnd();
+}
 
 void OpenGlRenderingWidget::initializeGL()
 {
@@ -99,6 +122,25 @@ void OpenGlRenderingWidget::initializeGL()
 
   float shininess[] = { p_view->p_renderingSettings->materialShininess() };
   glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+
+  if (p_view->orthoView() != NULL) {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glGenTextures(1, &_textureXY);
+    glBindTexture(GL_TEXTURE_2D, _textureXY);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    glGenTextures(1, &_textureXZ);
+    glBindTexture(GL_TEXTURE_2D, _textureXZ);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    glGenTextures(1, &_textureZY);
+    glBindTexture(GL_TEXTURE_2D, _textureZY);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+  }
 }
 
 void OpenGlRenderingWidget::resizeGL(int width, int height)
@@ -123,13 +165,73 @@ void OpenGlRenderingWidget::paintGL()
   glLightfv(GL_LIGHT0, GL_DIFFUSE, light0Color);
   glEnable(GL_LIGHT0);
 
+  float light1Position[] = {-1.0, -1.0, -1.0, 0.0};
+  float light1Color[] = {1.0, 1.0, 1.0, 1.0};
+  glLightfv(GL_LIGHT1, GL_POSITION, light1Position);
+  glLightfv(GL_LIGHT1, GL_DIFFUSE, light1Color);
+  glEnable(GL_LIGHT1);
+
   glTranslatef(_translation(0), _translation(1), -_distanceToOrigin);
   glMultMatrixd(_rotation.data());
 
-  if (p_view == NULL || p_view->p_model == NULL) return;
+  if (p_view == NULL || p_view->model() == NULL) return;
 
-  for (std::vector<ChannelSpecs*>::iterator it = p_view->p_model->begin();
-       it != p_view->p_model->end(); ++it)
+  MultiChannelModel *model = p_view->model();
+
+  // Render ortho view planes if ortho-view is given
+  OrthoViewWidget *orthoView = p_view->orthoView();
+  if (orthoView != NULL &&
+      orthoView->xyView()->image().size() > 0 &&
+      orthoView->xzView()->image().size() > 0 &&
+      orthoView->zyView()->image().size() > 0) {
+
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_CULL_FACE);
+
+
+    blitz::TinyVector<double,3> scale(
+        orthoView->zoom() * model->elementSizeUm() / model->elementSizeUm()(2));
+    blitz::TinyVector<double,3> origin(
+        (model->lowerBoundUm() + model->upperBoundUm()) / 2.0);
+    blitz::TinyVector<double,3> p(orthoView->positionUm());
+    blitz::TinyVector<float,3> lb(
+        orthoView->px2Um(blitz::TinyVector<double,3>(0.0)));
+    blitz::TinyVector<float,3> ub(
+        orthoView->px2Um(scale(0) * orthoView->xzView()->image().extent(0), 0),
+        orthoView->px2Um(scale(1) * orthoView->xyView()->image().extent(0), 1),
+        orthoView->px2Um(scale(2) * orthoView->xyView()->image().extent(1), 2));
+    p -= origin;
+    lb -= origin;
+    ub -= origin;
+
+    _paintPlane(
+        _textureXY, orthoView->xyView()->image(),
+        blitz::TinyVector<blitz::TinyVector<float,3>,4>(
+            blitz::TinyVector<float,3>(p(0), lb(1), lb(2)),
+            blitz::TinyVector<float,3>(p(0), ub(1), lb(2)),
+            blitz::TinyVector<float,3>(p(0), ub(1), ub(2)),
+            blitz::TinyVector<float,3>(p(0), lb(1), ub(2))));
+    _paintPlane(
+        _textureXZ, orthoView->xzView()->image(),
+        blitz::TinyVector<blitz::TinyVector<float,3>,4>(
+            blitz::TinyVector<float,3>(lb(0), p(1), lb(2)),
+            blitz::TinyVector<float,3>(ub(0), p(1), lb(2)),
+            blitz::TinyVector<float,3>(ub(0), p(1), ub(2)),
+            blitz::TinyVector<float,3>(lb(0), p(1), ub(2))));
+    _paintPlane(
+        _textureZY, orthoView->zyView()->image(),
+        blitz::TinyVector<blitz::TinyVector<float,3>,4>(
+            blitz::TinyVector<float,3>(lb(0), lb(1), p(2)),
+            blitz::TinyVector<float,3>(lb(0), ub(1), p(2)),
+            blitz::TinyVector<float,3>(ub(0), ub(1), p(2)),
+            blitz::TinyVector<float,3>(ub(0), lb(1), p(2))));
+
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_TEXTURE_2D);
+  }
+
+  for (std::vector<ChannelSpecs*>::iterator it = model->begin();
+       it != model->end(); ++it)
   {
     if (!(*it)->visible()) continue;
     if ((*it)->renderer(p_view) == NULL)

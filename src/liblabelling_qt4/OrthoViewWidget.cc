@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -46,7 +46,7 @@
 #include "IntControlElement.hh"
 
 OrthoViewWidget::OrthoViewWidget(
-    MultiChannelModel* model, QWidget* parent, Qt::WindowFlags f) 
+    MultiChannelModel* model, QWidget* parent, Qt::WindowFlags f)
         : ViewWidget(model, parent, f), _cachedPosition(-1.0),
           _interpolation(false), _zoom(1.0)
 {
@@ -56,7 +56,7 @@ OrthoViewWidget::OrthoViewWidget(
   QToolBar *toolbar = new QToolBar;
   toolbar->setFloatable(false);
   toolbar->setMovable(false);
-  
+
   p_resetZoomAction = new QAction(
       QIcon::fromTheme(
           "zoom-original", QIcon(":/zoom-original.png")), "", this);
@@ -150,7 +150,7 @@ OrthoViewWidget::OrthoViewWidget(
   p_zyScrollArea->setWidget(p_zyView);
   p_uhSplitter->addWidget(p_zyScrollArea);
   connect(this, SIGNAL(zoomChanged(double)), p_zyView, SLOT(adjustSize()));
-  
+
   QWidget* dummyWidget = new QWidget;
   p_lhSplitter->addWidget(dummyWidget);
   p_vSplitter->addWidget(p_uhSplitter);
@@ -190,11 +190,11 @@ OrthoViewWidget::OrthoViewWidget(
   p_xyScrollArea->setAlignment(Qt::AlignCenter);
   p_xzScrollArea->setAlignment(Qt::AlignCenter);
   p_zyScrollArea->setAlignment(Qt::AlignCenter);
-  
+
   p_model->addView(this);
 }
 
-OrthoViewWidget::~OrthoViewWidget() 
+OrthoViewWidget::~OrthoViewWidget()
 {
   // Unregister view from model
   p_model->removeView(this);
@@ -202,7 +202,7 @@ OrthoViewWidget::~OrthoViewWidget()
   // Save splitter settings
   QSettings settings;
   settings.setValue("VSplitter/state", p_vSplitter->saveState());
-  settings.setValue("HSplitter/state", p_uhSplitter->saveState());  
+  settings.setValue("HSplitter/state", p_uhSplitter->saveState());
   settings.setValue("Orthoview/Fontsize", p_fontSizeControl->value());
 }
 
@@ -225,7 +225,7 @@ OrthoViewPlane* OrthoViewWidget::orthoViewPlane(int orthogonalDimension)
 {
   if (p_xyView->orthogonalDimension() == orthogonalDimension) return p_xyView;
   if (p_xzView->orthogonalDimension() == orthogonalDimension) return p_xzView;
-  if (p_zyView->orthogonalDimension() == orthogonalDimension) return p_zyView;  
+  if (p_zyView->orthogonalDimension() == orthogonalDimension) return p_zyView;
   std::cerr << __FILE__ << ":" << __LINE__
             << " error: the given orthogonal dimension " << orthogonalDimension
             << " is invalid" << std::endl;
@@ -237,7 +237,7 @@ ViewWidget::ViewType OrthoViewWidget::viewType() const
 {
   return ViewWidget::OrthoView;
 }
-                         
+
 void OrthoViewWidget::addChannel(ChannelSpecs*)
 {
   // Dummy, does nothing
@@ -278,7 +278,7 @@ double OrthoViewWidget::scaleToPx(double distanceUm)
 {
   if (p_model->elementSizeUm()(2) == std::numeric_limits<double>::infinity())
       return 0.0;
-  return distanceUm / p_model->elementSizeUm()(2) * zoom();  
+  return distanceUm / p_model->elementSizeUm()(2) * zoom();
 }
 
 double OrthoViewWidget::um2Px(double positionUm, int dimension)
@@ -342,7 +342,7 @@ void OrthoViewWidget::paint(
 
   int pMin = (pr != NULL) ? pr->taskProgressMin() : 0;
   int pScale = (pr != NULL) ? pr->taskProgressMax() - pMin : 100;
-  
+
   if (pr != NULL)
   {
     pr->setTaskProgressMax(static_cast<int>(pMin + 0.33 * pScale));
@@ -368,7 +368,7 @@ void OrthoViewWidget::paint(
       "y", QString::number(shapePx(1) - marginPx - fontSizePt * pt2PxFactor));
   svgStream.writeAttribute(
       "style", "font-size:" + QString::number(fontSizePt) + "pt;font-family:" +
-      font.c_str() + ";stroke:none;fill:white;text-anchor:middle");  
+      font.c_str() + ";stroke:none;fill:white;text-anchor:middle");
   svgStream.writeCharacters(
       QString::number(scaleBarLengthUm) + " " + QChar(0x03bc) + "m");
   svgStream.writeEndElement(); // text
@@ -422,7 +422,7 @@ void OrthoViewWidget::paint(
       QString::number(-shapePx(0)) + " v" + QString::number(-shapePx(1)) +
       " h" + QString::number(-marginPx) + " v" + QString::number(shapePx(1)) +
       " h" + QString::number(-shapePx(2)));
-  svgStream.writeAttribute("style", "stroke:none;fill:#ffffff");  
+  svgStream.writeAttribute("style", "stroke:none;fill:#ffffff");
 }
 
 void OrthoViewWidget::redraw()
@@ -432,10 +432,10 @@ void OrthoViewWidget::redraw()
 #endif
   p_xyView->update();
   p_xzView->update();
-  p_zyView->update();  
+  p_zyView->update();
 }
 
-void OrthoViewWidget::updateShape() 
+void OrthoViewWidget::updateShape()
 {
   blitz::TinyVector<int,3> crosshairPosPx(
       um2Px(p_crosshairPositionControl->value()));
@@ -540,7 +540,7 @@ void OrthoViewWidget::setPositionUmControlRangeFromModel()
       p_crosshairPositionControl->setSingleStep(p_model->elementSizeUm());
   else
       p_crosshairPositionControl->setSingleStep(
-          blitz::TinyVector<double,3>(1.0));      
+          blitz::TinyVector<double,3>(1.0));
 }
 
 void OrthoViewWidget::setPositionUmInControl(
@@ -550,7 +550,7 @@ void OrthoViewWidget::setPositionUmInControl(
   p_crosshairPositionControl->setValue(positionUm);
 }
 
-void OrthoViewWidget::synchronizeSplitters(int pos, int) 
+void OrthoViewWidget::synchronizeSplitters(int pos, int)
 {
   int maxSpace = p_lhSplitter->sizes()[0] + p_lhSplitter->sizes()[1];
   QList<int> sizes;
@@ -579,4 +579,3 @@ void OrthoViewWidget::updateCacheFontSize()
   }
   redraw();
 }
-

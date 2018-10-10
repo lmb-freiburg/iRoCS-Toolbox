@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -75,9 +75,9 @@ OrthoViewPlane::OrthoViewPlane(
   }
 }
 
-OrthoViewPlane::~OrthoViewPlane() 
+OrthoViewPlane::~OrthoViewPlane()
 {}
-  
+
 void OrthoViewPlane::addOverlay(OrthoViewOverlay* overlay)
 {
   _overlays.push_back(overlay);
@@ -141,6 +141,11 @@ std::string OrthoViewPlane::viewId() const
             << _dimensions << " are no axes for a proper view" << std::endl;
   exit(-1);
   return "invalid view";
+}
+
+blitz::Array<blitz::TinyVector<unsigned char,4>,2> const &
+OrthoViewPlane::image() const {
+  return _data;
 }
 
 void OrthoViewPlane::adjustSize()
@@ -283,7 +288,7 @@ void OrthoViewPlane::updateData()
     default:
       continue;
     }
-    
+
     blitz::TinyVector<atb::BlitzIndexT,2> lbSrc(atb::BlitzIndexT(0));
     blitz::TinyVector<atb::BlitzIndexT,2> ubSrc(data->shape() - 1);
     lbDest -= blitz::TinyVector<atb::BlitzIndexT,2>(
@@ -359,7 +364,7 @@ void OrthoViewPlane::paint(QPainter &painter)
     adjustSize();
     updateData();
   }
-  
+
   // Data channels
   painter.scale(
       p_orthoView->zoom() *
@@ -396,7 +401,7 @@ void OrthoViewPlane::paint(QPainter &painter)
       renderer->render(&painter);
     }
   }
-  
+
   // overlays
   for(std::list<OrthoViewOverlay*>::iterator it = _overlays.begin();
       it != _overlays.end(); ++it)
@@ -404,7 +409,7 @@ void OrthoViewPlane::paint(QPainter &painter)
     (*it)->setDimensions(_dimensions);
     (*it)->render(&painter);
   }
-  
+
   // And the cross hair
   blitz::TinyVector<float,3> posPx(
       p_orthoView->um2Px(p_orthoView->positionUm()));
@@ -438,11 +443,11 @@ void OrthoViewPlane::paint(
     adjustSize();
     updateData();
   }
-  
+
   int pMin = (pr != NULL) ? pr->taskProgressMin() : 0;
   int pScale = (pr != NULL) ? pr->taskProgressMax() - pMin : 100;
   if (pr != NULL && !pr->updateProgress(pMin)) return;
-  
+
   // Data channels
 
   // Compute conversion factor from micrometers to pixels in the output
@@ -467,7 +472,7 @@ void OrthoViewPlane::paint(
   std::cerr << "Rendering intensity data from " << lbPxInt2 << " to "
             << ubPxInt2 << " which should be contained in 2 [0, 0] - "
             << _data.shape() << std::endl;
-  
+
   blitz::TinyVector<double,3> elementSizePx(
       shapePx / ((upperBoundUm - lowerBoundUm) / model->elementSizeUm()));
   blitz::TinyVector<double,3> subPixelShift(
@@ -476,11 +481,11 @@ void OrthoViewPlane::paint(
   blitz::Array<blitz::TinyVector<unsigned char,4>,2> cropped(
       blitz::TinyVector<atb::BlitzIndexT,2>(ubPxInt2 - lbPxInt2));
   cropped = _data(srcDomain);
-  
+
   // Create buffer for base 64 encoding
   QByteArray pngByteArray;
   QBuffer buffer(&pngByteArray);
-  
+
   if (pr != NULL && !pr->updateProgress(
           static_cast<int>(pMin + 0.05 * pScale))) return;
 
@@ -490,7 +495,7 @@ void OrthoViewPlane::paint(
                static_cast<int>(cropped.extent(0)),
                QImage::Format_RGB32);
   image.save(&buffer, "PNG");
-  
+
   if (pr != NULL && !pr->updateProgress(
           static_cast<int>(pMin + 0.1 * pScale))) return;
 
@@ -502,7 +507,7 @@ void OrthoViewPlane::paint(
   svgStream.writeAttribute(
       "height", QString::number(shapePx(_dimensions(0))) + "px");
   svgStream.writeAttribute(
-      "width", QString::number(shapePx(_dimensions(1))) + "px");  
+      "width", QString::number(shapePx(_dimensions(1))) + "px");
   svgStream.writeAttribute("xlink:href", "data:image/png;base64," +
                            QString(pngByteArray.toBase64()));
 
@@ -547,7 +552,7 @@ void OrthoViewPlane::paint(
                        fontSizePt, pr);
     }
   }
-  
+
   svgStream.writeEndElement(); // g id="annotations"
 
   // And the cross hair
@@ -570,12 +575,12 @@ void OrthoViewPlane::paint(
           subPixelShift(_dimensions(1))) + " 0 v" +
       QString::number(shapePx(_dimensions(0))));
   svgStream.writeAttribute(
-      "style", "stroke:red;stroke-width:0.5pt");  
+      "style", "stroke:red;stroke-width:0.5pt");
   svgStream.writeEndElement(); // g id="cross hair"
   if (pr != NULL) pr->updateProgress(pMin + pScale);
 }
 
-void OrthoViewPlane::paintEvent(QPaintEvent*) 
+void OrthoViewPlane::paintEvent(QPaintEvent*)
 {
 #ifdef DEBUG
   std::cerr << "OrthoViewPlane::paintEvent(QPaintEvent*)" << std::endl;
@@ -613,11 +618,11 @@ void OrthoViewPlane::paintEvent(QPaintEvent*)
   paint(painter);
 }
 
-void OrthoViewPlane::mousePressEvent(QMouseEvent* e) 
+void OrthoViewPlane::mousePressEvent(QMouseEvent* e)
 {
   // If the user left clicked on a line of the crosshair, indicate that
   // subsequent moves are drag events and accept the event
-  if (e->button() == Qt::LeftButton) 
+  if (e->button() == Qt::LeftButton)
   {
     if (p_orthoView != NULL)
     {
@@ -656,7 +661,7 @@ void OrthoViewPlane::mousePressEvent(QMouseEvent* e)
   }
 }
 
-void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e) 
+void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e)
 {
   if (p_orthoView != NULL)
   {
@@ -683,13 +688,13 @@ void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e)
           setCursor(Qt::SplitVCursor);
       else setCursor(Qt::CrossCursor);
     }
-  
+
     p_orthoView->model()->updateInfoWidget(mousePositionUm(e->x(), e->y()));
 
     // Check whether the user wants to drag a line or the cross
     // If so, set the isDragging flag to switch from selection in
     // dragging mode
-    if (_dragHorizontal || _dragVertical) 
+    if (_dragHorizontal || _dragVertical)
     {
       if (e->buttons().testFlag(Qt::LeftButton)) // Actually dragging
       {
@@ -717,7 +722,7 @@ void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e)
                      model->begin(); it != model->end(); ++it, ++channelIdx)
                 (*it)->setUpdatesEnabled(
                     oldChannelUpdatesEnabledState[channelIdx]);
-            
+
             bool oldViewUpdatesEnabledState = p_orthoView->updatesEnabled();
             p_orthoView->setUpdatesEnabled(false);
             for (std::vector<ChannelSpecs*>::iterator it =
@@ -750,7 +755,7 @@ void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e)
             p_orthoView->update();
           }
         }
-        
+
         if (_dragVertical && !_dragHorizontal)
         {
           newPos(_dimensions(0)) =
@@ -774,7 +779,7 @@ void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e)
                      model->begin(); it != model->end(); ++it, ++channelIdx)
                 (*it)->setUpdatesEnabled(
                     oldChannelUpdatesEnabledState[channelIdx]);
-            
+
             bool oldViewUpdatesEnabledState = p_orthoView->updatesEnabled();
             p_orthoView->setUpdatesEnabled(false);
             for (std::vector<ChannelSpecs*>::iterator it =
@@ -807,14 +812,14 @@ void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e)
             p_orthoView->update();
           }
         }
-        
+
         if (_dragHorizontal && _dragVertical)
         {
           newPos(_dimensions(0)) =
               mousePositionUm(e->x(), e->y())(_dimensions(0));
           newPos(_dimensions(1)) =
               mousePositionUm(e->x(), e->y())(_dimensions(1));
-          
+
           MultiChannelModel *model = p_orthoView->model();
           if (model != NULL)
           {
@@ -833,7 +838,7 @@ void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e)
                      model->begin(); it != model->end(); ++it, ++channelIdx)
                 (*it)->setUpdatesEnabled(
                     oldChannelUpdatesEnabledState[channelIdx]);
-            
+
             bool oldViewUpdatesEnabledState = p_orthoView->updatesEnabled();
             p_orthoView->setUpdatesEnabled(false);
             for (std::vector<ChannelSpecs*>::iterator it =
@@ -901,10 +906,10 @@ void OrthoViewPlane::mouseMoveEvent(QMouseEvent* e)
   }
 }
 
-void OrthoViewPlane::mouseReleaseEvent(QMouseEvent* e) 
+void OrthoViewPlane::mouseReleaseEvent(QMouseEvent* e)
 {
   // If dragging release crosshair
-  if (_isDragging && e->button() == Qt::LeftButton) 
+  if (_isDragging && e->button() == Qt::LeftButton)
   {
     _dragHorizontal = false;
     _dragVertical = false;
@@ -932,7 +937,7 @@ void OrthoViewPlane::mouseReleaseEvent(QMouseEvent* e)
   }
 }
 
-void OrthoViewPlane::wheelEvent(QWheelEvent* e) 
+void OrthoViewPlane::wheelEvent(QWheelEvent* e)
 {
   if (p_orthoView != NULL && p_orthoView->model() != NULL &&
       p_orthoView->model()->selectedChannel() != NULL)
@@ -961,7 +966,7 @@ void OrthoViewPlane::wheelEvent(QWheelEvent* e)
       newPos(_orthogonalDimension) += ((e->delta() > 0) ? 1.0 : -1.0) *
           p_orthoView->model()->elementSizeUm()(_orthogonalDimension);
       p_orthoView->setPositionUm(newPos);
-    
+
       bool oldViewUpdatesEnabledState = p_orthoView->updatesEnabled();
       p_orthoView->setUpdatesEnabled(false);
       for (std::vector<ChannelSpecs*>::iterator it =

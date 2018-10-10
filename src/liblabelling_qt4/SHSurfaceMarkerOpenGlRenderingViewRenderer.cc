@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -57,7 +57,7 @@ SHSurfaceMarkerOpenGlRenderingViewRenderer(
 SHSurfaceMarkerOpenGlRenderingViewRenderer::
 ~SHSurfaceMarkerOpenGlRenderingViewRenderer()
 {}
-  
+
 MarkerRenderer *SHSurfaceMarkerOpenGlRenderingViewRenderer::clone() const
 {
   return new SHSurfaceMarkerOpenGlRenderingViewRenderer(*this);
@@ -66,7 +66,6 @@ MarkerRenderer *SHSurfaceMarkerOpenGlRenderingViewRenderer::clone() const
 void SHSurfaceMarkerOpenGlRenderingViewRenderer::render(QPainter* painter)
     const
 {
-  if (painter == NULL || !painter->isActive()) return;
   if (p_marker->channel() == NULL)
   {
     std::cerr << "SHSurfaceMarkerOpenGlRenderingViewRenderer::render(): "
@@ -79,13 +78,14 @@ void SHSurfaceMarkerOpenGlRenderingViewRenderer::render(QPainter* painter)
   AnnotationChannelSpecs* channel = marker->channel();
   MultiChannelModel* model = channel->model();
 
-  if (marker->coefficients().size() == 0)
-      SphereMarkerOpenGlRenderingViewRenderer::render(painter);
+  if (marker->coefficients().size() == 0) {
+    SphereMarkerOpenGlRenderingViewRenderer::render(painter);
+  }
   else
   {
     blitz::TinyVector<float,3> color(channel->colorForLabel(marker->label()));
     float alpha = channel->alpha() * channel->alphaForLabel(marker->label());
-    
+
     if (alpha == 0.0f) return;
 
     _setPenColor(marker->selected());
@@ -98,22 +98,21 @@ void SHSurfaceMarkerOpenGlRenderingViewRenderer::render(QPainter* painter)
         (model->lowerBoundUm()(1) + model->upperBoundUm()(1)) / 2.0f,
         marker->positionUm()(2) -
         (model->lowerBoundUm()(2) + model->upperBoundUm()(2)) / 2.0f);
-    
+
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
-    
+
     glVertexPointer(3, GL_FLOAT, 0, &marker->vertices()[0]);
     glNormalPointer(GL_FLOAT, 0, &marker->normals()[0]);
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(marker->indices().size()),
                    GL_UNSIGNED_INT, &marker->indices()[0]);
-    
+
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
-    glPopMatrix();  
+    glPopMatrix();
   }
 }
 
 void SHSurfaceMarkerOpenGlRenderingViewRenderer::userInteractionEvent(
     UserInteractionEvent *)
 {}
-

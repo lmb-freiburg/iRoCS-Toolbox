@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -56,7 +56,7 @@ SHSurfaceMarkerPresetWidget::~SHSurfaceMarkerPresetWidget()
 SHSurfaceMarkerControlWidget::SHSurfaceMarkerControlWidget(
     AnnotationChannelSpecs* channel, QWidget* parent)
         : SphereMarkerControlWidget(channel, parent)
-{  
+{
   p_coefficientsControl = new StringControlElement(tr("SH coefficients:"));
   p_coefficientsControl->setEnabled(false);
   p_coefficientsControl->setVisible(p_showReadOnlyControl->value());
@@ -66,7 +66,7 @@ SHSurfaceMarkerControlWidget::SHSurfaceMarkerControlWidget(
 SHSurfaceMarkerControlWidget::~SHSurfaceMarkerControlWidget()
 {}
 
-void SHSurfaceMarkerControlWidget::setValues(const Marker* marker) 
+void SHSurfaceMarkerControlWidget::setValues(const Marker* marker)
 {
   SphereMarkerControlWidget::setValues(marker);
   if (!marker->inherits(Marker::SHSurface)) return;
@@ -86,7 +86,7 @@ void SHSurfaceMarkerControlWidget::toggleReadOnly()
 SHSurfaceMarker::SHSurfaceMarker(AnnotationChannelSpecs* channel)
         : SphereMarker(channel), _coefficients(), _surface()
 {}
-  
+
 SHSurfaceMarker::SHSurfaceMarker(
     blitz::TinyVector<double,3> const& position,
     double radius, segmentation::FrequencyArray const &coefficients,
@@ -101,7 +101,7 @@ SHSurfaceMarker::SHSurfaceMarker(
     _updateTriangles();
   }
 }
-  
+
 SHSurfaceMarker::SHSurfaceMarker(const SHSurfaceMarker& marker)
         : SphereMarker(marker), _coefficients(), _surface(marker._surface)
 {
@@ -112,8 +112,8 @@ SHSurfaceMarker::SHSurfaceMarker(const SHSurfaceMarker& marker)
                 _coefficients.size() * sizeof(std::complex<double>));
   }
 }
-  
-SHSurfaceMarker::~SHSurfaceMarker() 
+
+SHSurfaceMarker::~SHSurfaceMarker()
 {}
 
 SHSurfaceMarker &SHSurfaceMarker::operator=(const SHSurfaceMarker& marker)
@@ -127,7 +127,7 @@ SHSurfaceMarker &SHSurfaceMarker::operator=(const SHSurfaceMarker& marker)
   return *this;
 }
 
-Marker::MarkerType SHSurfaceMarker::markerType() const 
+Marker::MarkerType SHSurfaceMarker::markerType() const
 {
   return Marker::SHSurface;
 }
@@ -138,9 +138,9 @@ bool SHSurfaceMarker::inherits(Marker::MarkerType type) const
 }
 
 MarkerRenderer *SHSurfaceMarker::addRenderer(ViewWidget* view)
-{ 
+{
   if (_renderers.find(view) != _renderers.end()) return _renderers[view];
-  
+
   switch (view->viewType())
   {
   case ViewWidget::OrthoView:
@@ -305,10 +305,10 @@ void SHSurfaceMarker::load(
   blitz::Array<int,1> bandwidths(nMarkers);
   _loadFixedSize(bandwidths, inFile, group + "/bandwidths");
   blitz::Array<std::complex<double>,2> coefficients;
-  try 
+  try
   {
     inFile.readDataset(coefficients, group + "/coefficients");
-    if (coefficients.extent(0) != nMarkers) 
+    if (coefficients.extent(0) != nMarkers)
     {
       blitz::Array<std::complex<double>,2> tmp(
           nMarkers, coefficients.extent(1));
@@ -330,7 +330,7 @@ void SHSurfaceMarker::load(
   catch (BlitzH5Error&)
   {}
 
-  for (atb::BlitzIndexT i = 0; i < nMarkers; ++i) 
+  for (atb::BlitzIndexT i = 0; i < nMarkers; ++i)
   {
     if (pr != NULL && !pr->updateProgress(
             pStart + static_cast<int>(
@@ -426,7 +426,7 @@ void SHSurfaceMarker::_updateTriangles() const
   std::vector<atb::SurfaceGeometry::IndexT> &I = _surface.indices();
 
   _boundingBoxUpToDate = false;
-  
+
   if (_coefficients.size() == 0)
   {
     V.resize(0);
@@ -434,10 +434,10 @@ void SHSurfaceMarker::_updateTriangles() const
     I.resize(0);
     return;
   }
-  
+
   int bw = this->bw();
 
-  segmentation::SpatialArray surface;  
+  segmentation::SpatialArray surface;
   segmentation::FrequencyArray coeffs;
 
   // Super-Sample if the bandwidth is below a threshold
@@ -456,7 +456,7 @@ void SHSurfaceMarker::_updateTriangles() const
     coeffs.resize(_coefficients.shape());
     coeffs = _coefficients;
   }
-  
+
   surface.resize(2 * bw, 2 * bw);
   SH_backward::instance(bw).sh_semi_memo_back(
       reinterpret_cast<double*>(coeffs.data()),
@@ -467,7 +467,7 @@ void SHSurfaceMarker::_updateTriangles() const
   unsigned int nLon = static_cast<unsigned int>(2 * bw);
   V.resize(nLat * nLon + 2);
   I.resize(6 * (nLat - 1) * nLon + 6 * nLon);
-  
+
   for (size_t thetaIdx = 0; thetaIdx < nLat; ++thetaIdx)
   {
     double theta = segmentation::indexToTheta(thetaIdx, bw);
