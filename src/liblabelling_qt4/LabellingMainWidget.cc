@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -116,15 +116,15 @@ LabellingMainWidget::LabellingMainWidget(
       settings.value("DebugWindow/size", QSize(400, 400)).toSize());
 
   p_multiChannelModel = new MultiChannelModel();
-  p_orthoView = new OrthoViewWidget(p_multiChannelModel);  
+  p_orthoView = new OrthoViewWidget(p_multiChannelModel);
   p_openGlView = new OpenGlRenderingViewWidget(
-      p_multiChannelModel, this, Qt::Window);
+      p_multiChannelModel, p_orthoView, this, Qt::Window);
   p_openGlView->setWindowTitle(tr("3D Rendering"));
   p_openGlView->resize(
       settings.value("OpenGlWidget/size", QSize(500, 400)).toSize());
   p_openGlView->setVisible(false);
   setCentralWidget(p_orthoView);
-  
+
   p_channelControlDockWidget = new QDockWidget(tr("Channel Control"), this);
   p_channelControlDockWidget->setWidget(
       p_multiChannelModel->channelEditorWidget());
@@ -191,7 +191,7 @@ LabellingMainWidget::LabellingMainWidget(
                            SLOT(importCSVMarkers()));
   QAction *exportCSVAction =
       p_channelMenu->addAction(tr("Export annotation channel to CSV..."), this,
-                               SLOT(exportCSVMarkers()));  
+                               SLOT(exportCSVMarkers()));
   connect(p_multiChannelModel, SIGNAL(annotationChannelSelected(bool)),
           exportCSVAction, SLOT(setEnabled(bool)));
 
@@ -203,7 +203,7 @@ LabellingMainWidget::LabellingMainWidget(
   QAction* showOpenGlViewAction =
       p_viewMenu->addAction(tr("Show OpenGL Rendering"));
   showOpenGlViewAction->setCheckable(true);
-  showOpenGlViewAction->setChecked(false);  
+  showOpenGlViewAction->setChecked(false);
   connect(showOpenGlViewAction, SIGNAL(toggled(bool)),
           SLOT(showOpenGlWidget(bool)));
   connect(p_openGlView, SIGNAL(visibilityStateChanged(bool)),
@@ -239,7 +239,7 @@ LabellingMainWidget::LabellingMainWidget(
   searchPlugins();
   menuBar()->addMenu(p_pluginMenu);
   connect(p_pluginMenu, SIGNAL(triggered(QAction*)), SLOT(runPlugin(QAction*)));
-  
+
   p_helpMenu = new QMenu(tr("&Help"));
   p_helpMenu->addAction(tr("About"), this, SLOT(about()));
   p_helpMenu->addAction(tr("About Qt"), qApp, SLOT(aboutQt()));
@@ -357,7 +357,7 @@ bool LabellingMainWidget::closeProjectInteractive()
   return true;
 }
 
-void LabellingMainWidget::open() 
+void LabellingMainWidget::open()
 {
   if (_initialFileName == "")
   {
@@ -380,7 +380,7 @@ void LabellingMainWidget::open()
   p_multiChannelModel->setModified(false);
 }
 
-void LabellingMainWidget::save() 
+void LabellingMainWidget::save()
 {
   std::string oldFileName = _fileName;
   if (_fileName == "") _fileName = getSaveFileName();
@@ -394,7 +394,7 @@ void LabellingMainWidget::save()
   else _fileName = oldFileName;
 }
 
-void LabellingMainWidget::saveAs() 
+void LabellingMainWidget::saveAs()
 {
   std::string oldFileName = _fileName;
   _fileName = getSaveFileName();
@@ -429,7 +429,7 @@ void LabellingMainWidget::closeProject()
   closeProjectInteractive();
 }
 
-void LabellingMainWidget::createAnnotationChannel() 
+void LabellingMainWidget::createAnnotationChannel()
 {
   bool ok;
   QString selectedMarkerType = QInputDialog::getItem(
@@ -618,7 +618,7 @@ void LabellingMainWidget::about()
          "Copyright (C) 2012-2015 Thorsten Falk (%3)\n\n"
          "Address:\n"
          "   Image Analysis Lab\n"
-         "   Albert-Ludwigs-Universitaet\n"  
+         "   Albert-Ludwigs-Universitaet\n"
          "   Georges-Koehler-Allee Geb. 52\n"
          "   79110 Freiburg\n"
          "   Germany\n\n"
@@ -717,7 +717,7 @@ void LabellingMainWidget::searchPlugins()
        it != _plugins.end(); ++it) p_pluginMenu->addAction(*it);
 }
 
-std::string LabellingMainWidget::getOpenFileName() 
+std::string LabellingMainWidget::getOpenFileName()
 {
   QSettings settings;
   QString startPath = settings.value(
@@ -731,7 +731,7 @@ std::string LabellingMainWidget::getOpenFileName()
   return fileName.toStdString();
 }
 
-std::string LabellingMainWidget::getSaveFileName() 
+std::string LabellingMainWidget::getSaveFileName()
 {
   QSettings settings;
   QString startPath = settings.value(
@@ -743,7 +743,7 @@ std::string LabellingMainWidget::getSaveFileName()
   return fileName.toStdString();
 }
 
-void LabellingMainWidget::closeEvent(QCloseEvent *e) 
+void LabellingMainWidget::closeEvent(QCloseEvent *e)
 {
   if (!closeProjectInteractive())
   {

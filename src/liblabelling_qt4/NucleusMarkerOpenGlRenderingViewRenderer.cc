@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -52,7 +52,7 @@ NucleusMarkerOpenGlRenderingViewRenderer(
 NucleusMarkerOpenGlRenderingViewRenderer::
 ~NucleusMarkerOpenGlRenderingViewRenderer()
 {}
-  
+
 MarkerRenderer *NucleusMarkerOpenGlRenderingViewRenderer::clone() const
 {
   return new NucleusMarkerOpenGlRenderingViewRenderer(*this);
@@ -60,7 +60,6 @@ MarkerRenderer *NucleusMarkerOpenGlRenderingViewRenderer::clone() const
 
 void NucleusMarkerOpenGlRenderingViewRenderer::render(QPainter *painter) const
 {
-  if (painter == NULL || !painter->isActive()) return;
   if (p_marker->channel() == NULL)
   {
     std::cerr << "NucleusMarkerOpenGlRenderingViewRenderer::render(): "
@@ -70,7 +69,6 @@ void NucleusMarkerOpenGlRenderingViewRenderer::render(QPainter *painter) const
   }
 
   // To be implemented, currently falling back to SHSurfaceMarker
-
   SHSurfaceMarkerOpenGlRenderingViewRenderer::render(painter);
 }
 

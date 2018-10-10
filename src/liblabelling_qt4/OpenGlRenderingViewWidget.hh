@@ -36,6 +36,7 @@
 
 class QPushButton;
 
+class OrthoViewWidget;
 class OpenGlRenderingWidget;
 class OpenGlRenderingSettingsWidget;
 
@@ -47,7 +48,8 @@ class OpenGlRenderingViewWidget : public ViewWidget
 public:
 
   OpenGlRenderingViewWidget(
-      MultiChannelModel* model, QWidget* parent = 0, Qt::WindowFlags f = 0);
+      MultiChannelModel* model, OrthoViewWidget* orthoView = NULL,
+      QWidget* parent = NULL, Qt::WindowFlags f = 0);
   ~OpenGlRenderingViewWidget();
 
   ViewWidget::ViewType viewType() const;
@@ -66,6 +68,8 @@ public:
   OpenGlRenderingWidget *renderingWidget();
   OpenGlRenderingSettingsWidget *renderingSettingsWidget();
 
+  OrthoViewWidget *orthoView();
+
 signals:
 
   void visibilityStateChanged(bool);
@@ -81,6 +85,7 @@ private:
   void showEvent(QShowEvent *event);
   void hideEvent(QHideEvent *event);
 
+  OrthoViewWidget *p_orthoView;
   OpenGlRenderingWidget *p_renderingWidget;
   OpenGlRenderingSettingsWidget *p_renderingSettings;
   QLabel *p_statusText;

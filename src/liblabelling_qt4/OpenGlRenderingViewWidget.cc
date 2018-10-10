@@ -34,10 +34,12 @@
 #include "MultiChannelModel.hh"
 #include "IRoCSChannelSpecs.hh"
 #include "IRoCSSCTChannelSpecs.hh"
+#include "OrthoViewWidget.hh"
 
 OpenGlRenderingViewWidget::OpenGlRenderingViewWidget(
-    MultiChannelModel *model, QWidget *parent,  Qt::WindowFlags f)
-        : ViewWidget(model, parent, f)
+    MultiChannelModel *model, OrthoViewWidget* orthoView, QWidget *parent,
+    Qt::WindowFlags f)
+        : ViewWidget(model, parent, f), p_orthoView(orthoView)
 {
   p_renderingSettings = new OpenGlRenderingSettingsWidget(
       this, this, Qt::Window);
@@ -82,6 +84,11 @@ OpenGlRenderingViewWidget::OpenGlRenderingViewWidget(
   layout->addLayout(progressLayout);
 
   setLayout(layout);
+
+  if (orthoView != NULL)
+      connect(p_orthoView,
+              SIGNAL(positionChanged(const blitz::TinyVector<double,3>&)),
+              this, SLOT(redraw()));
 
   p_model->addView(this);
 }
@@ -178,6 +185,10 @@ OpenGlRenderingSettingsWidget *
 OpenGlRenderingViewWidget::renderingSettingsWidget()
 {
   return p_renderingSettings;
+}
+
+OrthoViewWidget *OpenGlRenderingViewWidget::orthoView() {
+  return p_orthoView;
 }
 
 void OpenGlRenderingViewWidget::redraw()

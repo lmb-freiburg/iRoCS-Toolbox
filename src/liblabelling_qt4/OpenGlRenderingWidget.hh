@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -50,13 +50,18 @@ public:
   OpenGlRenderingWidget(OpenGlRenderingViewWidget *view = NULL,
                         QWidget *parent = NULL);
   ~OpenGlRenderingWidget();
-  
+
 public slots:
-  
+
   void resetView();
 
 private:
-  
+
+  void _paintPlane(
+      GLuint textureID,
+      blitz::Array<blitz::TinyVector<unsigned char,4>,2> const &image,
+      blitz::TinyVector<blitz::TinyVector<float,3>,4> const &corners);
+
   void initializeGL();
   void resizeGL(int width, int height);
   void paintGL();
@@ -72,6 +77,8 @@ private:
   blitz::TinyMatrix<double,4,4> _rotation;
   blitz::TinyVector<float,2> _translation;
   float _distanceToOrigin;
+
+  GLuint _textureXY, _textureXZ, _textureZY;
 
   friend class OpenGlRenderingViewWidget;
 

@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -56,7 +56,7 @@ SphereMarkerOpenGlRenderingViewRenderer(
 SphereMarkerOpenGlRenderingViewRenderer::
 ~SphereMarkerOpenGlRenderingViewRenderer()
 {}
-  
+
 MarkerRenderer *SphereMarkerOpenGlRenderingViewRenderer::clone() const
 {
   return new SphereMarkerOpenGlRenderingViewRenderer(*this);
@@ -66,21 +66,21 @@ void SphereMarkerOpenGlRenderingViewRenderer::render(QPainter*) const
 {
   if (p_marker->channel() == NULL)
   {
-    std::cerr << "PointMarkerOpenGlRenderingViewRenderer::render(): "
+    std::cerr << "SphereMarkerOpenGlRenderingViewRenderer::render(): "
               << "ERROR: Marker at position " << p_marker->positionUm()
               << " has no asociated channel!" << std::endl;
     return;
   }
 
   if (_marker.vertices().size() == 0) initMarker();
-  
+
   SphereMarker* marker = static_cast<SphereMarker*>(p_marker);
   AnnotationChannelSpecs* channel = marker->channel();
   MultiChannelModel* model = channel->model();
 
   blitz::TinyVector<float,3> color(channel->colorForLabel(marker->label()));
   float alpha = channel->alpha() * channel->alphaForLabel(marker->label());
-  
+
   if (alpha == 0.0f) return;
 
   _setPenColor(marker->selected());
@@ -97,15 +97,15 @@ void SphereMarkerOpenGlRenderingViewRenderer::render(QPainter*) const
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_NORMAL_ARRAY);
-  
+
   glVertexPointer(3, GL_FLOAT, 0, &_marker.vertices()[0]);
   glNormalPointer(GL_FLOAT, 0, &_marker.normals()[0]);
   glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(_marker.indices().size()),
                  GL_UNSIGNED_INT, &_marker.indices()[0]);
-  
+
   glDisableClientState(GL_VERTEX_ARRAY);
   glDisableClientState(GL_NORMAL_ARRAY);
-  glPopMatrix();  
+  glPopMatrix();
 }
 
 void SphereMarkerOpenGlRenderingViewRenderer::userInteractionEvent(
@@ -166,7 +166,7 @@ void SphereMarkerOpenGlRenderingViewRenderer::initMarker()
           static_cast<unsigned int>(thetaIdx * nLon + phiIdx);
       I[6 * (thetaIdx * nLon + phiIdx) + 1] =
           static_cast<unsigned int>((thetaIdx + 1) * nLon + phiIdx);
-      I[6 * (thetaIdx * nLon + phiIdx) + 2] =        
+      I[6 * (thetaIdx * nLon + phiIdx) + 2] =
           static_cast<unsigned int>(
               (thetaIdx + 1) * nLon + ((phiIdx + 1) % nLon));
       I[6 * (thetaIdx * nLon + phiIdx) + 3] =

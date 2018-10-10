@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -74,7 +74,7 @@ public:
   int fontSize() const;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get the pixel position of the given model position in micrometers in
  *   the view widget. This transformation respects the model bounding box
  *   and the currently set zoom of the view.
@@ -88,7 +88,7 @@ public:
       blitz::TinyVector<float,3> const &positionUm);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get the pixel distance in the view for the given micrometer distance.
  *
  *   \param distanceUm The micrometer distance
@@ -99,7 +99,7 @@ public:
   double scaleToPx(double distanceUm);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get the pixel position of the given model position in micrometers in
  *   the view widget for the specified dimension. This transformation
  *   respects the model bounding box and the currently set zoom of the view.
@@ -114,7 +114,7 @@ public:
   double um2Px(double positionUm, int dimension);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get the model micrometer position of the given pixel position.
  *   This transformation respects the model bounding box
  *   and the currently set zoom of the view.
@@ -128,7 +128,7 @@ public:
       blitz::TinyVector<float,3> const &positionPx);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get the micrometer distance for the given pixel distance in the view.
  *
  *   \param distancePx The pixel distance
@@ -139,7 +139,7 @@ public:
   double scaleToUm(double distancePx);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get the model micrometer position of the given pixel position along
  *   the specified dimension. This transformation respects the model
  *   bounding box and the currently set zoom of the view.
@@ -162,7 +162,7 @@ public:
       iRoCS::ProgressReporter *pr = NULL);
 
 signals:
-        
+
   void zoomChanged(double zoom);
 
 public slots:
