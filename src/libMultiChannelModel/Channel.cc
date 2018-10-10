@@ -460,7 +460,7 @@ namespace iRoCS {
             // static_cast<RGBChannel*>(channel)->load(inFile, name, pr);
             // break;
           }
-          __attribute__ ((fallthrough));
+          // fall through
         }
         default:
 #ifdef DEBUG_VERBOSE_XML
