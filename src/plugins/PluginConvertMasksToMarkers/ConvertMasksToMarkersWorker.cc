@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -27,7 +27,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#endif 
+#endif
 
 #include "ConvertMasksToMarkersParameters.hh"
 
@@ -46,7 +46,7 @@
 ConvertMasksToMarkersWorker::ConvertMasksToMarkersWorker(
     ConvertMasksToMarkersParameters* dialog, LabellingMainWidget* mainWidget,
     AnnotationChannelSpecs* markerChannel,
-    iRoCS::ProgressReporterQt4* progress, QWidget* parent) 
+    iRoCS::ProgressReporterQt4* progress, QWidget* parent)
         : QThread(parent), p_dialog(dialog), p_mainWidget(mainWidget),
           p_markerChannel(markerChannel), p_progress(progress)
 {}
@@ -76,10 +76,10 @@ void ConvertMasksToMarkersWorker::run()
 #endif
     for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(masks->size()); ++i)
         binary.data()[i] = blitz::any(cmap.color(masks->data()[i]) != 0.0f);
-    
+
     if (p_progress != NULL && !p_progress->updateProgressMessage(
             tr("Connected component labelling...").toStdString())) return;
-    
+
     atb::connectedComponentLabelling(binary, labels, atb::SIMPLE_NHOOD);
     nSegments = blitz::max(labels);
   }
@@ -122,7 +122,7 @@ void ConvertMasksToMarkersWorker::run()
   lb = labels.shape();
   blitz::Array<blitz::TinyVector<atb::BlitzIndexT,3>,1> ub(nSegments);
   ub = blitz::TinyVector<atb::BlitzIndexT,3>(static_cast<atb::BlitzIndexT>(0));
-  
+
   blitz::TinyVector<atb::BlitzIndexT,3> p;
   atb::BlitzIndexT currentVoxel = 1;
   for (p(0) = 0; p(0) < labels.extent(0); ++p(0))
@@ -178,6 +178,9 @@ void ConvertMasksToMarkersWorker::run()
           tr("Generating marker %1 / %2").arg(
               progress).arg(nSegments).toStdString());
     }
+
+    if (volumePx(i) < p_dialog->minimumSizePx() ||
+        volumePx(i) > p_dialog->maximumSizePx()) continue;
 
     // Extract mask
     blitz::Array<float,3> mask(

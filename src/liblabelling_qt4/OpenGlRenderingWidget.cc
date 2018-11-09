@@ -150,7 +150,7 @@ void OpenGlRenderingWidget::resizeGL(int width, int height)
   glLoadIdentity();
   gluPerspective(
       35.0, static_cast<GLdouble>(width) / static_cast<GLdouble>(height),
-      1.0, 5000.0);
+      0.0001, 5000.0);
 }
 
 void OpenGlRenderingWidget::paintGL()
@@ -278,7 +278,7 @@ void OpenGlRenderingWidget::mouseMoveEvent(QMouseEvent *e)
         blitz::TinyVector<float,2> offset(
             static_cast<float>(e->x() - _lastMousePosition.x()),
             static_cast<float>(e->y() - _lastMousePosition.y()));
-        _translation += offset;
+        _translation += p_view->model()->elementSizeUm()(1) * offset;
       }
       else if (e->modifiers().testFlag(Qt::ControlModifier)) // Rotate roll
       {
@@ -332,7 +332,8 @@ void OpenGlRenderingWidget::wheelEvent(QWheelEvent *e)
 {
   if (e->modifiers() == Qt::NoModifier)
   {
-    _distanceToOrigin -= static_cast<float>(e->delta());
+    _distanceToOrigin -=
+        p_view->model()->elementSizeUm()(1) * static_cast<float>(e->delta());
     updateGL();
     e->accept();
     return;
