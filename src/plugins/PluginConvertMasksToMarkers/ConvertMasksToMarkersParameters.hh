@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -38,6 +38,7 @@ class StringControlElement;
 class StringSelectionControlElement;
 class DoubleControlElement;
 class BoolControlElement;
+class DoubleRangeControlElement;
 class PluginConvertMasksToMarkers;
 
 class ConvertMasksToMarkersParameters : public QDialog
@@ -46,7 +47,7 @@ class ConvertMasksToMarkersParameters : public QDialog
   Q_OBJECT
 
   public:
-  
+
   ConvertMasksToMarkersParameters(LabellingMainWidget* mainWidget,
                                   QWidget* parent = 0, Qt::WindowFlags f = 0);
   ~ConvertMasksToMarkersParameters();
@@ -55,21 +56,24 @@ class ConvertMasksToMarkersParameters : public QDialog
   std::string annotationChannelName() const;
   bool doConnectedComponentLabelling() const;
   Marker::MarkerType markerType() const;
+  double minimumSizePx() const;
+  double maximumSizePx() const;
   double smoothingSigmaPx() const;
   double simplifyToleranceUm3() const;
 
 protected slots:
-  
+
   void checkAndAccept();
 
 private:
-  
+
   LabellingMainWidget* p_mainWidget;
 
   ChannelSelectionControlElement* p_maskChannelSelector;
   StringControlElement* p_annotationChannelControlElement;
   BoolControlElement *p_doConnectedComponentLabellingControlElement;
   StringSelectionControlElement* p_markerTypeControlElement;
+  DoubleRangeControlElement *p_volumeRangePxControl;
   DoubleControlElement *p_smoothingSigmaPxControl;
   DoubleControlElement *p_simplifyToleranceUm3Control;
 

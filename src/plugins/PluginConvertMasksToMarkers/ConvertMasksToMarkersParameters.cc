@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -38,6 +38,7 @@
 #include <liblabelling_qt4/StringSelectionControlElement.hh>
 #include <liblabelling_qt4/DoubleControlElement.hh>
 #include <liblabelling_qt4/BoolControlElement.hh>
+#include <liblabelling_qt4/DoubleRangeControlElement.hh>
 
 ConvertMasksToMarkersParameters::ConvertMasksToMarkersParameters(
     LabellingMainWidget* mainWidget, QWidget* parent, Qt::WindowFlags f)
@@ -49,7 +50,7 @@ ConvertMasksToMarkersParameters::ConvertMasksToMarkersParameters(
   QFrame* parameterPanel = new QFrame;
   parameterPanel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
   QVBoxLayout* parameterLayout = new QVBoxLayout;
-  
+
   p_maskChannelSelector = new ChannelSelectionControlElement(
       tr("Data channel:"), mainWidget->multiChannelModel(),
       ChannelSpecs::Visualization);
@@ -62,7 +63,7 @@ ConvertMasksToMarkersParameters::ConvertMasksToMarkersParameters(
   p_doConnectedComponentLabellingControlElement = new BoolControlElement(
       tr("Connected Component Labelling"));
   p_doConnectedComponentLabellingControlElement->setValue(false);
-  parameterLayout->addWidget(p_doConnectedComponentLabellingControlElement);  
+  parameterLayout->addWidget(p_doConnectedComponentLabellingControlElement);
 
   QStringList mtStrings;
   mtStrings << tr("Surface") << tr("Cell");
@@ -71,11 +72,17 @@ ConvertMasksToMarkersParameters::ConvertMasksToMarkersParameters(
   p_markerTypeControlElement->setValue("Surface");
   parameterLayout->addWidget(p_markerTypeControlElement);
 
+  p_volumeRangePxControl = new DoubleRangeControlElement(
+      tr("Volume range [px]:"), 0.0, 1000000000.0);
+  p_volumeRangePxControl->setRange(0.0, 1000000000.0);
+  p_volumeRangePxControl->setSingleStep(1.0);
+  parameterLayout->addWidget(p_volumeRangePxControl);
+
   p_smoothingSigmaPxControl = new DoubleControlElement(
       tr("Smoothing sigma [px]:"), 1.0);
   p_smoothingSigmaPxControl->setRange(0.0, 1000.0);
   p_smoothingSigmaPxControl->setSingleStep(0.1);
-  parameterLayout->addWidget(p_smoothingSigmaPxControl);  
+  parameterLayout->addWidget(p_smoothingSigmaPxControl);
 
   p_simplifyToleranceUm3Control = new DoubleControlElement(
       tr("Simplify tolerance [um^3]"), 0.0);
@@ -86,7 +93,7 @@ ConvertMasksToMarkersParameters::ConvertMasksToMarkersParameters(
 
   parameterPanel->setLayout(parameterLayout);
   mainLayout->addWidget(parameterPanel);
-  
+
   QDialogButtonBox* buttonBox = new QDialogButtonBox(
       QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
   buttonBox->button(QDialogButtonBox::Ok)->setDefault(true);
@@ -133,6 +140,14 @@ Marker::MarkerType ConvertMasksToMarkersParameters::markerType() const
   }
 }
 
+double ConvertMasksToMarkersParameters::minimumSizePx() const {
+  return p_volumeRangePxControl->lowerBound();
+}
+
+double ConvertMasksToMarkersParameters::maximumSizePx() const {
+  return p_volumeRangePxControl->upperBound();
+}
+
 double ConvertMasksToMarkersParameters::smoothingSigmaPx() const
 {
   return p_smoothingSigmaPxControl->value();
@@ -148,7 +163,7 @@ void ConvertMasksToMarkersParameters::checkAndAccept()
   try
   {
     // Check syntax of annotationGroup string
-    try 
+    try
     {
       std::string annotationGroup =
           BlitzH5File::simplifyGroupDescriptor(annotationChannelName());
