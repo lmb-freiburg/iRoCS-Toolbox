@@ -10,17 +10,4 @@ Open Computer Vision library              OpenCV   (>= 2.0)
 QT4                                       Qt4      (>= 4.6.2)
 -----------------------------------------------------------------------------
 
-When the above-mentioned dependencies are met you should be able to build
-the iRoCS Toolbox as follows:
-
-./configure
-make
-make install
-
-This will install the software to /usr/local. Especially if you do not have
-super-user rights on the host system you can change the installation folder
-using the "--prefix" option in configure. E.g. "./configure --prefix=~/iRoCS"
-will install the iRoCS Toolbox into a subfolder called iRoCS in your home
-folder.
-
-All headers will be installed into the subfolder $(prefix)/include/irocs-toolbox.
+You can build the iRoCS-Toolbox for Linux and Windows platforms using CMake
