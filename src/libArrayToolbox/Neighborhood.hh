@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -34,15 +34,17 @@
 #include <config.hh>
 #endif
 
+#include <libArrayToolbox/TypeTraits.hh>
+
 #include <blitz/array.h>
 #include <set>
 #include <vector>
 
 namespace atb
 {
-  
+
 /*======================================================================*/
-/*! 
+/*!
  *   \struct TinyVectorLessThan Neighborhood.hh "libArrayToolbox/Neighborhood.hh"
  *   \brief The TinyVectorLessThan struct provides an operator
  *     for comparing TinyVectors defining a strict weak ordering between them.
@@ -54,9 +56,9 @@ namespace atb
   template<typename DataT, int Dim>
   struct TinyVectorLessThan
   {
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   Strict weak ordering function for TinyVectors.
  *
  *   \param v1 The first vector
@@ -71,7 +73,7 @@ namespace atb
       blitz::TinyVector<DataT,Dim> const &v2) const;
 
   };
-  
+
 /*======================================================================*/
 /*!
  *  \class Neighborhood Neighborhood.hh "libArrayToolbox/Neighborhood.hh"
@@ -89,9 +91,9 @@ namespace atb
   template<int Dim>
   class Neighborhood
   {
-    
+
   public:
-    
+
 /*======================================================================*/
 /*!
  *  \enum Type Neighborhood.hh "libArrayToolbox/Neighborhood.hh"
@@ -111,16 +113,16 @@ namespace atb
  */
 /*======================================================================*/
     enum Type { Simple, Complex, User };
-  
+
     typedef std::set<
       blitz::TinyVector<BlitzIndexT,Dim>, TinyVectorLessThan<BlitzIndexT,Dim> >
     NeighborSet;
-    
+
     typedef typename NeighborSet::const_iterator const_iterator;
-  
-    
+
+
 /*======================================================================*/
-/*! 
+/*!
  *   Default constructor.
  *
  *   \param nhoodType The type of the neighborhood to create. If you pass
@@ -130,7 +132,7 @@ namespace atb
     Neighborhood(Type nhoodType = Simple);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Creation of a user-defined neighborhood with the given neighbors.
  *
  *   \param neighbors The positions of the neighbors of the current pixel.
@@ -141,7 +143,7 @@ namespace atb
     Neighborhood(NeighborSet const &neighbors);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Creation of a user-defined neighborhood with the given neighbors.
  *   If neighbors appear multiple times, the duplicates will be removed.
  *
@@ -154,7 +156,7 @@ namespace atb
         std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &neighbors);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Copy constructor.
  *
  *   \param nhood The Neighborhood to copy.
@@ -163,14 +165,14 @@ namespace atb
     Neighborhood(Neighborhood<Dim> const &nhood);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Destructor.
  */
 /*======================================================================*/
     ~Neighborhood();
 
 /*======================================================================*/
-/*! 
+/*!
  *   Copy assignment operator. Sets the neighborhood to the neighborhood
  *   given.
  *
@@ -182,7 +184,7 @@ namespace atb
     Neighborhood<Dim> &operator=(Neighborhood<Dim> const &nhood);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get the type of this Neighborhood. Any modification of the Neighborhood
  *   after creation will set the NeighborhoodType to \c User, even if the
  *   changes are undone again.
@@ -192,18 +194,18 @@ namespace atb
  */
 /*======================================================================*/
     Type type() const;
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   Get the number of neighbors this Neighborhood contains.
  *
  *   \return The number of neighbors in the Neighborhood
  */
 /*======================================================================*/
     size_t size() const;
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   Get read-only access to the neighbor set.
  *
  *   \return The neighbor set of this Neighborhood.
@@ -212,14 +214,14 @@ namespace atb
     NeighborSet const &neighbors() const;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Remove all neighbors from this Neighborhood.
  */
 /*======================================================================*/
     void clear();
 
 /*======================================================================*/
-/*! 
+/*!
  *   Insert a new neighbor into this Neighborhood. If the neighbor is
  *   already contained in the Neighborhood it won't be changed.
  *
@@ -229,7 +231,7 @@ namespace atb
     void insert(blitz::TinyVector<BlitzIndexT,Dim> const &neighbor);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Erase the given neighbor from the Neighborhood. If the neighbor is not
  *   contained in the Neighborhood it is unaltered.
  *
@@ -239,7 +241,7 @@ namespace atb
     void erase(blitz::TinyVector<BlitzIndexT,Dim> const &neighbor);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Set the neighbors within this Neighborhood to the ones provided.
  *
  *   \param nhood The neighbor position vector.
@@ -248,7 +250,7 @@ namespace atb
     void setNeighbors(NeighborSet const &nhood);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Set the neighbors within this Neighborhood to the ones provided. If
  *   neighbors appear multiple times the duplicates will be removed.
  *
@@ -259,7 +261,7 @@ namespace atb
         std::vector< blitz::TinyVector<BlitzIndexT,Dim> > const &nhood);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get an iterator to the beginning of the Neighborhood.
  *
  *   \return A NeighborhoodSet iterator pointing to the first neighbor of
@@ -267,9 +269,9 @@ namespace atb
  */
 /*======================================================================*/
     const_iterator begin() const;
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   Get an iterator one element past the end of this Neighborhood.
  *
  *   \return A NeighborhoodSet iterator pointing behind the last neighbor
@@ -279,7 +281,7 @@ namespace atb
     const_iterator end() const;
 
   private:
-    
+
     Type _type;
     NeighborSet _neighbors;
 
