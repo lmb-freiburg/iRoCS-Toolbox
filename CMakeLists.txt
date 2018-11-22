@@ -8,12 +8,12 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set(PACKAGE "irocs-toolbox")
 set(PACKAGE_NAME "iRoCS Toolbox")
 set(PACKAGE_BUGREPORT "falk@cs.uni-freiburg.de")
-set(PACKAGE_STRING "iRoCS Toolbox 1.2.1")
+set(PACKAGE_STRING "iRoCS Toolbox 1.2.2")
 set(PACKAGE_TARNAME "irocs-toolbox")
 set(PACKAGE_URL "http://lmb.informatik.uni-freiburg.de/lmbsoft/iRoCS")
-set(PACKAGE_VERSION "1.2.1")
-set(VERSION "1.2.1")
-set(iRoCS-Toolbox_VERSION 1.2.1)
+set(PACKAGE_VERSION "1.2.2")
+set(VERSION "1.2.2")
+set(iRoCS-Toolbox_VERSION 1.2.2)
 
 # ===============================
 # User options
