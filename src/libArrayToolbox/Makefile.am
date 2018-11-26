@@ -82,7 +82,8 @@ arraytoolboxinclude_HEADERS = \
 	LocalMaximumExtraction.hh LocalMaximumExtraction.icc \
 	Normalization.hh Normalization.icc \
 	STLFileWriter.hh \
-	ATBThinPlateSpline.hh ATBThinPlateSpline.icc
+	ATBThinPlateSpline.hh ATBThinPlateSpline.icc \
+	DistanceTransform.hh DistanceTransform.icc
 
 libArrayToolbox_la_SOURCES = \
 	algo/DisjointSet.cc \
@@ -111,4 +112,5 @@ libArrayToolbox_la_SOURCES = \
 	SphericalTensor.cc \
 	HoughTransform.cc \
 	Random.cc \
-	ATBThinPlateSpline.cc
+	ATBThinPlateSpline.cc \
+	DistanceTransform.cc

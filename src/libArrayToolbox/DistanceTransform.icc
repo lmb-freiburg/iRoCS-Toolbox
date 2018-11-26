@@ -1,0 +1,191 @@
+/**************************************************************************
+ *
+ * Euclidean Distance Transform
+ *
+ *    This file provides a class to store microscopic datasets with
+ *    element size and a transformation to apply. It provides a function
+ *    valueAt() to first apply the transformation and then access
+ *    the transformed position using the specified ArrayInterpolator.
+ *
+ * This file belongs to the iRoCS Toolbox.
+ *
+ * Copyright (C) 2008-2018 Thorsten Falk
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ **************************************************************************/
+
+namespace atb {
+
+  template<typename DataT, int Dim>
+  void DistanceTransform<DataT,Dim>::getDistanceInPixels(
+      Array<double,Dim> &distances, Array<DataT,Dim> const &data,
+      EuclideanDistanceTransformBase::Mode mode, DataT fg,
+      iRoCS::ProgressReporter *pr) {
+    getDistanceInPixels(distances, data, data.elementSizeUm(), mode, fg, pr);
+    distances.setElementSizeUm(data.elementSizeUm());
+    distances.setTransformation(data.transformation());
+  }
+
+  template<typename DataT, int Dim>
+  void DistanceTransform<DataT,Dim>::getNearestPixels(
+      Array<blitz::TinyVector<BlitzIndexT,Dim>,Dim> &nearestPixels,
+      Array<DataT,Dim> const &data, EuclideanDistanceTransformBase::Mode mode,
+      DataT fg, iRoCS::ProgressReporter *pr) {
+    getNearestPixels(nearestPixels, data, data.elementSizeUm(), mode, fg, pr);
+    nearestPixels.setElementSizeUm(data.elementSizeUm());
+    nearestPixels.setTransformation(data.transformation());
+  }
+
+  template<typename DataT, int Dim>
+  void DistanceTransform<DataT,Dim>::getDistanceInPixels(
+      blitz::Array<double,Dim> &distances, blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &,
+      EuclideanDistanceTransformBase::Mode mode, DataT fg,
+      iRoCS::ProgressReporter *) {
+
+    distances.resize(data.shape());
+
+    double *dtData = distances.dataFirst();
+    DataT const *inData = data.dataFirst();
+
+    // Initialize distances according to mode
+    for (size_t i = 0; i < distances.size(); ++i) {
+      if (inData[i] == fg)
+          dtData[i] =
+              (mode == EuclideanDistanceTransformBase::DistanceToForeground) ?
+              0 : EuclideanDistanceTransformBase::BG_VALUE;
+      else
+          dtData[i] =
+              (mode == EuclideanDistanceTransformBase::DistanceToForeground) ?
+              EuclideanDistanceTransformBase::BG_VALUE : 0;
+    }
+
+    // Compute strides per dimension
+    blitz::TinyVector<int,Dim> strides(1);
+    for (int d = Dim - 2; d >= 0; --d)
+        strides(d) = strides(d + 1) * data.extent(d + 1);
+
+    // Apply 1-D distance transform along all dimensions
+    for (int d = 0; d < Dim; ++d) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (size_t i = 0; i < data.size() / data.extent(d); ++i) {
+        EuclideanDistanceTransformBase dt(data.extent(d));
+        double *line = dtData;
+        size_t tmp = i;
+        for (int d2 = Dim - 1; d2 >= 0; --d2) {
+          if (d2 == d) continue;
+          ptrdiff_t step = (tmp % data.extent(d2)) * strides(d2);
+          line += step;
+          tmp /= data.extent(d2);
+        }
+        for (int j = 0; j < data.extent(d); ++j)
+            dt.f[j] = line[j * strides(d)];
+        dt.run(data.extent(d));
+        for (int j = 0; j < data.extent(d); ++j) {
+          line[j * strides(d)] = dt.d[j];
+        }
+      }
+    }
+
+    for (size_t i = 0; i < distances.size(); ++i)
+        dtData[i] = std::sqrt(dtData[i]);
+  }
+
+  template<typename DataT, int Dim>
+  void DistanceTransform<DataT,Dim>::getNearestPixels(
+      blitz::Array<blitz::TinyVector<BlitzIndexT,Dim>,Dim> &nearestPixels,
+      blitz::Array<DataT,Dim> const &data,
+      blitz::TinyVector<double,Dim> const &,
+      EuclideanDistanceTransformBase::Mode mode, DataT fg,
+      iRoCS::ProgressReporter *) {
+
+    nearestPixels.resize(data.shape());
+    blitz::Array<double,Dim> distances(data.shape());
+
+    double *dtData = distances.dataFirst();
+    blitz::TinyVector<BlitzIndexT,Dim> *nearestData =
+        nearestPixels.dataFirst();
+    DataT const *inData = data.dataFirst();
+
+    // Compute strides per dimension
+    blitz::TinyVector<int,Dim> strides(1);
+    for (int d = Dim - 2; d >= 0; --d)
+        strides(d) = strides(d + 1) * data.extent(d + 1);
+
+    // Compute Dim distance transforms, where the last dimension is the
+    // dOuter's dimension to get the dOuter's coordinate of the nearest
+    // pixel
+    for (int dOuter = 0; dOuter < Dim; ++dOuter) {
+
+      // Initialize distances according to mode
+      for (size_t i = 0; i < distances.size(); ++i) {
+        if (inData[i] == fg)
+            dtData[i] =
+                (mode == EuclideanDistanceTransformBase::DistanceToForeground) ?
+                0 : EuclideanDistanceTransformBase::BG_VALUE;
+        else
+            dtData[i] =
+                (mode == EuclideanDistanceTransformBase::DistanceToForeground) ?
+                EuclideanDistanceTransformBase::BG_VALUE : 0;
+      }
+
+      // Flip current and last dimension
+      blitz::TinyVector<int,Dim> permutation;
+      for (int d = 0; d < Dim - 1; ++d)
+          permutation(d) = (d == dOuter) ? (Dim - 1) : d;
+      permutation(Dim - 1) = dOuter;
+
+      // Apply 1-D distance transform along all dimensions
+      for (int d = 0; d < Dim; ++d) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (size_t i = 0; i < data.size() / data.extent(permutation(d));
+             ++i) {
+          EuclideanDistanceTransformBase dt(data.extent(permutation(d)));
+          double *line = dtData;
+          blitz::TinyVector<BlitzIndexT,Dim> *nLine = nearestData;
+          size_t tmp = i;
+          for (int d2 = Dim - 1; d2 >= 0; --d2) {
+            if (permutation(d2) == permutation(d)) continue;
+            ptrdiff_t step = (tmp % data.extent(permutation(d2))) *
+                strides(permutation(d2));
+            line += step;
+            nLine += step;
+            tmp /= data.extent(permutation(d2));
+          }
+          for (int j = 0; j < data.extent(permutation(d)); ++j)
+              dt.f[j] = line[j * strides(permutation(d))];
+          dt.run(data.extent(permutation(d)));
+          if (d < Dim - 1) {
+            for (int j = 0; j < data.extent(permutation(d)); ++j)
+                line[j * strides(permutation(d))] = dt.d[j];
+          }
+          else {
+            size_t k = 0;
+            for (int j = 0; j < data.extent(permutation(d)); ++j) {
+              while (dt._z[k+1] < j) k++;
+              nLine[j * strides(dOuter)](dOuter) = dt._v[k];
+            }
+          }
+        }
+      }
+    }
+  }
+
+}

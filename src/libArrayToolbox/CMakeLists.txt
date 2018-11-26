@@ -52,14 +52,16 @@ set(ArrayToolbox_HEADERS
   HoughTransform.hh HoughTransform.icc Random.hh Random.icc
   LocalMaximumExtraction.hh LocalMaximumExtraction.icc
   Normalization.hh Normalization.icc STLFileWriter.hh
-  ATBThinPlateSpline.hh ATBThinPlateSpline.icc)
+  ATBThinPlateSpline.hh ATBThinPlateSpline.icc
+  DistanceTransform.hh DistanceTransform.icc)
 
 set(ArrayToolbox_SOURCES
   RuntimeError.cc TypeTraits.cc SurfaceGeometry.cc
   MarchingCubes.cc ATBTiming.cc ATBLinAlg.cc ATBDataSynthesis.cc
   ATBGSLWrapper.cc ATBSpline.cc ATBCoupledBSplineModel.cc ATBNucleus.cc
   iRoCS.cc SphericalTensor.cc
-  HoughTransform.cc Random.cc ATBThinPlateSpline.cc )
+  HoughTransform.cc Random.cc ATBThinPlateSpline.cc
+  DistanceTransform.cc)
 
 if (BUILD_SHARED_LIBS OR BUILD_STATIC_LIBS)
   # Install development headers
