@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
- **************************************************************************/ 
+ **************************************************************************/
 
 namespace atb
 {
@@ -46,7 +46,7 @@ namespace atb
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (ptrdiff_t i = 0; i < kernels(d)->size(); ++i)
+        for (size_t i = 0; i < kernels(d)->size(); ++i)
             kernelRev.data()[i] =
                 kernels(d)->data()[kernels(d)->size() - 1 - i];
         _filterReal.setKernelForDim(&kernelRev, d);
@@ -57,7 +57,7 @@ namespace atb
   template<typename DataT, int Dim>
   SeparableConvolutionFilter<DataT,Dim>::~SeparableConvolutionFilter()
   {}
-  
+
   template<typename DataT, int Dim>
   void SeparableConvolutionFilter<DataT,Dim>::setBoundaryTreatment(
       BoundaryTreatmentType bt, DataT const &boundaryValue)
@@ -91,7 +91,7 @@ namespace atb
         kernelRev.data()[i] = kernel->data()[kernel->size() - 1 - i];
     _filterReal.setKernelForDim(&kernelRev, dim);
   }
-  
+
   template<typename DataT, int Dim>
   void SeparableConvolutionFilter<DataT,Dim>::setKernels(
       blitz::TinyVector<blitz::Array<DataT,1> *,Dim> const &kernels)
@@ -131,7 +131,7 @@ namespace atb
     SeparableConvolutionFilter<DataT,Dim> f(kernels, btType, boundaryValue);
     f.apply(data, elementSizeUm, filtered, pr);
   }
-  
+
   template<typename DataT, int Dim>
   void SeparableConvolutionFilter<DataT,Dim>::apply(
       Array<DataT,Dim> const &data, Array<DataT,Dim> &filtered,
