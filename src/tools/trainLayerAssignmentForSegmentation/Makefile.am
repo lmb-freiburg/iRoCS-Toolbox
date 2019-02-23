@@ -15,13 +15,14 @@ trainLayerAssignmentForSegmentation_LDADD = \
 	$(top_builddir)/src/libcmdline/libcmdline.la \
 	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la
 
-if STATIC_TOOLS
-trainLayerAssignmentForSegmentation_LDFLAGS = -all-static
-trainLayerAssignmentForSegmentation_LDADD += \
-	$(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
-else
+#if STATIC_TOOLS
+#trainLayerAssignmentForSegmentation_LDFLAGS = -all-static
+#trainLayerAssignmentForSegmentation_LDADD += \
+#	$(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS) \
+#	$(ZLIB_STATIC_LIBS) $(SZIP_STATIC_LIBS)
+#else
 trainLayerAssignmentForSegmentation_LDADD += $(HDF5_CPP_LIBS) $(HDF5_LIBS)
-endif
+#endif
 
 trainLayerAssignmentForSegmentation_SOURCES = \
 	trainLayerAssignmentForSegmentation.cc

@@ -65,8 +65,8 @@ if test "x$enable_debug" != "xno"; then
    AC_DEFINE([DEBUG], [1], [Enable general debugging])
    AC_DEFINE([BZ_DEBUG], [1], [Enable blitz++ debugging])
 else
-   CFLAGS+=" -O3"
-   CXXFLAGS+=" -O3"
+   CFLAGS+=" -O2"
+   CXXFLAGS+=" -O2"
 fi
 
 # Setup OpenMP environment
@@ -126,6 +126,8 @@ if test "x$PKG_CONFIG" != "x"; then
       [PKG_CHECK_MODULES(OPENCV, [opencv_core opencv_imgproc], [],
         [AC_MSG_NOTICE(pkgconfig for OpenCV not found... Deferring)])])
   fi
+  PKG_CHECK_MODULES(ZLIB, [zlib], [],
+    [AC_MSG_NOTICE(pkgconfig for zlib not found... Deferring)])
   PKG_CHECK_MODULES(GL, [gl], [],
     [AC_MSG_NOTICE(pkgconfig for gl not found... Deferring)])
   PKG_CHECK_MODULES(GLU, [glu], [],
@@ -207,6 +209,10 @@ if test "x$PKG_CONFIG" != "x"; then
     if test "x$HDF5_CPP_LIBS" != "x"; then
       PKG_CHECK_MODULES(HDF5_CPP_STATIC, [hdf5_cpp], [],
         [AC_MSG_ERROR(No static HDF5 C++ library available)])
+    fi
+    if test "x$ZLIB_LIBS" != "x"; then
+      PKG_CHECK_MODULES(ZLIB_STATIC, [zlib], [],
+        [AC_MSG_ERROR(No static zlib library available)])
     fi
     if test "x$FFTW_LIBS" != "x"; then
       PKG_CHECK_MODULES(FFTW_STATIC, [fftw3 fftw3f], [],
@@ -484,6 +490,73 @@ if test "x$HDF5_LIBS" == "x"; then
 fi
 
 #
+# Check for ZLIB
+#
+if test "x$ZLIB_LIBS" == "x"; then
+
+  tmp_CPPFLAGS="$CPPFLAGS"
+  tmp_LDFLAGS="$LDFLAGS"
+  tmp_LIBS="$LIBS"
+
+  AC_CHECK_HEADER([zlib.h], [], AC_MSG_ERROR([zlib headers not found.]))
+  AC_CHECK_LIB(z, deflate, [], AC_MSG_ERROR([zlib library not found.]))
+  ZLIB_CFLAGS="$CPPFLAGS"
+  ZLIB_LIBS="$LDFLAGS $LIBS"
+  AC_SUBST(ZLIB_CFLAGS)
+  AC_SUBST(ZLIB_LIBS)
+
+  if test "x$enable_static_tools" != "xno"; then
+    $as_unset ac_cv_lib_z_deflate
+    LDFLAGS="-static $tmp_LDFLAGS"
+    LIBS="$tmp_LIBS"
+    AC_CHECK_LIB(z, deflate, [], AC_MSG_ERROR([Static libz library not found.]))
+    ZLIB_STATIC_LIBS="$LDFLAGS $LIBS"
+    AC_SUBST(ZLIB_STATIC_LIBS)
+  fi
+
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+fi
+
+#
+# Check for SZIP
+#
+if test "x$SZIP_LIBS" == "x"; then
+
+  tmp_CPPFLAGS="$CPPFLAGS"
+  tmp_LDFLAGS="$LDFLAGS"
+  tmp_LIBS="$LIBS"
+
+  AC_CHECK_HEADER([szlib.h], [], AC_MSG_ERROR([szip headers not found.]))
+  AC_CHECK_LIB(aec, aec_buffer_encode, [],
+    AC_MSG_ERROR([aec library not found.]))
+  AC_CHECK_LIB(sz, SZ_BufftoBuffCompress, [],
+    AC_MSG_ERROR([szip library not found.]))
+  SZIP_CFLAGS="$CPPFLAGS"
+  SZIP_LIBS="$LDFLAGS $LIBS"
+  AC_SUBST(SZIP_CFLAGS)
+  AC_SUBST(SZIP_LIBS)
+
+  if test "x$enable_static_tools" != "xno"; then
+    $as_unset ac_cv_lib_aec_aec_buffer_encode
+    $as_unset ac_cv_lib_sz_SZ_BufftoBuffCompress
+    LDFLAGS="-static $tmp_LDFLAGS"
+    LIBS="$tmp_LIBS"
+    AC_CHECK_LIB(aec, aec_buffer_encode, [],
+      AC_MSG_ERROR([aec library not found.]))
+    AC_CHECK_LIB(sz, SZ_BufftoBuffCompress, [],
+      AC_MSG_ERROR([Static szip library not found.]))
+    SZIP_STATIC_LIBS="$LDFLAGS $LIBS"
+    AC_SUBST(SZIP_STATIC_LIBS)
+  fi
+
+  CPPFLAGS="$tmp_CPPFLAGS"
+  LDFLAGS="$tmp_LDFLAGS"
+  LIBS="$tmp_LIBS"
+fi
+
+#
 # Check for HDF5 C++ Interface
 #
 if test "x$HDF5_CPP_LIBS" == "x"; then
@@ -569,15 +642,15 @@ if test "x$FFTW_LIBS" == "x"; then
   AC_SUBST(FFTW_LIBS)
 
   if test "x$enable_static_tools" != "xno"; then
-    $as_unset ac_cv_lib_fftw_fftw_malloc
-    $as_unset ac_cv_lib_fftwf_fftw_malloc
+    $as_unset ac_cv_lib_fftw3_fftw_malloc
+    $as_unset ac_cv_lib_fftw3f_fftw_malloc
     LDFLAGS="-static $FFTW_LDFLAGS $tmp_LDFLAGS"
     LIBS="$tmp_LIBS"
     AC_CHECK_LIB(fftw3, fftw_malloc, [],
       AC_MSG_ERROR([Static fftw library not found.]))
     AC_CHECK_LIB(fftw3f, fftw_malloc, [],
       AC_MSG_ERROR([Static fftwf library not found.]))
-    FFTW_LIBS="$LDFLAGS $LIBS"
+    FFTW_STATIC_LIBS="$LDFLAGS $LIBS"
     AC_SUBST(FFTW_STATIC_LIBS)
   fi
 
@@ -620,14 +693,14 @@ if test "x$OPENCV_LIBS" == "x"; then
   AC_SUBST(OPENCV_LIBS)
 
   if test "x$enable_static_tools" != "xno"; then
-#    $as_unset ac_cv_lib_opencv_core_cvError
-#    $as_unset ac_cv_lib_opencv_imgproc_cvFitEllipse2
-#    LDFLAGS="-static $OPENCV_LDFLAGS $tmp_LDFLAGS"
-#    LIBS="$tmp_LIBS"
-#    AC_CHECK_LIB(opencv_core, cvError, [],
-#      [AC_MSG_ERROR([Static OpenCV core (opencv_core) library not found.])])
-#    AC_CHECK_LIB(opencv_imgproc, cvFitEllipse2, [],
-#      [AC_MSG_ERROR([Static OpenCV Image Processing (opencv_imgproc) library not found.])])
+    $as_unset ac_cv_lib_opencv_core_cvError
+    $as_unset ac_cv_lib_opencv_imgproc_cvFitEllipse2
+    LDFLAGS="-static $OPENCV_LDFLAGS $tmp_LDFLAGS"
+    LIBS="$tmp_LIBS"
+    AC_CHECK_LIB(opencv_core, cvError, [],
+      [AC_MSG_ERROR([Static OpenCV core (opencv_core) library not found.])])
+    AC_CHECK_LIB(opencv_imgproc, cvFitEllipse2, [],
+      [AC_MSG_ERROR([Static OpenCV Image Processing (opencv_imgproc) library not found.])])
     OPENCV_STATIC_LIBS="$OPENCV_LDFLAGS $LIBS"
     AC_SUBST(OPENCV_STATIC_LIBS)
   fi
@@ -886,6 +959,7 @@ AC_CONFIG_FILES([src/tools/computeCellFeatures/Makefile])
 AC_CONFIG_FILES([src/tools/assignLayersToSegmentation/Makefile])
 AC_CONFIG_FILES([src/tools/trainLayerAssignmentForSegmentation/Makefile])
 AC_CONFIG_FILES([src/tools/detectSpheres/Makefile])
+AC_CONFIG_FILES([src/tools/hdf5/Makefile])
 AC_CONFIG_FILES([test/Makefile])
 AC_CONFIG_FILES([test/libcmdline/Makefile])
 AC_CONFIG_FILES([test/libsvmtl/Makefile])

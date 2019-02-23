@@ -15,15 +15,16 @@ attachIRoCSToCellSegmentation_LDADD = \
 	$(top_builddir)/src/libcmdline/libcmdline.la \
 	$(top_builddir)/src/lmbs2kit/liblmbs2kit.la
 
-if STATIC_TOOLS
-attachIRoCSToCellSegmentation_LDFLAGS = -all-static
-attachIRoCSToCellSegmentation_LDADD += \
-	$(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS) \
-	$(OPENCV_STATIC_LIBS)
-else
+#if STATIC_TOOLS
+#attachIRoCSToCellSegmentation_LDFLAGS = -all-static
+#attachIRoCSToCellSegmentation_LDADD += \
+#	$(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS) \
+#	$(OPENCV_STATIC_LIBS) \
+#	$(ZLIB_STATIC_LIBS) $(SZIP_STATIC_LIBS)
+#else
 attachIRoCSToCellSegmentation_LDADD += \
 	$(HDF5_CPP_LIBS) $(HDF5_LIBS) \
 	$(OPENCV_LIBS)
-endif
+#endif
 
 attachIRoCSToCellSegmentation_SOURCES = attachIRoCSToCellSegmentation.cc

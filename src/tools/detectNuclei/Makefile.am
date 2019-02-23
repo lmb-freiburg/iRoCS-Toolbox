@@ -16,7 +16,8 @@ detectNuclei_LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \
 
 if STATIC_TOOLS
 detectNuclei_LDFLAGS = -all-static
-detectNuclei_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
+detectNuclei_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS) \
+	$(ZLIB_STATIC_LIBS) $(SZIP_STATIC_LIBS)
 else
 detectNuclei_LDADD += $(HDF5_CPP_LIBS) $(HDF5_LIBS)
 endif

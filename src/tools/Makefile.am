@@ -8,4 +8,5 @@ SUBDIRS = \
 	computeCellFeatures \
 	assignLayersToSegmentation \
 	trainLayerAssignmentForSegmentation \
-	detectSpheres
+	detectSpheres \
+	hdf5

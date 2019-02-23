@@ -17,7 +17,8 @@ assignLayers_LDADD = \
 
 if STATIC_TOOLS
 assignLayers_LDFLAGS = -all-static
-assignLayers_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
+assignLayers_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS) \
+	$(ZLIB_STATIC_LIBS) $(SZIP_STATIC_LIBS)
 else
 assignLayers_LDADD += $(HDF5_CPP_LIBS) $(HDF5_LIBS)
 endif

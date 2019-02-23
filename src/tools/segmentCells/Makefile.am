@@ -16,7 +16,8 @@ segmentCells_LDADD = $(top_builddir)/src/libIRoCS/libIRoCS.la \
 
 if STATIC_TOOLS
 segmentCells_LDFLAGS = -all-static
-segmentCells_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS)
+segmentCells_LDADD += $(HDF5_CPP_STATIC_LIBS) $(HDF5_STATIC_LIBS) \
+	$(ZLIB_STATIC_LIBS) $(SZIP_STATIC_LIBS)
 else
 segmentCells_LDADD += $(HDF5_CPP_LIBS) $(HDF5_LIBS)
 endif
