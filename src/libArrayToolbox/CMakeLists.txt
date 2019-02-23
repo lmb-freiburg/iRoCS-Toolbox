@@ -39,6 +39,7 @@ set(ArrayToolbox_HEADERS
   FastCorrelationFilter.hh FastCorrelationFilter.icc
   FastConvolutionFilter.hh FastConvolutionFilter.icc
   FastNormalizedCorrelationFilter.hh FastNormalizedCorrelationFilter.icc
+  FastPhaseOnlyCorrelationFilter.hh FastPhaseOnlyCorrelationFilter.icc
   AnisotropicDiffusionFilter.hh AnisotropicDiffusionFilter.icc
   SurfaceGeometry.hh SparseVector.hh SparseVector.icc
   SparseMatrix.hh SparseMatrix.icc MarchingCubes.hh MarchingCubes.icc
