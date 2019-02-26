@@ -6,7 +6,7 @@
 **   Copyright: GPL $Author: ronneber $
 ** Description:
 **
-**    
+**
 **
 **-------------------------------------------------------------------------
 **
@@ -49,7 +49,7 @@ static void testHelp()
   svt::SVMApplicationWithDefaults sa;
   int status = sa.main(argc, argv, LMBUNIT_DEBUG_STREAM);
   LMBUNIT_ASSERT_EQUAL( status, 0);
-  
+
 }
 
 static void testHelpTrain()
@@ -99,23 +99,23 @@ static void testTrain()
       "1  0 1 0\n"
       "0  0 0 1\n";
   trainFile.close();
-  
 
-  const char* argv[] = {"svmtl", "train", 
+
+  const char* argv[] = {"svmtl", "train",
                         "--verbose_level", "0",
                         "--modelfile", "/tmp/simple.model",
                         "/tmp/simple.train"};
   int argc = 7;
   svt::SVMApplicationWithDefaults sa;
-  
+
   int status = sa.main( argc, argv);
-  
+
   LMBUNIT_ASSERT_EQUAL( status, 0);
 
   // read model file
   std::ifstream modelFile( "/tmp/simple.model");
   LMBUNIT_ASSERT_EQUAL( modelFile.is_open(), true);
-  
+
 }
 
 
@@ -129,7 +129,7 @@ static void testClassify()
       "-1  0 1 0\n"
       "-1  0 0 1\n";
   testFile.close();
-  
+
 
   const char* argv[] = {"svmtl", "classify",
                         "--verbose_level", "0",
@@ -139,9 +139,9 @@ static void testClassify()
                         "/tmp/simple.test"};
   int argc = 11;
   svt::SVMApplicationWithDefaults sa;
-  
+
   int status = sa.main( argc, argv);
-  
+
   LMBUNIT_ASSERT_EQUAL( status, 0);
 
   // read output file
@@ -155,7 +155,7 @@ static void testClassify()
   outputFile >> label;
   LMBUNIT_ASSERT_EQUAL( label, 1);
   outputFile >> label;
-  LMBUNIT_ASSERT_EQUAL( label, 0);    
+  LMBUNIT_ASSERT_EQUAL( label, 0);
 }
 
 
@@ -166,7 +166,7 @@ static void testCrossValidation()
 {
   // create training file
   std::ofstream trainFile( "/tmp/simple2.train");
-  trainFile << 
+  trainFile <<
       "3  0 0 0\n"
       "2  1 0 0\n"
       "1  0 1 0\n"
@@ -175,22 +175,22 @@ static void testCrossValidation()
       "2  1.1 0 0\n"
       "1  0.1 1 0\n"
       "0  0.1 0 1\n";
-  
-  trainFile.close();
-  
 
-  const char* argv[] = {"svmtl", "crossval", 
-                        "--nfold", "8", 
-                        "--cost", "100", 
-                        "--shuffle_subsets", "0", 
-                        "--verbose_level", "0", 
+  trainFile.close();
+
+
+  const char* argv[] = {"svmtl", "crossval",
+                        "--nfold", "8",
+                        "--cost", "100",
+                        "--shuffle_subsets", "0",
+                        "--verbose_level", "0",
                         "/tmp/simple2.train"};
-  
+
   int argc = 11;
   svt::SVMApplicationWithDefaults sa;
-  
+
   int status = sa.main( argc, argv, LMBUNIT_DEBUG_STREAM);
-  
+
   LMBUNIT_ASSERT_EQUAL( status, 0);
 }
 
@@ -198,7 +198,7 @@ static void testCrossValidationSparse()
 {
   // create training file
   std::ofstream trainFile( "/tmp/simple2.sparse");
-  trainFile << 
+  trainFile <<
       "3  1:0 2:0 3:0\n"
       "2  1:1 2:0 3:0\n"
       "1  1:0 2:1 3:0\n"
@@ -206,28 +206,28 @@ static void testCrossValidationSparse()
       "3  1:0.1 2:0 3:0 \n"  /* white space at line end :-) */
       "2  1:1.1 2:0 3:0\n"
       "1  1:0.1 2:1 3:0\n"
-      "0  1:0.1 2:0 3:1 \n"; 
-  
-  trainFile.close();
-  
+      "0  1:0.1 2:0 3:1 \n";
 
-  const char* argv[] = {"svmtl", "crossval", 
-                        "--nfold", "8", 
-                        "--cost", "100", 
-                        "--shuffle_subsets", "0", 
-                        "--verbose_level", "0", 
+  trainFile.close();
+
+
+  const char* argv[] = {"svmtl", "crossval",
+                        "--nfold", "8",
+                        "--cost", "100",
+                        "--shuffle_subsets", "0",
+                        "--verbose_level", "0",
                         "/tmp/simple2.sparse"};
-  
+
   int argc = 11;
   svt::SVMApplication< svt::SparseFV,
-      svt::AlgorithmLists< svt::DefaultMultiClassList, 
+      svt::AlgorithmLists< svt::DefaultMultiClassList,
       svt::DefaultTwoClassList,
       svt::DefaultOneClassList,
       svt::DefaultKernelList>,
       svt::LoadSaveASCII> sa;
-  
+
   int status = sa.main( argc, argv, LMBUNIT_DEBUG_STREAM);
-  
+
   LMBUNIT_ASSERT_EQUAL( status, 0);
 }
 
@@ -236,7 +236,7 @@ static void testCrossValidationShortKeys()
 {
   // create training file
   std::ofstream trainFile( "/tmp/simple2.train");
-  trainFile << 
+  trainFile <<
       "3  0 0 0\n"
       "2  1 0 0\n"
       "1  0 1 0\n"
@@ -245,22 +245,22 @@ static void testCrossValidationShortKeys()
       "2  1.1 0 0\n"
       "1  0.1 1 0\n"
       "0  0.1 0 1\n";
-  
-  trainFile.close();
-  
 
-  const char* argv[] = {"svmtl", "crossval", 
-                        "-v", "8", 
-                        "-c", "100", 
-                        "-sh", "0", 
-                        "-vb", "0", 
+  trainFile.close();
+
+
+  const char* argv[] = {"svmtl", "crossval",
+                        "-v", "8",
+                        "-c", "100",
+                        "-sh", "0",
+                        "-vb", "0",
                         "/tmp/simple2.train"};
-  
+
   int argc = 11;
   svt::SVMApplicationWithDefaults sa;
-  
+
   int status = sa.main( argc, argv, LMBUNIT_DEBUG_STREAM);
-  
+
   LMBUNIT_ASSERT_EQUAL( status, 0);
 }
 
@@ -268,7 +268,7 @@ static void testGridSearch()
 {
   // create training file
   std::ofstream trainFile( "/tmp/simple2.train");
-  trainFile << 
+  trainFile <<
       "3  0 0 0\n"
       "2  1 0 0\n"
       "1  0 1 0\n"
@@ -277,32 +277,32 @@ static void testGridSearch()
       "2  1.1 0 0\n"
       "1  0.1 1 0\n"
       "0  0.1 0 1\n";
-  
-  trainFile.close();
-  
 
-  const char* argv[] = {"svmtl", "gridsearch", 
-                        "--param1", "gamma:0.1,mul2,5", 
+  trainFile.close();
+
+
+  const char* argv[] = {"svmtl", "gridsearch",
+                        "--param1", "gamma:0.1,mul2,5",
                         "--param2", "cost:0.1,mul10,1000",
                         "--kernel_type", "rbf",
-                        "--nfold", "10", 
-                        "--shuffle_subsets", "0", 
-                        "--verbose_level", "0", 
+                        "--nfold", "10",
+                        "--shuffle_subsets", "0",
+                        "--verbose_level", "0",
                         "/tmp/simple2.train"};
-  
+
   int argc = 15;
   svt::SVMApplicationWithDefaults sa;
-  
+
   int status = sa.main( argc, argv, LMBUNIT_DEBUG_STREAM);
-  
+
   LMBUNIT_ASSERT_EQUAL( status, 0);
 }
 
 
 static void testWrongParameters()
 {
-  
-  try 
+
+  try
   {
     const char* argv[] = {"svmtl", "train", "--hurz", "123", "/tmp/simple.train"};
     int argc = 5;
@@ -315,11 +315,11 @@ static void testWrongParameters()
   {
     // Okay
   }
-  
-  try 
+
+  try
   {
-    const char* argv[] = {"svmtl", "classify", 
-                          "--hurz", "123", 
+    const char* argv[] = {"svmtl", "classify",
+                          "--hurz", "123",
                           "--modelfile", "/tmp/simple.model",
                           "/tmp/simple.test"};
     int argc = 7;
@@ -332,10 +332,10 @@ static void testWrongParameters()
   {
     // Okay
   }
-  
-  try 
+
+  try
   {
-    const char* argv[] = {"svmtl", "crossval", "--hurz", "123", 
+    const char* argv[] = {"svmtl", "crossval", "--hurz", "123",
                           "/tmp/simple.train"};
     int argc = 5;
     svt::StDataCmdLine cmdline( argc, argv);
@@ -350,11 +350,11 @@ static void testWrongParameters()
 }
 
 
-int main( int argc, char** argv)
+int main(int, char**)
 {
 
   LMBUNIT_WRITE_HEADER();
-  
+
   LMBUNIT_RUN_TEST_NOFORK( testHelp() );
   LMBUNIT_RUN_TEST_NOFORK( testHelpTrain());
   LMBUNIT_RUN_TEST_NOFORK( testHelpClassify());
@@ -367,7 +367,7 @@ int main( int argc, char** argv)
   LMBUNIT_RUN_TEST_NOFORK( testCrossValidationShortKeys());
   LMBUNIT_RUN_TEST_NOFORK( testWrongParameters());
   LMBUNIT_RUN_TEST_NOFORK( testGridSearch());
-  
+
 
   LMBUNIT_WRITE_STATISTICS();
 

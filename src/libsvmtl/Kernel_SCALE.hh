@@ -4,7 +4,7 @@
  *                         Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -29,7 +29,7 @@
 **   Copyright: GPL $Author: tschmidt $
 ** Description:
 **
-**    
+**
 **
 **-------------------------------------------------------------------------
 **
@@ -110,7 +110,7 @@ namespace svt
    *  \ingroup kernel
    *  \brief The Kernel_SCALE class provides a wrapper for other
    *         kernel classes , that scales the feature vectors, before
-   *         they are passed to the wrapped kernel 
+   *         they are passed to the wrapped kernel
    *
    *  For calculation the scale factors, a minmax and a stddev
    *  algorithm is available. The scaled feature vectors are cached
@@ -122,7 +122,7 @@ namespace svt
    *
    *  \param KERNEL kernel class that should be wrapped (see \ref
    *         kernel for available kernels). KERNEL must fullfil the
-   *         following interfaces 
+   *         following interfaces
    *         - svt_check::RequireKernel_k_function
    *         - svt_check::RequireLoadSaveParameters
    *         - svt_check::RequireNameDescriptionParamInfos
@@ -139,14 +139,14 @@ namespace svt
             :_cacheIsUpToDate(false)
           {}
 
-    
+
     Kernel_SCALE( const KERNEL& kernel)
             : _kernel(kernel),
               _cacheIsUpToDate(false)
           {}
-    
+
     /*======================================================================*/
-    /*! 
+    /*!
      *   set algorithm for data scaling
      *
      *   \param algorithm algortihm as string
@@ -159,7 +159,7 @@ namespace svt
           }
 
     /*======================================================================*/
-    /*! 
+    /*!
      *   return selected algorithm (default is "")
      *
      *   \return selected algorithm (default is "")
@@ -169,12 +169,12 @@ namespace svt
           {
             return _algorithm;
           }
-    
+
     /*======================================================================*/
-    /*! 
-     *   calc scale factor  and offset. 
+    /*!
+     *   calc scale factor  and offset.
      *   ATTENTION: ensure that all feature Vectors return the same
-     *   size() -- even for SparseFV. 
+     *   size() -- even for SparseFV.
      *
      *   \param fvBegin   iterator to begin of feature vector list
      *   \param fvEnd     iterator to end of  feature vector list
@@ -189,13 +189,13 @@ namespace svt
      */
     /*======================================================================*/
     template< typename ForwardIter, typename Accessor>
-    void calcScaleAndOffset( const ForwardIter& fvBegin, 
+    void calcScaleAndOffset( const ForwardIter& fvBegin,
                              const ForwardIter& fvEnd,
                              Accessor accessor) const;
-    
-    
+
+
     /*======================================================================*/
-    /*! 
+    /*!
      *   scale single feature vector with internal offset and scale
      *   factor. fvIn and fvOut must already have same sizes and must
      *   both implement size() and operator[]
@@ -213,46 +213,46 @@ namespace svt
               fvOut[i] = (fvIn[i] + _offset[i]) * _scaleFactor[i];
             }
           }
-    
+
 
     /*======================================================================*/
-    /*! 
+    /*!
      *   update internal cache with scaled feature vectors, and (if
      *   algorithm is not empty) updates offsets and scaleFactors
      *   according to dataset and requested algorithm
      *   (e.g. "minmax"). This means: for training data, specify an
      *   algorithm, and for test data setAlgorithm() to empty string,
      *   so that offset and scaleFactors from training data are
-     *   reused. 
+     *   reused.
      *
      *   \param fvBegin  iterator to begin of feature vector container
      *   \param fvEnd    iterator to end of feature vector container
      *   \param accessor accessor to acces Feature vector in container
      *                   (e.g., svt::DirectAccessor of
-     *                   svt::DereferencingAccessor) 
+     *                   svt::DereferencingAccessor)
      *
      *   \exception ScaleComponentsMismatch number of scale factors
      *                                      and number of feature
      *                                      vectors components don't
-     *                                      match 
+     *                                      match
      */
     /*======================================================================*/
     template< typename ForwardIter, typename Accessor>
-    void updateCache( const ForwardIter& fvBegin,  
+    void updateCache( const ForwardIter& fvBegin,
                       const ForwardIter& fvEnd,
                       Accessor accessor,
                       ProgressReporter* pr = 0) const;
-    
-    // new updateCache-Syntax:        
+
+    // new updateCache-Syntax:
     template< typename ForwardIter1, typename Accessor1,
               typename ForwardIter2, typename Accessor2 >
-    void updateCache( const ForwardIter1& fvBegin1,  
-                      const ForwardIter1& fvEnd1,
-                      Accessor1 accessor1,
-                      const ForwardIter2& fvBegin2,  
-                      const ForwardIter2& fvEnd2,
-                      Accessor2 accessor2,
-                      ProgressReporter* pr = 0) const
+    void updateCache( const ForwardIter1& /*fvBegin1*/,
+                      const ForwardIter1& /*fvEnd1*/,
+                      Accessor1 /*accessor1*/,
+                      const ForwardIter2& /*fvBegin2*/,
+                      const ForwardIter2& /*fvEnd2*/,
+                      Accessor2 /*accessor2*/,
+                      ProgressReporter* /*pr*/ = NULL) const
           {
             // nothing to be done or can be implemented later
           }
@@ -267,11 +267,11 @@ namespace svt
              *--------------------------------------------------------------*/
             _kernel.clearCache();
           }
-    
+
 
 
     /*======================================================================*/
-    /*! 
+    /*!
      *   kernel function. Passes scaled feature vectors to underlying
      *   Kernel function (that was specified as KERNEL template
      *   parameter). If updateCache() has been called before, the
@@ -288,22 +288,22 @@ namespace svt
     template< typename FV>
     double k_function( const FV& x, const FV& y) const
           {
-            CHECK_MEMBER_TEMPLATE( svt_check::RequireFeatureVectorUniqueID<FV>);    
+            CHECK_MEMBER_TEMPLATE( svt_check::RequireFeatureVectorUniqueID<FV>);
             CHECK_MEMBER_TEMPLATE_2PARAM( svt_check::RequireKernel_k_function<KERNEL,FV>);
             if( _cacheIsUpToDate == false)
             {
               if( x.size() != nComponents() || y.size() != nComponents())
               {
                 ScaleComponentsMismatch err;
-                err << "number of scale factors (" << nComponents() 
-                    << ") and number of feature vectors components (" 
+                err << "number of scale factors (" << nComponents()
+                    << ") and number of feature vectors components ("
                     << x.size() << ") don't match. "
                     "Maybe you forgot to specify the scale_algorithm?";
-                
+
                 throw err;
               }
-              
-              BasicFV xScaled; 
+
+              BasicFV xScaled;
               BasicFV yScaled;
               xScaled.resize( x.size());
               yScaled.resize( y.size());
@@ -316,17 +316,17 @@ namespace svt
 
             unsigned int xUid = x.uniqueID();
             unsigned int yUid = y.uniqueID();
-            
+
             SVM_ASSERT( xUid < _scaledFVsByUID.size());
             SVM_ASSERT( yUid < _scaledFVsByUID.size());
-            
+
             return _kernel.k_function( _scaledFVsByUID[xUid],
                                        _scaledFVsByUID[yUid]);
           }
 
-                
+
     /*======================================================================*/
-    /*! 
+    /*!
      *   number of components (features) in scale factor and offset
      *
      *   \return number of components (features) in scale factor and offset
@@ -336,11 +336,11 @@ namespace svt
           {
             return static_cast<unsigned int>(_scaleFactor.size());
           }
-    
+
 
 
     /*======================================================================*/
-    /*! 
+    /*!
      *   return scale factor for the nth component of the feature vector
      *
      *   \return scale factor for the nth component of the feature vector
@@ -353,7 +353,7 @@ namespace svt
 
 
     /*======================================================================*/
-    /*! 
+    /*!
      *   return offset for the nth component of the feature vector
      *
      *   \return offset for the nth component of the feature vector
@@ -379,7 +379,7 @@ namespace svt
               if( _scaleFactor.size() != _offset.size())
               {
                 LoadError err;
-                err << "sizes of 'scale_factor' array (" 
+                err << "sizes of 'scale_factor' array ("
                     << _scaleFactor.size() << ") and 'scale_offset' "
                     "array (" << _offset.size() << ") mismatch.";
                 throw err;
@@ -390,15 +390,15 @@ namespace svt
           }
 
     /*======================================================================*/
-    /*! 
-     *   save scale_factor and scale_offset. 
+    /*!
+     *   save scale_factor and scale_offset.
      *   ATTENTION: the algorithm is saved to 'scale_used_algorithm',
      *   which is another key as in loadParameters (there it expects
-     *   the algorithm in 'scale_algorithm'). 
+     *   the algorithm in 'scale_algorithm').
      *   This ensures, that when parameters are loaded from a model,
      *   the _algorithm keeps empty and therefore the scale_offset and
      *   scale_factor from training data set are reused as it should
-     *   be. 
+     *   be.
      *
      *   \param stData structured data, where to save the parameters
      *
@@ -415,13 +415,13 @@ namespace svt
             }
             if( _scaleFactor.size() != 0)
             {
-              stData.setArray( "scale_factor", _scaleFactor.begin(), 
+              stData.setArray( "scale_factor", _scaleFactor.begin(),
                                _scaleFactor.size());
-              stData.setArray( "scale_offset", _offset.begin(), 
+              stData.setArray( "scale_offset", _offset.begin(),
                                _offset.size());
             }
-            
-              
+
+
           }
 
       static std::string name()
@@ -435,7 +435,7 @@ namespace svt
           }
 
     /*======================================================================*/
-    /*! 
+    /*!
      *   get information about the parameters, that are used in
      *   loadParameters() and saveParameters(). The Infos are appended
      *   to the passed array
@@ -449,7 +449,7 @@ namespace svt
             KERNEL::getParamInfos( p);
             p.push_back(
                 ParamInfo( "scale_algorithm", "sa"));
-            p.back().addAlternative( "minmax", 
+            p.back().addAlternative( "minmax",
                                      "scale each feature that min becomes -1 "
                                      "and max becomes +1");
             p.back().addAlternative( "stddev",
@@ -464,9 +464,9 @@ namespace svt
                 ParamInfo( "scale_offset", "so", "array",
                            "array containing offsets for each feature "
                            "-- usually you don't want to specify this "
-                           "manually"));            
+                           "manually"));
           }
-  
+
   private:
     KERNEL                       _kernel;
     std::string                  _algorithm;
@@ -474,9 +474,9 @@ namespace svt
     mutable std::vector<double>  _scaleFactor;
     mutable bool                 _cacheIsUpToDate;
     mutable std::vector<BasicFV> _scaledFVsByUID;
-    
+
   };
-  
+
 }
 
 #include "Kernel_SCALE.icc"

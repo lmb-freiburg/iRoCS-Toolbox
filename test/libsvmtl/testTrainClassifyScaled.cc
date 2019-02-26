@@ -1,12 +1,12 @@
 /**************************************************************************
-**       Title: 
+**       Title:
 **    $RCSfile$
 **   $Revision: 681 $$Name$
 **       $Date: 2005-03-30 13:33:37 +0200 (Wed, 30 Mar 2005) $
 **   Copyright: GPL $Author: ronneber $
 ** Description:
 **
-**    
+**
 **
 **-------------------------------------------------------------------------
 **
@@ -34,7 +34,7 @@
 #include <libsvmtl/LoadSaveASCII.hh>
 
 typedef svt::SVMApplication< svt::BasicFV,
-                             svt::AlgorithmLists< 
+                             svt::AlgorithmLists<
 
     TTLIST_1(svt::MultiClassSVMOneVsOne),
     TTLIST_1(svt::TwoClassSVMc),
@@ -63,9 +63,9 @@ static void testTrainClassifyScaled()
 
   int argc = 19;
   SVMApplicationMini sa;
-  
+
   int status = sa.main( argc, argv);
-  
+
   LMBUNIT_ASSERT_EQUAL( status, 0);
 
   /*-----------------------------------------------------------------------
@@ -79,9 +79,9 @@ static void testTrainClassifyScaled()
                          TOP_SRC_DIR "/test/libsvmtl/data/423_499_bireint_plain"};
   int argc2 = 11;
   SVMApplicationMini sa2;
-  
+
   status = sa2.main( argc2, argv2);
-  
+
   LMBUNIT_ASSERT_EQUAL( status, 0);
 
   /*-----------------------------------------------------------------------
@@ -91,17 +91,17 @@ static void testTrainClassifyScaled()
   std::ifstream classfile( "423_499.output");
   LMBUNIT_ASSERT_EQUAL( !!trainfile, true);
   LMBUNIT_ASSERT_EQUAL( !!classfile, true);
-  
+
   int trueLabel;
   int classLabel;
-  
+
   while( trainfile >> trueLabel)
   {
     classfile >> classLabel;
     LMBUNIT_ASSERT_EQUAL( trueLabel, classLabel);
     trainfile.ignore(1000000, '\n'); // ignore characters until line end
   }
-  
+
 
 
 }
@@ -109,11 +109,11 @@ static void testTrainClassifyScaled()
 
 
 
-int main( int argc, char** argv)
+int main(int, char**)
 {
 
   LMBUNIT_WRITE_HEADER();
-  
+
   LMBUNIT_RUN_TEST_NOFORK( testTrainClassifyScaled());
 
   LMBUNIT_WRITE_STATISTICS();

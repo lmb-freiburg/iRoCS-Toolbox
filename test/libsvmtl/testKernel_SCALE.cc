@@ -6,7 +6,7 @@
 **   Copyright: GPL $Author: ronneber $
 ** Description:
 **
-**    
+**
 **
 **-------------------------------------------------------------------------
 **
@@ -56,7 +56,7 @@ static void testMinMax()
   featureVectors[0][2] = 3;
   featureVectors[0][3] = 0;
   featureVectors[0][4] = 42;
-  
+
   featureVectors[1].setLabel(+1);
   featureVectors[1].resize( 5);
   featureVectors[1][0] = 2;
@@ -66,9 +66,9 @@ static void testMinMax()
   featureVectors[1][4] = 42;
 
   kern.setAlgorithm( "minmax");
-  kern.calcScaleAndOffset( featureVectors.begin(), featureVectors.end(), 
+  kern.calcScaleAndOffset( featureVectors.begin(), featureVectors.end(),
                           svt::DirectAccessor());
-  
+
   LMBUNIT_ASSERT_EQUAL_DELTA( kern.offset(0), -1, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( kern.offset(1), -2.5, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( kern.offset(2), -1.75, 0.00000001);
@@ -79,7 +79,7 @@ static void testMinMax()
   LMBUNIT_ASSERT_EQUAL_DELTA( kern.scaleFactor(2), 1.0/1.25, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( kern.scaleFactor(3), 1, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( kern.scaleFactor(4), 1, 0.00000001);
-  
+
   kern.scaleSingleFV( featureVectors[0], featureVectors[0]);
   kern.scaleSingleFV( featureVectors[1], featureVectors[1]);
 
@@ -95,7 +95,7 @@ static void testMinMax()
   LMBUNIT_ASSERT_EQUAL_DELTA( featureVectors[1][3], 0, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( featureVectors[1][4], 0, 0.00000001);
 
- 
+
 }
 
 template<typename FV>
@@ -113,7 +113,7 @@ static void testMinMaxPointerArray()
   featureVectors[0][2] = 3;
   featureVectors[0][3] = 0;
   featureVectors[0][4] = 42;
-  
+
   featureVectors[1].setLabel(+1);
   featureVectors[1].resize( 5);
   featureVectors[1][0] = 2;
@@ -124,12 +124,12 @@ static void testMinMaxPointerArray()
   std::vector<FV*> feaVecs2(2);
   feaVecs2[0] = &featureVectors[0];
   feaVecs2[1] = &featureVectors[1];
-  
+
   svt::Kernel_SCALE<svt::Kernel_LINEAR> kern2;
   kern2.setAlgorithm( "minmax");
-  kern2.calcScaleAndOffset( feaVecs2.begin(), feaVecs2.end(), 
+  kern2.calcScaleAndOffset( feaVecs2.begin(), feaVecs2.end(),
                           svt::DereferencingAccessor());
-  
+
   LMBUNIT_ASSERT_EQUAL_DELTA( kern2.offset(0), -1, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( kern2.offset(1), -2.5, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( kern2.offset(2), -1.75, 0.00000001);
@@ -140,7 +140,7 @@ static void testMinMaxPointerArray()
   LMBUNIT_ASSERT_EQUAL_DELTA( kern2.scaleFactor(2), 1.0/1.25, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( kern2.scaleFactor(3), 1, 0.00000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( kern2.scaleFactor(4), 1, 0.00000001);
-  
+
   kern2.scaleSingleFV( featureVectors[0], featureVectors[0]);
   kern2.scaleSingleFV( featureVectors[1], featureVectors[1]);
 
@@ -157,14 +157,14 @@ static void testMinMaxPointerArray()
   LMBUNIT_ASSERT_EQUAL_DELTA( featureVectors[1][4], 0, 0.00000001);
 
 
- 
+
 }
 
 template<typename FV>
 static void testLoadSave()
 {
   /*-----------------------------------------------------------------------
-   *  create data and save it 
+   *  create data and save it
    *-----------------------------------------------------------------------*/
   std::vector<FV> featureVectors(4);
 
@@ -176,21 +176,21 @@ static void testLoadSave()
 
   svt::Kernel_SCALE<svt::Kernel_LINEAR>  kern;
   kern.setAlgorithm( "minmax");
-  kern.calcScaleAndOffset( featureVectors.begin(), featureVectors.end(), 
+  kern.calcScaleAndOffset( featureVectors.begin(), featureVectors.end(),
                            svt::DirectAccessor());
-  
+
   svt::StDataASCII stdata;
   kern.saveParameters( stdata);
-  
+
   /*-----------------------------------------------------------------------
    *  load scale data and compare it to original data
    *-----------------------------------------------------------------------*/
   svt::Kernel_SCALE<svt::Kernel_LINEAR> kern2;
   kern2.loadParameters( stdata);
-  
+
   LMBUNIT_ASSERT_EQUAL( kern2.algorithm(), "");
   LMBUNIT_ASSERT_EQUAL( kern.nComponents(), kern2.nComponents());
-  
+
   for( unsigned int i = 0; i < kern2.nComponents(); ++i)
   {
     LMBUNIT_ASSERT_EQUAL_DELTA( kern.scaleFactor(i), kern2.scaleFactor(i),
@@ -198,15 +198,15 @@ static void testLoadSave()
     LMBUNIT_ASSERT_EQUAL_DELTA( kern.offset(i), kern2.offset(i),
                                 0.00000001);
   }
-  
+
 }
 
 
 
-int main( int argc, char** argv)
+int main(int, char**)
 {
   LMBUNIT_WRITE_HEADER();
-  
+
   LMBUNIT_RUN_TEST( testMinMax<svt::BasicFV>() );
   LMBUNIT_RUN_TEST( testMinMax<svt::SparseFV>() );
   LMBUNIT_RUN_TEST( testMinMaxPointerArray<svt::BasicFV>() );
@@ -218,4 +218,3 @@ int main( int argc, char** argv)
 
   return _nFails;
 }
-

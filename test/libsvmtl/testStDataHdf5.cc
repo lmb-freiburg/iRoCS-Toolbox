@@ -6,7 +6,7 @@
 **   Copyright: GPL $Author: $
 ** Description:
 **
-**    
+**
 **
 **-------------------------------------------------------------------------
 **
@@ -30,9 +30,9 @@ static void testSingleValues()
    *  Test Constructor
    *-----------------------------------------------------------------------*/
   svt::StDataHdf5 param( "/tmp/test1.h5", H5F_ACC_TRUNC);
-  
+
   /*-----------------------------------------------------------------------
-   *  check different types 
+   *  check different types
    *  up to now, the library needs the following types:
    *-----------------------------------------------------------------------*/
   std::string   sVal = "the Answer To Any Question";
@@ -41,24 +41,24 @@ static void testSingleValues()
   unsigned int  uVal = 137;
   int           iVal = -42;
   bool          bVal = true;
- 
+
 
   /*-----------------------------------------------------------------------
    *  Store them in the map
    *-----------------------------------------------------------------------*/
-  param.setValue( "sVal", sVal); 
-  param.setValue( "sVal_strange_name", sVal); 
-  param.setValue( "dVal", dVal); 
-  param.setValue( "fVal", fVal); 
-  param.setValue( "uVal", uVal); 
-  param.setValue( "iVal", iVal); 
+  param.setValue( "sVal", sVal);
+  param.setValue( "sVal_strange_name", sVal);
+  param.setValue( "dVal", dVal);
+  param.setValue( "fVal", fVal);
+  param.setValue( "uVal", uVal);
+  param.setValue( "iVal", iVal);
   param.setValue( "bVal", bVal);
 
   /*-----------------------------------------------------------------------
    *  close file and open it read only
    *-----------------------------------------------------------------------*/
   param.close();
-  
+
   svt::StDataHdf5 param2( "/tmp/test1.h5");
 
   /*-----------------------------------------------------------------------
@@ -70,34 +70,34 @@ static void testSingleValues()
   unsigned int  uVal2;
   int           iVal2;
   bool          bVal2;
-  
-  param2.getValue( "sVal", sVal2); 
-  param2.getValue( "sVal_strange_name", sVal2); 
-  param2.getValue( "dVal", dVal2); 
-  param2.getValue( "fVal", fVal2); 
-  param2.getValue( "uVal", uVal2); 
-  param2.getValue( "iVal", iVal2); 
+
+  param2.getValue( "sVal", sVal2);
+  param2.getValue( "sVal_strange_name", sVal2);
+  param2.getValue( "dVal", dVal2);
+  param2.getValue( "fVal", fVal2);
+  param2.getValue( "uVal", uVal2);
+  param2.getValue( "iVal", iVal2);
   param2.getValue( "bVal", bVal2);
 
-  LMBUNIT_ASSERT_EQUAL( sVal, sVal2); 
-  LMBUNIT_ASSERT_EQUAL( dVal, dVal2); 
-  LMBUNIT_ASSERT_EQUAL( fVal, fVal2); 
-  LMBUNIT_ASSERT_EQUAL( uVal, uVal2); 
-  LMBUNIT_ASSERT_EQUAL( iVal, iVal2); 
+  LMBUNIT_ASSERT_EQUAL( sVal, sVal2);
+  LMBUNIT_ASSERT_EQUAL( dVal, dVal2);
+  LMBUNIT_ASSERT_EQUAL( fVal, fVal2);
+  LMBUNIT_ASSERT_EQUAL( uVal, uVal2);
+  LMBUNIT_ASSERT_EQUAL( iVal, iVal2);
   LMBUNIT_ASSERT_EQUAL( bVal, bVal2);
-  
+
 }
 
 
 static void testArrays()
 {
   svt::StDataHdf5 param( "/tmp/test2.h5", H5F_ACC_TRUNC);
- 
+
   /*-----------------------------------------------------------------------
    *  write arrays with different types
    *  up to now, the library needs the following types:
    *-----------------------------------------------------------------------*/
-  //64-bit can't take unsigned int 
+  //64-bit can't take unsigned int
   std::vector<int> uVec;
   std::vector<double> dVec;
   double* dcVec = new double[5];
@@ -107,7 +107,7 @@ static void testArrays()
   uVec.push_back( 3);
   uVec.push_back( 42);
   uVec.push_back( 137);
-  
+
   dVec.push_back( 5.123);
   dVec.push_back( 3.1415);
   dVec.push_back( 42);
@@ -124,21 +124,21 @@ static void testArrays()
   lVec[2] = 345;
   lVec[3] = 456;
   lVec[4] = 567;
-  
+
   std::cout << "sizeof(long) = " <<sizeof(long) << std::endl;
   std::cout << "sizeof(float) = " <<sizeof(float) << std::endl;
-  
-  
+
+
   param.setArray( "uVec", uVec.begin(), uVec.size());
   param.setArray( "dVec", dVec.begin(), dVec.size());
   param.setArray( "dcVec", dcVec, 5);
   param.setArray( "lVec", lVec, 5);
-  
+
   /*-----------------------------------------------------------------------
    *  close file and open it read only
    *-----------------------------------------------------------------------*/
   param.close();
-  
+
   svt::StDataHdf5 param2( "/tmp/test2.h5");
 
   /*-----------------------------------------------------------------------
@@ -153,11 +153,11 @@ static void testArrays()
   std::vector< int> uVec2( usize);
   std::vector<double> dVec2( dsize);
   double* dcVec2 = new double[5];
-  
+
   param2.getArray( "uVec", uVec2.begin(), uVec2.size());
   param2.getArray( "dVec", dVec2.begin(), dVec2.size());
   param2.getArray( "dcVec", dcVec2, dcsize);
-   
+
   LMBUNIT_ASSERT_EQUAL( uVec[0], uVec2[0]);
   LMBUNIT_ASSERT_EQUAL( uVec[1], uVec2[1]);
   LMBUNIT_ASSERT_EQUAL( uVec[2], uVec2[2]);
@@ -180,7 +180,7 @@ template< typename FV>
 static void testFVArrays()
 {
   svt::StDataHdf5 param( "/tmp/test3.h5", H5F_ACC_TRUNC);
- 
+
   /*-----------------------------------------------------------------------
    *  write arrays with different types
    *  up to now, the library needs the following types:
@@ -204,15 +204,15 @@ static void testFVArrays()
     fvArr[i]  = fv1;
     fvcArr[i] = fv2;
   }
-  
+
   param.setFVArray( "hurz", fvArr.begin(), fvArr.size());
   param.setFVArray( "hurz42", fvcArr, nFeaVecs);
-  
+
   /*-----------------------------------------------------------------------
    *  close file and open it read only
    *-----------------------------------------------------------------------*/
   param.close();
-  
+
   svt::StDataHdf5 param2( "/tmp/test3.h5");
 
   unsigned int size1 = param2.getFVArraySize("hurz");
@@ -220,7 +220,7 @@ static void testFVArrays()
 
   LMBUNIT_ASSERT_EQUAL( nFeaVecs, size1);
   LMBUNIT_ASSERT_EQUAL( nFeaVecs, size2);
-  
+
   std::vector<FV*> fvArr2(size1);
   FV** fvcArr2 = new FV*[size2];
 
@@ -230,10 +230,10 @@ static void testFVArrays()
     fvArr2[i]  = new FV;
     fvcArr2[i] = new FV;
   }
-  
+
   param2.getFVArray( "hurz", fvArr2.begin(), fvArr2.size());
   param2.getFVArray( "hurz42", fvcArr2, nFeaVecs);
-  
+
   for( unsigned int i = 0; i < nFeaVecs; ++i)
   {
     for( unsigned int j = 0; j < nComponents; ++j)
@@ -249,8 +249,8 @@ static void testExceptions()
   svt::StDataHdf5 param( "/tmp/test4.h5", H5F_ACC_TRUNC);;
 
   param.setValue("hurz", std::string(" keine Zahl!"));
-  
-  
+
+
   try
   {
     float f = 42;
@@ -260,19 +260,19 @@ static void testExceptions()
   {
     return;
   }
-  
-  
+
+
   LMBUNIT_WRITE_FAILURE( "' keine Zahl!' interpreted as "
                          "float must throw exception!");
 }
 
 static void testExceptions2()
 {
-  
+
   svt::StDataHdf5 param( "/tmp/test5.h5", H5F_ACC_TRUNC);;
 
   param.setValue("hurz", 42);
-  
+
   try
   {
     float f = 42;
@@ -286,7 +286,7 @@ static void testExceptions2()
 //   das kappier ich nicht da muss doch noch ein catch all hin
   catch(...)
   {}
-  
+
 }
 
 static void testExceptions3()
@@ -294,7 +294,7 @@ static void testExceptions3()
   svt::StDataHdf5 param( "/tmp/test6.h5", H5F_ACC_TRUNC);;
 
   param.setValue("hurz", 42);
-  
+
   param.setExceptionFlag( true);
 
   try
@@ -306,7 +306,7 @@ static void testExceptions3()
   {
     return;
   }
-  
+
   LMBUNIT_WRITE_FAILURE( "unknown key must throw exception, "
                          "if exceptionFlag is set to true");
 }
@@ -321,7 +321,7 @@ static void testExceptions4()
   fVec.push_back( 137);
 
   param.setArray("hurz", fVec.begin(), fVec.size());
-  
+
   try
   {
     std::vector<float> fVec2(3);
@@ -331,7 +331,7 @@ static void testExceptions4()
   {
     return;
   }
-  
+
   LMBUNIT_WRITE_FAILURE( "getArray must throw exception, if given container"
                          " is too small");
 }
@@ -339,10 +339,10 @@ static void testExceptions4()
 
 
 
-int main( int argc, char** argv)
+int main(int, char**)
 {
   LMBUNIT_WRITE_HEADER();
-  
+
   LMBUNIT_RUN_TEST_NOFORK( testSingleValues() );
   LMBUNIT_RUN_TEST_NOFORK( testArrays() );
   LMBUNIT_RUN_TEST_NOFORK( testFVArrays<svt::BasicFV>() );
@@ -356,5 +356,3 @@ int main( int argc, char** argv)
 
   return _nFails;
 }
-
-

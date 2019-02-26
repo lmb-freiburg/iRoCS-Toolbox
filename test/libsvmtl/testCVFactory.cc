@@ -1,12 +1,12 @@
 /**************************************************************************
-**       Title: 
+**       Title:
 **    $RCSfile$
 **   $Revision: 678 $$Name$
 **       $Date: 2005-03-29 20:10:22 +0200 (Tue, 29 Mar 2005) $
 **   Copyright: GPL $Author: ronneber $
 ** Description:
 **
-**    
+**
 **
 **-------------------------------------------------------------------------
 **
@@ -58,20 +58,20 @@ void _fillFV( FV& fv, int label, double f0, double f1, double f2)
   fv[2] = f2;
 }
 
-static void testBasics( const std::string& mcName, 
-                        const std::string& tcName, 
+static void testBasics( const std::string& mcName,
+                        const std::string& tcName,
                         const std::string& kfName)
 {
-  
+
   svt::CVAdapter* cv =
       svt::CVFactory::create( mcName, tcName, kfName);
-  
+
   svt::StDataASCII params;
   params.setValue("cost",           100000);
   params.setValue("nu",             0.01);
   params.setValue("verbose_level",    0);
   cv->loadParameters( params);
-  
+
   // create feature vectors and pass them to the cross validator
   std::vector<svt::BasicFV> featureVectors(8);
 
@@ -91,7 +91,7 @@ static void testBasics( const std::string& mcName,
   cv->updateKernelCache();
   cv->preprocessTrainingData();
 
-  
+
   // Now perform the cross validation with 4 subsets
   std::vector<int> subsetIndexByUID;
   svt::generateSortedSubsets( featureVectors.size(), 4, subsetIndexByUID);
@@ -101,22 +101,22 @@ static void testBasics( const std::string& mcName,
     LMBUNIT_DEBUG_STREAM << subsetIndexByUID[i] << ",";
   }
   LMBUNIT_DEBUG_STREAM << std::endl;
-  
+
 
   std::vector<double> predictedClassLabelByUID;
   int nCorrect = cv->doFullCV( subsetIndexByUID, predictedClassLabelByUID);
-  
+
 
   LMBUNIT_ASSERT_EQUAL( nCorrect, 8);
   for( unsigned int i = 0; i < featureVectors.size(); ++i)
   {
-    LMBUNIT_ASSERT_EQUAL_DELTA( 
-        featureVectors[i].getLabel(), 
+    LMBUNIT_ASSERT_EQUAL_DELTA(
+        featureVectors[i].getLabel(),
         predictedClassLabelByUID[featureVectors[i].uniqueID()], 0.000001);
   }
-    
+
 }
-int main( int argc, char** argv)
+int main(int, char**)
 {
   LMBUNIT_WRITE_HEADER();
   LMBUNIT_RUN_TEST_NOFORK( testBasics( "one_vs_one", "c_svc", "linear") );
@@ -140,4 +140,3 @@ int main( int argc, char** argv)
 
   return _nFails;
 }
-

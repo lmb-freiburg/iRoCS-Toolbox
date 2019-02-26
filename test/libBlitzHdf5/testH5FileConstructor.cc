@@ -43,7 +43,7 @@ static void testBlitzH5FileConstructorReadOnly()
     LMBUNIT_WRITE_FAILURE("unknown error");
   }
 
-  system("rm testBlitzH5FileConstructorReadOnly.h5");
+  LMBUNIT_ASSERT_EQUAL(system("rm testBlitzH5FileConstructorReadOnly.h5"), 0);
 }
 
 static void testBlitzH5FileConstructorWrite()
@@ -89,9 +89,9 @@ static void testBlitzH5FileConstructorWrite()
     LMBUNIT_WRITE_FAILURE("unknown error");
   }
 
-  system("rm testBlitzH5FileConstructorWrite.h5");  
+  LMBUNIT_ASSERT_EQUAL(system("rm testBlitzH5FileConstructorWrite.h5"), 0);
 }
-    
+
 static void testBlitzH5FileConstructorReplace()
 {
   try
@@ -169,7 +169,7 @@ static void testBlitzH5FileConstructorReplace()
     LMBUNIT_WRITE_FAILURE("unknown error");
   }
 
-  system("rm testBlitzH5FileConstructorReplace.h5");
+  LMBUNIT_ASSERT_EQUAL(system("rm testBlitzH5FileConstructorReplace.h5"), 0);
 }
 
 static void testBlitzH5FileConstructorNew()
@@ -208,7 +208,7 @@ static void testBlitzH5FileConstructorNew()
     LMBUNIT_WRITE_FAILURE("unknown error");
   }
 
-  system("rm testBlitzH5FileConstructorNew.h5");
+  LMBUNIT_ASSERT_EQUAL(system("rm testBlitzH5FileConstructorNew.h5"), 0);
 }
 
 static void testBlitzH5FileConstructorWriteOrNew()
@@ -219,7 +219,7 @@ static void testBlitzH5FileConstructorWriteOrNew()
         "testBlitzH5FileConstructorWriteOrNew.h5", BlitzH5File::WriteOrNew);
   }
   catch (BlitzH5Error &e)
-  {   
+  {
     LMBUNIT_WRITE_FAILURE(std::string("BlitzH5Error: ") + e.what());
   }
   catch (std::exception &e)
@@ -237,7 +237,7 @@ static void testBlitzH5FileConstructorWriteOrNew()
         "testBlitzH5FileConstructorWriteOrNew.h5", BlitzH5File::WriteOrNew);
   }
   catch (BlitzH5Error &e)
-  {   
+  {
     LMBUNIT_WRITE_FAILURE(std::string("BlitzH5Error: ") + e.what());
   }
   catch (std::exception &e)
@@ -272,16 +272,16 @@ static void testBlitzH5FileConstructorWriteOrNew()
     LMBUNIT_WRITE_FAILURE("unknown error");
   }
 
-  system("rm testBlitzH5FileConstructorWriteOrNew.h5");
+  LMBUNIT_ASSERT_EQUAL(system("rm testBlitzH5FileConstructorWriteOrNew.h5"), 0);
 }
-                 
+
 static void testBlitzH5FileConstructorWriteAfterReadOnly()
 {
   hid_t fileId = H5Fcreate(
       "testBlitzH5FileConstructorWriteAfterReadOnly.h5", H5F_ACC_TRUNC,
       H5P_DEFAULT, H5P_DEFAULT);
   H5Fclose(fileId);
-  
+
   try
   {
     BlitzH5File inFile("testBlitzH5FileConstructorWriteAfterReadOnly.h5");
@@ -317,7 +317,8 @@ static void testBlitzH5FileConstructorWriteAfterReadOnly()
     LMBUNIT_WRITE_FAILURE("unknown error");
   }
 
-  system("rm testBlitzH5FileConstructorWriteAfterReadOnly.h5");
+  LMBUNIT_ASSERT_EQUAL(
+      system("rm testBlitzH5FileConstructorWriteAfterReadOnly.h5"), 0);
 }
 
 int main(int, char**)

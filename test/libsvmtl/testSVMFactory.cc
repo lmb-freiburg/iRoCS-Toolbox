@@ -66,21 +66,21 @@
 /*-------------------------------------------------------------------------
  *  specify multi-class Algorithms
  *-------------------------------------------------------------------------*/
-typedef TTLIST_2( svt::MultiClassSVMOneVsOne, 
+typedef TTLIST_2( svt::MultiClassSVMOneVsOne,
                   svt::MultiClassSVMOneVsRest) MyMultiClassList;
 
 /*-------------------------------------------------------------------------
  *  specify two-class Algorithms
  *-------------------------------------------------------------------------*/
-typedef TTLIST_2( svt::TwoClassSVMc, 
+typedef TTLIST_2( svt::TwoClassSVMc,
                   svt::TwoClassSVMnu) MyTwoClassList;
 
 /*-------------------------------------------------------------------------
  *  specify kernel functions
  *-------------------------------------------------------------------------*/
-typedef TLIST_6( svt::Kernel_LINEAR, 
-                 svt::Kernel_RBF, 
-                 svt::Kernel_POLY, 
+typedef TLIST_6( svt::Kernel_LINEAR,
+                 svt::Kernel_RBF,
+                 svt::Kernel_POLY,
                  svt::Kernel_SIGMOID,
                  svt::Kernel_MATRIX<svt::Kernel_LINEAR>,
                  svt::Kernel_MATRIX<svt::Kernel_RBF> ) MyKernelList;
@@ -99,7 +99,7 @@ void _fillFV( FV& fv, int label, double f0, double f1, double f2)
 
 static void testSVMAdapterStuff()
 {
-  svt::BasicSVMAdapter<svt::BasicFV, svt::StDataASCIIFile>* svm = 
+  svt::BasicSVMAdapter<svt::BasicFV, svt::StDataASCIIFile>* svm =
       new svt::BasicSVMAdapterTempl< svt::BasicFV, svt::StDataASCIIFile,
       svt::MultiClassSVMOneVsRest< svt::TwoClassSVMc< svt::Kernel_LINEAR> > >;
 
@@ -114,31 +114,31 @@ static void testSVMAdapterStuff()
   svt::StDataASCII params;
   params.setValue("cost", 100);
   svm->loadParameters( params);
-  
-  svt::GroupedTrainingData<svt::BasicFV> trainData( featureVectors.begin(), 
-                                                    featureVectors.end(), 
+
+  svt::GroupedTrainingData<svt::BasicFV> trainData( featureVectors.begin(),
+                                                    featureVectors.end(),
                                                     svt::DirectAccessor());
   svm->updateKernelCache( trainData);
   svm->train( trainData);
   svm->clearKernelCache();
 
   std::cerr<<svm->nSupportVectors()<<"\n";
-  
+
   LMBUNIT_ASSERT_EQUAL( svm->classify( featureVectors[0]), 3);
   LMBUNIT_ASSERT_EQUAL( svm->classify( featureVectors[1]), 2);
   LMBUNIT_ASSERT_EQUAL( svm->classify( featureVectors[2]), 1);
   LMBUNIT_ASSERT_EQUAL( svm->classify( featureVectors[3]), 0);
 
   delete svm;
-  
+
 }
 
-static void testSVMFactory( const std::string& mcName, 
-                            const std::string& tcName, 
+static void testSVMFactory( const std::string& mcName,
+                            const std::string& tcName,
                             const std::string& kfName)
 {
   typedef svt::BasicFV FV;
-  
+
   std::vector<FV > featureVectors(4);
 
   _fillFV( featureVectors[0], 3,  0, 0, 0);
@@ -155,8 +155,8 @@ static void testSVMFactory( const std::string& mcName,
   params.setValue("cost", 100);
   params.setValue("nu", 0.01);
   svm->loadParameters( params);
-  
-  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), featureVectors.end(), 
+
+  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), featureVectors.end(),
                                           svt::DirectAccessor());
   svm->updateKernelCache( trainData);
   svm->train( trainData);
@@ -168,13 +168,13 @@ static void testSVMFactory( const std::string& mcName,
   LMBUNIT_ASSERT_EQUAL( svm->classify( featureVectors[3]), 0);
 
   delete svm;
-  
+
 
 }
 
 template< typename FV>
-static void testBasicSVMFactory( const std::string& mcName, 
-                                 const std::string& tcName, 
+static void testBasicSVMFactory( const std::string& mcName,
+                                 const std::string& tcName,
                                  const std::string& kfName)
 {
   std::vector<FV > featureVectors(4);
@@ -187,9 +187,9 @@ static void testBasicSVMFactory( const std::string& mcName,
 
 
 
-  svt::BasicSVMAdapter<FV, svt::StDataASCIIFile>* svm 
+  svt::BasicSVMAdapter<FV, svt::StDataASCIIFile>* svm
       = svt::BasicSVMFactory<
-      FV, 
+      FV,
       svt::StDataASCIIFile,
       MyMultiClassList,
       MyTwoClassList,
@@ -203,11 +203,11 @@ static void testBasicSVMFactory( const std::string& mcName,
 
   svt::ProgressReporter pr;
   pr.setVerboseLevel( 0);
-  
-  svm->setProgressReporter( &pr);
-  
 
-  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), featureVectors.end(), 
+  svm->setProgressReporter( &pr);
+
+
+  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), featureVectors.end(),
                                           svt::DirectAccessor());
   svm->updateKernelCache( trainData);
   svm->train( trainData);
@@ -243,11 +243,11 @@ static void testSVMFactoryStDataASCII()
 
   svt::SVMAdapter* svm = svt::SVMFactory::createFromStData( params);
   svm->loadParameters( params);
-   
+
   LMBUNIT_DEBUG_STREAM << "training...\n";
-  
+
   svt::GroupedTrainingData<svt::BasicFV> trainData( trainVectors.begin(),
-                                                    trainVectors.end(), 
+                                                    trainVectors.end(),
                                                     svt::DirectAccessor());
   svm->updateKernelCache( trainData);
   svm->train( trainData);
@@ -264,10 +264,10 @@ static void testSVMFactoryStDataASCII()
   _fillFV( featureVectors[5], 3,  0, 0, 0);
   svt::adjustUniqueIDs( featureVectors);
 
-  
-    
 
-  
+
+
+
   LMBUNIT_DEBUG_STREAM << "classification...\n";
   LMBUNIT_ASSERT_EQUAL( svm->classify( featureVectors[0]), 2);
   LMBUNIT_ASSERT_EQUAL( svm->classify( featureVectors[1]), 1);
@@ -288,8 +288,8 @@ static void testSVMFactoryStDataASCII()
 
 
 template<typename FV>
-static void testSVMFactory2( const std::string& mcName, 
-                             const std::string& tcName, 
+static void testSVMFactory2( const std::string& mcName,
+                             const std::string& tcName,
                              const std::string& kfName)
 {
   /*-----------------------------------------------------------------------
@@ -318,9 +318,9 @@ static void testSVMFactory2( const std::string& mcName,
   svt::adjustUniqueIDs( featureVectors);
 
 
-  svt::BasicSVMAdapter<FV, svt::StDataASCIIFile>* svm 
+  svt::BasicSVMAdapter<FV, svt::StDataASCIIFile>* svm
       = svt::BasicSVMFactory<
-      FV, 
+      FV,
       svt::StDataASCIIFile,
       MyMultiClassList,
       MyTwoClassList,
@@ -333,7 +333,7 @@ static void testSVMFactory2( const std::string& mcName,
   params.setValue("gamma", 0.001);
   svm->loadParameters( params);
 
-  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), featureVectors.end(), 
+  svt::GroupedTrainingData<FV> trainData( featureVectors.begin(), featureVectors.end(),
                                           svt::DirectAccessor());
   svm->updateKernelCache( trainData);
   svm->train( trainData);
@@ -395,7 +395,7 @@ static void testSVMFactory2( const std::string& mcName,
 //  params["kernel_type"]      = "linear";
 //  params["gamma"]            = "1.234";
 //  params["verbose_level"]    = "0";
-//  
+//
 //
 //  svt::SVMAdapter* svm = svt::SVMFactory::createFromMap( params);
 //  svm->train( featureVectors.begin(), featureVectors.end());
@@ -409,7 +409,7 @@ static void testSVMFactory2( const std::string& mcName,
 //  std::ofstream os( "test.model");
 //  pmw2.save( os);
 //  os.close();
-//  
+//
 //  /*-----------------------------------------------------------------------
 //   *  create new svm from saved model
 //   *-----------------------------------------------------------------------*/
@@ -418,11 +418,11 @@ static void testSVMFactory2( const std::string& mcName,
 //  svt::ParamMapWrapper pmw3( params3);
 //  pmw3.load( is);
 //  is.close();
-//  
+//
 //  svt::SVMAdapter* svm2 = svt::SVMFactory::createFromMap( params2);
 //  svm2->loadModel( params3);
-//  
-//  
+//
+//
 //  /*-----------------------------------------------------------------------
 //   *  create some test vectors, and check if they are correctly classified
 //   *-----------------------------------------------------------------------*/
@@ -455,7 +455,7 @@ static void testSVMFactory2( const std::string& mcName,
 //
 
 
-int main( int argc, char** argv)
+int main(int, char**)
 {
   LMBUNIT_WRITE_HEADER();
   LMBUNIT_RUN_TEST_NOFORK( testSVMAdapterStuff() );
@@ -509,5 +509,3 @@ int main( int argc, char** argv)
 
   return _nFails;
 }
-
-

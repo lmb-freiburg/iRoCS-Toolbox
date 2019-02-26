@@ -23,7 +23,7 @@ static void testLocalSumFilterValueBTStaticAtbArrayInPlace()
   blitz::TinyVector<atb::BlitzIndexT,Dim> filterShapePx;
   blitz::TinyVector<double,Dim> elSize;
   double avgDim = std::pow(100000.0, 1.0 / static_cast<double>(Dim));
-  for (int d = 0; d < Dim; ++d) 
+  for (int d = 0; d < Dim; ++d)
   {
     dataShape(d) = static_cast<atb::BlitzIndexT>(
         avgDim + 0.5 * avgDim * (static_cast<double>(std::rand()) /
@@ -91,6 +91,25 @@ static void testLocalSumFilterValueBTStaticAtbArrayInPlace()
       rmse, 0.0, 1e-5 * (blitz::max(data) - blitz::min(data)));
 }
 
+template<typename DataT>
+static void testLocalSumFilter1DValueBTEqualShapes(DataT boundaryValue) {
+  blitz::Array<DataT,1> data(11);
+  data = 0, 1, 2, 1, 0, -1, 2, 0, 0, 1, 2;
+  blitz::TinyVector<double,1> elSize(1.0);
+  blitz::Array<DataT,1> result;
+  atb::LocalSumFilter<DataT,1>::apply(
+      data, elSize, result, data.shape(), atb::ValueBT, boundaryValue);
+  blitz::Array<DataT,1> expectedResult(11);
+  for (int x = 0; x < 11; ++x) {
+    DataT expectedResult = atb::traits<DataT>::zero;
+    for (int dx = -5; dx <= 5; ++dx) {
+      expectedResult += (x + dx < 0 || x + dx >= data.extent(0)) ?
+          boundaryValue : data(x + dx);
+    }
+    LMBUNIT_ASSERT_EQUAL_DELTA(result(x), expectedResult, 1e-7);
+  }
+}
+
 int main(int, char**)
 {
   LMBUNIT_WRITE_HEADER();
@@ -119,6 +138,8 @@ int main(int, char**)
       (testLocalSumFilterValueBTStaticAtbArrayInPlace<float,3>()));
   LMBUNIT_RUN_TEST(
       (testLocalSumFilterValueBTStaticAtbArrayInPlace<double,3>()));
+
+  LMBUNIT_RUN_TEST(testLocalSumFilter1DValueBTEqualShapes<float>(0.0f));
 
   LMBUNIT_WRITE_STATISTICS();
   return _nFails;

@@ -1,12 +1,12 @@
 /**************************************************************************
-**       Title: 
+**       Title:
 **    $RCSfile$
 **   $Revision: 492 $$Name$
 **       $Date: 2004-09-01 16:45:13 +0200 (Wed, 01 Sep 2004) $
 **   Copyright: GPL $Author: ronneber $
 ** Description:
 **
-**    
+**
 **
 **-------------------------------------------------------------------------
 **
@@ -64,15 +64,15 @@ static void testDereferencingAccessorTwoClassSVMc()
   {
     featureVectorPointers[i] = &(featureVectors[i]);
   }
-  
+
   svt::TwoClassSVMc< svt::Kernel_LINEAR> svm;
-  
+
   svt::Model<svt::BasicFV> model;
 
   svm.setCost( 100);
 
-  svm.train( featureVectorPointers.begin(), 
-             featureVectorPointers.end(), 
+  svm.train( featureVectorPointers.begin(),
+             featureVectorPointers.end(),
              model,
              svt::DereferencingAccessor());
 
@@ -81,14 +81,14 @@ static void testDereferencingAccessorTwoClassSVMc()
                               0.000001);
   LMBUNIT_ASSERT_EQUAL_DELTA( svm.classify( featureVectors[1], model), +1,
                               0.000001);
-  
+
   LMBUNIT_ASSERT_EQUAL( model.getTrainingInfoValue("iterations"), 1);
   LMBUNIT_ASSERT_EQUAL( model.getTrainingInfoValue("nu"),         0.02);
   LMBUNIT_ASSERT_EQUAL( model.getTrainingInfoValue("cost"),       100);
   LMBUNIT_ASSERT_EQUAL( model.getTrainingInfoValue("obj"),        -2);
   LMBUNIT_ASSERT_EQUAL( model.getTrainingInfoValue("nSV"),        2);
   LMBUNIT_ASSERT_EQUAL( model.getTrainingInfoValue("nBSV"),       0);
- 
+
 
 }
 
@@ -112,17 +112,17 @@ static void testDereferencingAccessorOneVsOne()
   {
     featureVectorPointers[i] = &(featureVectors[i]);
   }
-  
+
 
   svt::MultiClassSVMOneVsOne< svt::TwoClassSVMc< svt::Kernel_LINEAR> > svm;
   svm.twoClassSVM().setCost( 100);
-  
-      
+
+
   svt::Model_MC_OneVsOne< svt::Model<svt::BasicFV> > mcModel;
 
-  
-  svm.train( featureVectorPointers.begin(), 
-             featureVectorPointers.end(), 
+
+  svm.train( featureVectorPointers.begin(),
+             featureVectorPointers.end(),
              mcModel,
              svt::DereferencingAccessor());
 
@@ -138,8 +138,8 @@ static void testDereferencingAccessorOneVsOne()
       LMBUNIT_DEBUG_STREAM << mcModel.twoClassModel(i,j).trainingInfoPlainText();
     }
   }
-  
-  
+
+
   svt::TriangularMatrix<double> resultMatrix(4);
 
   LMBUNIT_ASSERT_EQUAL( svm.classify( featureVectors[0], mcModel, resultMatrix), 3);
@@ -151,7 +151,7 @@ static void testDereferencingAccessorOneVsOne()
     {
       LMBUNIT_DEBUG_STREAM << "\t";
     }
-    
+
     for( int col = row+1; col < 4; ++col)
     {
       LMBUNIT_DEBUG_STREAM << resultMatrix(row,col) << "\t";
@@ -159,7 +159,7 @@ static void testDereferencingAccessorOneVsOne()
     LMBUNIT_DEBUG_STREAM << std::endl;
   }
 #endif
-  
+
   LMBUNIT_ASSERT_EQUAL( svm.classify( featureVectors[1], mcModel), 2);
   LMBUNIT_ASSERT_EQUAL( svm.classify( featureVectors[2], mcModel), 1);
   LMBUNIT_ASSERT_EQUAL( svm.classify( featureVectors[3], mcModel), 0);
@@ -184,20 +184,20 @@ static void testDereferencingAccessorOneVsRest()
   {
     featureVectorPointers[i] = &(featureVectors[i]);
   }
-  
+
 
   svt::MultiClassSVMOneVsRest< svt::TwoClassSVMc< svt::Kernel_LINEAR> > svm;
   svm.twoClassSVM().setCost( 100);
-  
-      
+
+
   svt::Model_MC_OneVsRest< svt::Model<svt::BasicFV> > mcModel;
 
-  
-  svm.train( featureVectorPointers.begin(), 
+
+  svm.train( featureVectorPointers.begin(),
              featureVectorPointers.end(), mcModel,
              svt::DereferencingAccessor());
 
-  
+
   std::vector<double> resultVector(4);
 
   LMBUNIT_ASSERT_EQUAL( svm.classify( featureVectors[0], mcModel, resultVector), 3);
@@ -207,8 +207,8 @@ static void testDereferencingAccessorOneVsRest()
 }
 
 
-  
-int main( int argc, char** argv)
+
+int main(int, char**)
 {
   LMBUNIT_WRITE_HEADER();
   LMBUNIT_RUN_TEST( testDereferencingAccessorTwoClassSVMc() );
@@ -219,5 +219,3 @@ int main( int argc, char** argv)
 
   return _nFails;
 }
-
-
