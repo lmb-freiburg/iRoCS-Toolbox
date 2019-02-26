@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -64,7 +64,7 @@ namespace atb
   template<typename DataT, int Dim>
   void FastNormalizedCorrelationFilter<DataT,Dim>::apply(
       blitz::Array<DataT,Dim> const &data,
-      blitz::TinyVector<double,Dim> const &elementSizeUm,
+      blitz::TinyVector<double,Dim> const &/*elementSizeUm*/,
       blitz::Array<DataT,Dim> &result,
       iRoCS::ProgressReporter *pr) const
   {
@@ -73,10 +73,16 @@ namespace atb
     if (pr != NULL && !pr->updateProgress(pStart)) return;
 
     BlitzFFTW<DataT>* fft = BlitzFFTW<DataT>::instance();
-    
+
     if (blitz::all(data.shape() == _kernel.shape()) &&
         this->p_bt->type() == CyclicBT && data.extent(Dim - 1) % 2 == 0)
     {
+
+      /*-------------------------------------------------------------------
+       * No padding required, simply perform a cross-correlation and normalize
+       * globally
+       *-------------------------------------------------------------------*/
+
       // This is the simple case of a normal correlation where the
       // normalization can be applied in advance
       blitz::TinyVector<BlitzIndexT,Dim> fftShape(data.shape());
@@ -112,7 +118,7 @@ namespace atb
 #pragma omp parallel for
 #endif
         for (size_t i = 0; i < kernelFFT->size(); ++i)
-            kernelFFT->data()[i] = std::conj(kernelFFT->data()[i]);        
+            kernelFFT->data()[i] = std::conj(kernelFFT->data()[i]);
       }
       if (&result != &data) result.resize(data.shape());
 
@@ -122,7 +128,7 @@ namespace atb
       // Normalize data
       DataT dataMean = 0.0;
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+:dataMean)  
+#pragma omp parallel for reduction(+:dataMean)
 #endif
       for (size_t i = 0; i < data.size(); ++i) dataMean += data.data()[i];
       dataMean /= data.size();
@@ -169,15 +175,15 @@ namespace atb
 #endif
       for (size_t i = 0; i < dataFFT.size(); ++i)
           dataFFT.data()[i] *= kernelFFT->data()[i];
-      
+
       if (pr != NULL && !pr->updateProgress(
               static_cast<int>(pStart + 0.6 * pScale))) return;
 
       if (kernelFFT != &_kernelFFTCache) delete kernelFFT;
-      
+
       fft->backward(dataFFT, result, BlitzFFTW<DataT>::OVERWRITE);
       dataFFT.free();
-            
+
       if (pr != NULL && !pr->updateProgress(
               static_cast<int>(pStart + 0.95 * pScale))) return;
 
@@ -191,11 +197,16 @@ namespace atb
               static_cast<int>(pStart + 0.99 * pScale))) return;
 
       fft->saveWisdom();
-      
+
       if (pr != NULL) pr->updateProgress(pr->taskProgressMax());
 
       return;
     }
+
+    /*---------------------------------------------------------------------
+     * Here starts the implementation with padding
+     * CropBT uses zero padding but normalizes differently.
+     *---------------------------------------------------------------------*/
 
     blitz::TinyVector<BlitzIndexT,Dim> paddedShape;
     paddedShape = data.shape() + _kernel.shape() - 1;
@@ -206,7 +217,7 @@ namespace atb
 
     blitz::Array<DataT,Dim> dataPadded(paddedShape);
     blitz::Array<std::complex<DataT>,Dim> dataFFT(fftShape);
-    
+
     blitz::Array<std::complex<DataT>,Dim> *kernelFFT = &_kernelFFTCache;
     if (blitz::any(_kernelFFTCache.shape() != fftShape))
     {
@@ -233,13 +244,12 @@ namespace atb
       if (pr != NULL && pr->isAborted()) return;
       *kernelFFT = blitz::conj(*kernelFFT);
     }
-    
+
     if (pr != NULL && !pr->updateProgress(
             static_cast<int>(pStart + 0.05 * pScale))) return;
-    
+
     blitz::TinyVector<BlitzIndexT,Dim> lb, ub;
-    switch (this->p_bt->type())
-    {
+    switch (this->p_bt->type()) {
     case ValueBT:
       fft->pad(data, dataPadded, lb, ub, paddedShape,
                BlitzFFTW<DataT>::VALUE,
@@ -258,21 +268,25 @@ namespace atb
       fft->pad(data, dataPadded, lb, ub, paddedShape,
                BlitzFFTW<DataT>::CYCLICBORDER);
       break;
+    case CropBT:
+      fft->pad(data, dataPadded, lb, ub, paddedShape,
+               BlitzFFTW<DataT>::VALUE, traits<DataT>::zero);
+      break;
     default:
       throw RuntimeError(
           "FastNormalizedCorrelationFilter<DataT,Dim>::apply(): "
           "Invalid Boundary treatment mode, choose one of ValueBT, "
-          "CyclicBT, RepeatBT or MirrorBT.");
+          "CyclicBT, RepeatBT, MirrorBT or CropBT.");
     }
 
     if (pr != NULL && !pr->updateProgress(
             static_cast<int>(pStart + 0.1 * pScale))) return;
-    
+
     fft->forward(dataPadded, dataFFT);
 
     if (pr != NULL && !pr->updateProgress(
             static_cast<int>(pStart + 0.3 * pScale))) return;
-    
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -281,71 +295,186 @@ namespace atb
 
     if (pr != NULL && !pr->updateProgress(
             static_cast<int>(pStart + 0.35 * pScale))) return;
-    
+
     if (kernelFFT != &_kernelFFTCache) delete kernelFFT;
 
-    fft->backward(dataFFT, dataPadded, BlitzFFTW<DataT>::OVERWRITE);    
+    fft->backward(dataFFT, dataPadded, BlitzFFTW<DataT>::OVERWRITE);
     dataFFT.free();
 
     if (pr != NULL && !pr->updateProgress(
             static_cast<int>(pStart + 0.55 * pScale))) return;
-    
+
     fft->saveWisdom();
 
-    // Compute the normalization parameters
-    blitz::Array<DataT,Dim> lcSum;
-    blitz::Array<DataT,Dim> lcSqrSum(data.shape());
-    LocalSumFilter<DataT,Dim> lcSumFilter(_kernel.shape());
-    lcSumFilter.setBoundaryTreatment(*this->p_bt);
+    if (this->p_bt->type() == CropBT) {
+
+      /*-------------------------------------------------------------------
+       * Normalization by intersection of data and kernel
+       *-------------------------------------------------------------------*/
+
+      blitz::Array<DataT,Dim> lcSumData;
+      blitz::Array<DataT,Dim> lcSqrSumData(data.shape());
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < data.size(); ++i)
-        lcSqrSum.data()[i] = data.data()[i] * data.data()[i];
+      for (size_t i = 0; i < data.size(); ++i)
+          lcSqrSumData.dataFirst()[i] =
+              data.dataFirst()[i] * data.dataFirst()[i];
 
-    int tpMax = 1;
-    if (pr != NULL)
-    {
-      if (!pr->updateProgress(static_cast<int>(pStart + 0.6 * pScale))) return;
-      tpMax = pr->taskProgressMax();
-      pr->setTaskProgressMin(pr->progress());
-      pr->setTaskProgressMax(static_cast<int>(pStart + 0.7 * pScale));
-    }
-    lcSumFilter.apply(data, blitz::TinyVector<double,Dim>(1.0), lcSum, pr);
-
-    if (pr != NULL)
-    {
-      if (pr->isAborted()) return;
-      pr->setTaskProgressMin(pr->progress());
-      pr->setTaskProgressMax(static_cast<int>(pStart + 0.8 * pScale));
-    }
-    lcSumFilter.apply(lcSqrSum, blitz::TinyVector<double,Dim>(1.0), lcSqrSum);
-
-    if (pr != NULL)
-    {
-      if (pr->isAborted()) return;
-      pr->setTaskProgressMin(pStart);
-      pr->setTaskProgressMax(tpMax);
-    }
-
-    // Copy the plain correlation result into the output Array
-    result.resize(data.shape());
-    blitz::RectDomain<Dim> dest(lb, ub);
-    result = dataPadded(dest) / dataPadded.size();
-
-    if (pr != NULL && !pr->updateProgress(
-            static_cast<int>(pStart + 0.85 * pScale))) return;
-    
-    // Normalize the result
+      blitz::Array<DataT,Dim> lcSumKernel;
+      blitz::Array<DataT,Dim> lcSqrSumKernel(_kernel.shape());
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < result.size(); ++i)
-    {
-      double sqrNorm = lcSqrSum.data()[i] -
-          lcSum.data()[i] * lcSum.data()[i] / _kernel.size();
-      result.data()[i] = (sqrNorm > 0) ?
-          result.data()[i] / std::sqrt(sqrNorm) : 0.0;
+      for (size_t i = 0; i < _kernel.size(); ++i)
+          lcSqrSumKernel.dataFirst()[i] =
+              _kernel.dataFirst()[i] * _kernel.dataFirst()[i];
+
+      LocalSumFilter<DataT,Dim> lcSumFilter(_kernel.shape());
+
+      int tpMax = 1;
+      if (pr != NULL) {
+        if (!pr->updateProgress(static_cast<int>(pStart + 0.6 * pScale)))
+            return;
+        tpMax = pr->taskProgressMax();
+        pr->setTaskProgressMin(pr->progress());
+        pr->setTaskProgressMax(static_cast<int>(pStart + 0.65 * pScale));
+      }
+      lcSumFilter.apply(
+          data, blitz::TinyVector<double,Dim>(1.0), lcSumData, pr);
+
+      if (pr != NULL) {
+        if (pr->isAborted()) return;
+        pr->setTaskProgressMin(pr->progress());
+        pr->setTaskProgressMax(static_cast<int>(pStart + 0.7 * pScale));
+      }
+      lcSumFilter.apply(
+          lcSqrSumData, blitz::TinyVector<double,Dim>(1.0), lcSqrSumData, pr);
+
+      if (pr != NULL) {
+        if (pr->isAborted()) return;
+        pr->setTaskProgressMin(pr->progress());
+        pr->setTaskProgressMax(static_cast<int>(pStart + 0.75 * pScale));
+      }
+      lcSumFilter.apply(
+          _kernel, blitz::TinyVector<double,Dim>(1.0), lcSumKernel, pr);
+
+      if (pr != NULL) {
+        if (pr->isAborted()) return;
+        pr->setTaskProgressMin(pr->progress());
+        pr->setTaskProgressMax(static_cast<int>(pStart + 0.8 * pScale));
+      }
+      lcSumFilter.apply(
+          lcSqrSumKernel, blitz::TinyVector<double,Dim>(1.0),
+          lcSqrSumKernel, pr);
+
+      if (pr != NULL) {
+        if (pr->isAborted()) return;
+        pr->setTaskProgressMin(pStart);
+        pr->setTaskProgressMax(tpMax);
+      }
+
+      // Copy the plain correlation result into the output Array
+      result.resize(data.shape());
+      blitz::RectDomain<Dim> dest(lb, ub);
+      result = dataPadded(dest) / dataPadded.size();
+
+      if (pr != NULL && !pr->updateProgress(
+              static_cast<int>(pStart + 0.85 * pScale))) return;
+
+      // Normalize the result
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (size_t i = 0; i < result.size(); ++i)
+      {
+        size_t tmp = i;
+        blitz::TinyVector<BlitzIndexT,Dim> pos;
+        blitz::TinyVector<BlitzIndexT,Dim> kernelPos;
+        DataT w = traits<DataT>::one;
+        for (int d = Dim - 1; d >= 0; --d) {
+          pos(d) = tmp % result.extent(d);
+          kernelPos(d) =
+              (pos(d) < _kernel.extent(d) / 2) ?
+              (_kernel.extent(d) - pos(d) - 1) :
+              ((pos(d) >= result.extent(d) - _kernel.extent(d) / 2) ?
+               (result.extent(d) - pos(d) - 1) : _kernel.extent(d) / 2);
+          w *= std::min(_kernel.extent(d) / 2, result.extent(d) - pos(d) - 1) -
+              std::max(-_kernel.extent(d) / 2, -pos(d)) + 1;
+          tmp /= result.extent(d);
+        }
+
+        double offset = lcSumKernel(kernelPos) * lcSumData.dataFirst()[i] / w;
+        double sqrNormData = lcSqrSumData.dataFirst()[i] -
+            lcSumData.dataFirst()[i] * lcSumData.dataFirst()[i] / w;
+        if (sqrNormData < 0) sqrNormData = 0.0;
+        double sqrNormKernel = lcSqrSumKernel(kernelPos) -
+            lcSumKernel(kernelPos) * lcSumKernel(kernelPos) / w;
+        if (sqrNormKernel < 0) sqrNormKernel = 0.0;
+        result.dataFirst()[i] = (sqrNormData > 0 || sqrNormKernel > 0) ?
+            (result.dataFirst()[i] - offset) /
+            (std::sqrt(sqrNormKernel) * std::sqrt(sqrNormData)) : 0.0;
+      }
+    }
+    else { // not CropBT
+
+      /*-------------------------------------------------------------------
+       * Normalization with full kernel size
+       *-------------------------------------------------------------------*/
+
+      // Compute the normalization parameters
+      blitz::Array<DataT,Dim> lcSum;
+      blitz::Array<DataT,Dim> lcSqrSum(data.shape());
+      LocalSumFilter<DataT,Dim> lcSumFilter(_kernel.shape());
+      lcSumFilter.setBoundaryTreatment(*this->p_bt);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (size_t i = 0; i < data.size(); ++i)
+          lcSqrSum.data()[i] = data.data()[i] * data.data()[i];
+
+      int tpMax = 1;
+      if (pr != NULL) {
+        if (!pr->updateProgress(static_cast<int>(pStart + 0.6 * pScale)))
+            return;
+        tpMax = pr->taskProgressMax();
+        pr->setTaskProgressMin(pr->progress());
+        pr->setTaskProgressMax(static_cast<int>(pStart + 0.7 * pScale));
+      }
+      lcSumFilter.apply(data, blitz::TinyVector<double,Dim>(1.0), lcSum, pr);
+
+      if (pr != NULL) {
+        if (pr->isAborted()) return;
+        pr->setTaskProgressMin(pr->progress());
+        pr->setTaskProgressMax(static_cast<int>(pStart + 0.8 * pScale));
+      }
+      lcSumFilter.apply(lcSqrSum, blitz::TinyVector<double,Dim>(1.0), lcSqrSum);
+
+      if (pr != NULL) {
+        if (pr->isAborted()) return;
+        pr->setTaskProgressMin(pStart);
+        pr->setTaskProgressMax(tpMax);
+      }
+
+      // Copy the plain correlation result into the output Array
+      result.resize(data.shape());
+      blitz::RectDomain<Dim> dest(lb, ub);
+      result = dataPadded(dest) / dataPadded.size();
+
+      if (pr != NULL && !pr->updateProgress(
+              static_cast<int>(pStart + 0.85 * pScale))) return;
+
+      // Normalize the result
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (size_t i = 0; i < result.size(); ++i)
+      {
+        double sqrNorm = lcSqrSum.data()[i] -
+            lcSum.data()[i] * lcSum.data()[i] / _kernel.size();
+        result.data()[i] = (sqrNorm > 0) ?
+            result.data()[i] / std::sqrt(sqrNorm) : 0.0;
+      }
     }
 
     if (pr != NULL) pr->updateProgress(pr->taskProgressMax());
@@ -372,7 +501,7 @@ namespace atb
       iRoCS::ProgressReporter *pr)
   {
     FastNormalizedCorrelationFilter<DataT,Dim> f(kernel, btType, boundaryValue);
-    f.apply(data, result, pr);    
+    f.apply(data, result, pr);
   }
 
 }

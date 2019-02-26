@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -44,7 +44,7 @@
 
 namespace atb
 {
-  
+
 /*======================================================================*/
 /*!
  *  \class FastNormalizedCorrelationFilter "libArrayToolbox/FastNormalizedCorrelationFilter.hh"
@@ -66,48 +66,44 @@ namespace atb
   public:
 
 /*======================================================================*/
-/*! 
+/*!
  *   Default Constructor.
  *
- *   \param bt             The boundary treatment this filter uses. CropBT
- *     is not allowed for the FastNormalizedCorrelationFilter and will
- *     result in a RuntimeError when the filter is applied!
+ *   \param bt             The boundary treatment this filter uses.
  *   \param boundaryValue  If bt is ValueBT, this value will be used for
  *     out-of-Array access
  */
-/*======================================================================*/ 
+/*======================================================================*/
     FastNormalizedCorrelationFilter(
         BoundaryTreatmentType bt = ValueBT,
         DataT const &boundaryValue = traits<DataT>::zero);
-  
+
 /*======================================================================*/
-/*! 
+/*!
  *   Constructor also taking the correlation kernel.
  *
  *   \param kernel         The filter kernel. A normalized copy of the
  *     kernel will be stored, so when you change the kernel you have to
  *     set it again.
- *   \param bt             The boundary treatment this filter uses. CropBT
- *     is not allowed for the FastNormalizedCorrelationFilter and will
- *     result in a RuntimeError when the filter is applied!
+ *   \param bt             The boundary treatment this filter uses.
  *   \param boundaryValue  If bt is ValueBT, this value will be used for
  *     out-of-Array access
  */
-/*======================================================================*/ 
+/*======================================================================*/
     FastNormalizedCorrelationFilter(
         blitz::Array<DataT,Dim> const &kernel,
         BoundaryTreatmentType bt = ValueBT,
         DataT const &boundaryValue = traits<DataT>::zero);
-  
+
 /*======================================================================*/
-/*! 
+/*!
  *   Destructor.
  */
 /*======================================================================*/
     ~FastNormalizedCorrelationFilter();
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   Set the correlation kernel
  *
  *   \param kernel The correlation kernel to apply
@@ -116,7 +112,7 @@ namespace atb
     void setKernel(blitz::Array<DataT,Dim> const &kernel);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Get the normalized correlation kernel
  *
  *   \return The currently set normalized correlation kernel
@@ -125,7 +121,7 @@ namespace atb
     blitz::Array<DataT,Dim> const &kernel() const;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Apply the filter to the given Array.
  *
  *   \param data          The blitz++ Array to apply the filter to
@@ -143,13 +139,13 @@ namespace atb
         blitz::TinyVector<double,Dim> const &elementSizeUm,
         blitz::Array<DataT,Dim> &result,
         iRoCS::ProgressReporter *pr = NULL) const;
-    
+
     // Explicitly force the name mangler to also consider the base class
     // implementation
     using atb::Filter<DataT,Dim,DataT>::apply;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Correlate the data Array with the given kernel using the psecified
  *   boundary treatment.
  *
@@ -175,9 +171,9 @@ namespace atb
         BoundaryTreatmentType btType = ValueBT,
         DataT const &boundaryValue = traits<DataT>::zero,
         iRoCS::ProgressReporter *pr = NULL);
-    
+
 /*======================================================================*/
-/*! 
+/*!
  *   Correlate the data Array with the given kernel using the psecified
  *   boundary treatment.
  *
@@ -202,7 +198,7 @@ namespace atb
         iRoCS::ProgressReporter *pr = NULL);
 
   private:
-  
+
     blitz::Array<DataT,Dim> _kernel;
 
     mutable blitz::Array<std::complex<DataT>,Dim> _kernelFFTCache;
