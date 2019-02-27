@@ -99,10 +99,30 @@ static void testLocalSumFilter1DValueBTEqualShapes(DataT boundaryValue) {
   blitz::Array<DataT,1> result;
   atb::LocalSumFilter<DataT,1>::apply(
       data, elSize, result, data.shape(), atb::ValueBT, boundaryValue);
-  blitz::Array<DataT,1> expectedResult(11);
-  for (int x = 0; x < 11; ++x) {
+  blitz::Array<DataT,1> expectedResult(data.shape());
+  for (int x = 0; x < data.extent(0); ++x) {
     DataT expectedResult = atb::traits<DataT>::zero;
-    for (int dx = -5; dx <= 5; ++dx) {
+    for (int dx = -data.extent(0) / 2; dx <= data.extent(0) / 2; ++dx) {
+      expectedResult += (x + dx < 0 || x + dx >= data.extent(0)) ?
+          boundaryValue : data(x + dx);
+    }
+    LMBUNIT_ASSERT_EQUAL_DELTA(result(x), expectedResult, 1e-7);
+  }
+}
+
+template<typename DataT>
+static void testLocalSumFilter1DValueBTLargeKernel(DataT boundaryValue) {
+  blitz::Array<DataT,1> data(5);
+  data = 0, 1, -1, 2, 1;
+  blitz::TinyVector<double,1> elSize(1.0);
+  blitz::Array<DataT,1> result;
+  atb::LocalSumFilter<DataT,1>::apply(
+      data, elSize, result, blitz::TinyVector<int,1>(7),
+      atb::ValueBT, boundaryValue);
+  blitz::Array<DataT,1> expectedResult(11);
+  for (int x = 0; x < data.extent(0); ++x) {
+    DataT expectedResult = atb::traits<DataT>::zero;
+    for (int dx = -3; dx <= 3; ++dx) {
       expectedResult += (x + dx < 0 || x + dx >= data.extent(0)) ?
           boundaryValue : data(x + dx);
     }
@@ -140,6 +160,10 @@ int main(int, char**)
       (testLocalSumFilterValueBTStaticAtbArrayInPlace<double,3>()));
 
   LMBUNIT_RUN_TEST(testLocalSumFilter1DValueBTEqualShapes<float>(0.0f));
+  LMBUNIT_RUN_TEST(testLocalSumFilter1DValueBTEqualShapes<float>(1.0f));
+
+  LMBUNIT_RUN_TEST(testLocalSumFilter1DValueBTLargeKernel<float>(0.0f));
+  LMBUNIT_RUN_TEST(testLocalSumFilter1DValueBTLargeKernel<float>(1.0f));
 
   LMBUNIT_WRITE_STATISTICS();
   return _nFails;

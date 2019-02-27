@@ -306,20 +306,54 @@ namespace atb
 
     fft->saveWisdom();
 
+    blitz::Array<DataT,Dim> lcSumData;
+    blitz::Array<DataT,Dim> lcSqrSumData(data.shape());
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (size_t i = 0; i < data.size(); ++i)
+        lcSqrSumData.dataFirst()[i] =
+            data.dataFirst()[i] * data.dataFirst()[i];
+
+    LocalSumFilter<DataT,Dim> lcSumFilter(_kernel.shape());
+    if (this->p_bt->type() != CropBT)
+        lcSumFilter.setBoundaryTreatment(*this->p_bt);
+
+    if (pr != NULL) {
+      if (!pr->updateProgress(static_cast<int>(pStart + 0.6 * pScale)))
+          return;
+      pr->setTaskProgressMin(pr->progress());
+      pr->setTaskProgressMax(static_cast<int>(pStart + 0.65 * pScale));
+    }
+    lcSumFilter.apply(
+        data, blitz::TinyVector<double,Dim>(1.0), lcSumData, pr);
+
+    if (pr != NULL) {
+      if (pr->isAborted()) return;
+      pr->setTaskProgressMin(pr->progress());
+      pr->setTaskProgressMax(static_cast<int>(pStart + 0.7 * pScale));
+    }
+    lcSumFilter.apply(
+        lcSqrSumData, blitz::TinyVector<double,Dim>(1.0), lcSqrSumData, pr);
+
+    // Copy the plain correlation result into the output Array
+    result.resize(data.shape());
+    blitz::RectDomain<Dim> dest(lb, ub);
+    result = dataPadded(dest) / dataPadded.size();
+
+    if (pr != NULL && !pr->updateProgress(
+            static_cast<int>(pStart + 0.75 * pScale))) return;
+
     if (this->p_bt->type() == CropBT) {
 
       /*-------------------------------------------------------------------
        * Normalization by intersection of data and kernel
        *-------------------------------------------------------------------*/
 
-      blitz::Array<DataT,Dim> lcSumData;
-      blitz::Array<DataT,Dim> lcSqrSumData(data.shape());
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-      for (size_t i = 0; i < data.size(); ++i)
-          lcSqrSumData.dataFirst()[i] =
-              data.dataFirst()[i] * data.dataFirst()[i];
+      blitz::TinyVector<BlitzIndexT,Dim> lcSumKernelShape;
+      for (int d = 0; d < Dim; ++d)
+          lcSumKernelShape(d) = std::min(_kernel.extent(d), data.extent(d));
+      LocalSumFilter<DataT,Dim> lcSumFilter2(lcSumKernelShape);
 
       blitz::Array<DataT,Dim> lcSumKernel;
       blitz::Array<DataT,Dim> lcSqrSumKernel(_kernel.shape());
@@ -330,33 +364,12 @@ namespace atb
           lcSqrSumKernel.dataFirst()[i] =
               _kernel.dataFirst()[i] * _kernel.dataFirst()[i];
 
-      LocalSumFilter<DataT,Dim> lcSumFilter(_kernel.shape());
-
-      int tpMax = 1;
-      if (pr != NULL) {
-        if (!pr->updateProgress(static_cast<int>(pStart + 0.6 * pScale)))
-            return;
-        tpMax = pr->taskProgressMax();
-        pr->setTaskProgressMin(pr->progress());
-        pr->setTaskProgressMax(static_cast<int>(pStart + 0.65 * pScale));
-      }
-      lcSumFilter.apply(
-          data, blitz::TinyVector<double,Dim>(1.0), lcSumData, pr);
-
-      if (pr != NULL) {
-        if (pr->isAborted()) return;
-        pr->setTaskProgressMin(pr->progress());
-        pr->setTaskProgressMax(static_cast<int>(pStart + 0.7 * pScale));
-      }
-      lcSumFilter.apply(
-          lcSqrSumData, blitz::TinyVector<double,Dim>(1.0), lcSqrSumData, pr);
-
       if (pr != NULL) {
         if (pr->isAborted()) return;
         pr->setTaskProgressMin(pr->progress());
         pr->setTaskProgressMax(static_cast<int>(pStart + 0.75 * pScale));
       }
-      lcSumFilter.apply(
+      lcSumFilter2.apply(
           _kernel, blitz::TinyVector<double,Dim>(1.0), lcSumKernel, pr);
 
       if (pr != NULL) {
@@ -364,42 +377,29 @@ namespace atb
         pr->setTaskProgressMin(pr->progress());
         pr->setTaskProgressMax(static_cast<int>(pStart + 0.8 * pScale));
       }
-      lcSumFilter.apply(
+      lcSumFilter2.apply(
           lcSqrSumKernel, blitz::TinyVector<double,Dim>(1.0),
           lcSqrSumKernel, pr);
 
-      if (pr != NULL) {
-        if (pr->isAborted()) return;
-        pr->setTaskProgressMin(pStart);
-        pr->setTaskProgressMax(tpMax);
-      }
-
-      // Copy the plain correlation result into the output Array
-      result.resize(data.shape());
-      blitz::RectDomain<Dim> dest(lb, ub);
-      result = dataPadded(dest) / dataPadded.size();
-
-      if (pr != NULL && !pr->updateProgress(
-              static_cast<int>(pStart + 0.85 * pScale))) return;
-
-      // Normalize the result
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < result.size(); ++i)
-      {
+      for (size_t i = 0; i < result.size(); ++i) {
         size_t tmp = i;
         blitz::TinyVector<BlitzIndexT,Dim> pos;
         blitz::TinyVector<BlitzIndexT,Dim> kernelPos;
         DataT w = traits<DataT>::one;
         for (int d = Dim - 1; d >= 0; --d) {
           pos(d) = tmp % result.extent(d);
-          kernelPos(d) =
-              (pos(d) < _kernel.extent(d) / 2) ?
-              (_kernel.extent(d) - pos(d) - 1) :
-              ((pos(d) >= result.extent(d) - _kernel.extent(d) / 2) ?
-               (result.extent(d) - pos(d) - 1) : _kernel.extent(d) / 2);
-          w *= std::min(_kernel.extent(d) / 2, result.extent(d) - pos(d) - 1) -
+          kernelPos(d) = (_kernel.extent(d) > data.extent(d)) ?
+              (data.extent(d) - pos(d) - 1 +
+               (_kernel.extent(d) - data.extent(d)) / 2) :
+              ((pos(d) < _kernel.extent(d) / 2) ?
+               (_kernel.extent(d) - pos(d) - 1) :
+               ((pos(d) >= data.extent(d) - _kernel.extent(d) / 2) ?
+                (data.extent(d) - pos(d) - 1) : _kernel.extent(d) / 2));
+          w *= std::min(_kernel.extent(d) / 2,
+                        result.extent(d) - pos(d) - 1) -
               std::max(-_kernel.extent(d) / 2, -pos(d)) + 1;
           tmp /= result.extent(d);
         }
@@ -411,67 +411,23 @@ namespace atb
         double sqrNormKernel = lcSqrSumKernel(kernelPos) -
             lcSumKernel(kernelPos) * lcSumKernel(kernelPos) / w;
         if (sqrNormKernel < 0) sqrNormKernel = 0.0;
-        result.dataFirst()[i] = (sqrNormData > 0 || sqrNormKernel > 0) ?
+        result.dataFirst()[i] = (sqrNormData > 0 && sqrNormKernel > 0) ?
             (result.dataFirst()[i] - offset) /
             (std::sqrt(sqrNormKernel) * std::sqrt(sqrNormData)) : 0.0;
       }
     }
-    else { // not CropBT
+    else {
 
       /*-------------------------------------------------------------------
        * Normalization with full kernel size
        *-------------------------------------------------------------------*/
 
-      // Compute the normalization parameters
-      blitz::Array<DataT,Dim> lcSum;
-      blitz::Array<DataT,Dim> lcSqrSum(data.shape());
-      LocalSumFilter<DataT,Dim> lcSumFilter(_kernel.shape());
-      lcSumFilter.setBoundaryTreatment(*this->p_bt);
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < data.size(); ++i)
-          lcSqrSum.data()[i] = data.data()[i] * data.data()[i];
-
-      int tpMax = 1;
-      if (pr != NULL) {
-        if (!pr->updateProgress(static_cast<int>(pStart + 0.6 * pScale)))
-            return;
-        tpMax = pr->taskProgressMax();
-        pr->setTaskProgressMin(pr->progress());
-        pr->setTaskProgressMax(static_cast<int>(pStart + 0.7 * pScale));
-      }
-      lcSumFilter.apply(data, blitz::TinyVector<double,Dim>(1.0), lcSum, pr);
-
-      if (pr != NULL) {
-        if (pr->isAborted()) return;
-        pr->setTaskProgressMin(pr->progress());
-        pr->setTaskProgressMax(static_cast<int>(pStart + 0.8 * pScale));
-      }
-      lcSumFilter.apply(lcSqrSum, blitz::TinyVector<double,Dim>(1.0), lcSqrSum);
-
-      if (pr != NULL) {
-        if (pr->isAborted()) return;
-        pr->setTaskProgressMin(pStart);
-        pr->setTaskProgressMax(tpMax);
-      }
-
-      // Copy the plain correlation result into the output Array
-      result.resize(data.shape());
-      blitz::RectDomain<Dim> dest(lb, ub);
-      result = dataPadded(dest) / dataPadded.size();
-
-      if (pr != NULL && !pr->updateProgress(
-              static_cast<int>(pStart + 0.85 * pScale))) return;
-
-      // Normalize the result
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-      for (size_t i = 0; i < result.size(); ++i)
-      {
-        double sqrNorm = lcSqrSum.data()[i] -
-            lcSum.data()[i] * lcSum.data()[i] / _kernel.size();
+      for (size_t i = 0; i < result.size(); ++i) {
+        double sqrNorm = lcSqrSumData.data()[i] -
+            lcSumData.data()[i] * lcSumData.data()[i] / _kernel.size();
         result.data()[i] = (sqrNorm > 0) ?
             result.data()[i] / std::sqrt(sqrNorm) : 0.0;
       }

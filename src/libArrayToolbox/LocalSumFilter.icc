@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -18,11 +18,11 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
- **************************************************************************/ 
+ **************************************************************************/
 
 namespace atb
 {
-  
+
   template<typename DataT, int Dim>
   LocalSumFilter<DataT,Dim>::LocalSumFilter(
       BoundaryTreatmentType btType, DataT const &boundaryValue)
@@ -47,21 +47,21 @@ namespace atb
   {
     return _kernelShapePx(dim);
   }
-  
+
   template<typename DataT, int Dim>
   void LocalSumFilter<DataT,Dim>::setKernelSizePxInDim(
       int dim, BlitzIndexT kernelSizePx)
   {
     _kernelShapePx(dim) = kernelSizePx;
   }
-  
+
   template<typename DataT, int Dim>
   blitz::TinyVector<BlitzIndexT,Dim> const
   &LocalSumFilter<DataT,Dim>::kernelShapePx() const
   {
     return _kernelShapePx;
   }
-  
+
   template<typename DataT, int Dim>
   void LocalSumFilter<DataT,Dim>::setKernelShapePx(
       blitz::TinyVector<BlitzIndexT,Dim> const &kernelShapePx)
@@ -132,38 +132,37 @@ namespace atb
           tmp[j] = *constLineIter;
 
       DataT *f = new DataT[n];
-      
+
       // Initialize first sum explicitely
       BlitzIndexT p = 0;
       f[p] = traits<DataT>::zero;
-      for (BlitzIndexT j = 0; j < center; ++j)
-      {
-        f[p] += this->p_bt->get(tmp, p + j - center, n);
-      }
-      for (BlitzIndexT j = center; j < m; ++j)
-      {
-        f[p] += tmp[p + j - center];
-      }
+      for (BlitzIndexT j = -center; j < -center + m; ++j)
+          f[p] += this->p_bt->get(tmp, j, n);
       ++p;
 
-      // Left border
-      for (; p < center + 1; ++p)
-      {
-        f[p] = f[p - 1] + tmp[p + center - (1 - (m % 2))] -
-            this->p_bt->get(tmp, p - center - 1, n);
-      }
+      if (m < n) {
+        // Left border
+        for (; p < center + 1; ++p)
+            f[p] = f[p - 1] + tmp[p + center - (1 - (m % 2))] -
+                this->p_bt->get(tmp, p - center - 1, n);
 
-      // Central part
-      for (; p < n - center + (1 - (m % 2)); ++p)
-      {
-        f[p] = f[p - 1] + tmp[p + center - (1 - (m % 2))] - tmp[p - center - 1];
-      }
+        // Central part
+        for (; p < n - center + (1 - (m % 2)); ++p)
+            f[p] = f[p - 1] + tmp[p + center - (1 - (m % 2))] -
+                tmp[p - center - 1];
 
-      // Right border
-      for (; p < n; ++p)
-      {
-        f[p] = f[p - 1] + this->p_bt->get(tmp, p + center - (1 - (m % 2)), n) -
-            tmp[p - center - 1];
+        // Right border
+        for (; p < n; ++p)
+            f[p] = f[p - 1] +
+                this->p_bt->get(tmp, p + center - (1 - (m % 2)), n) -
+                tmp[p - center - 1];
+      }
+      else {
+        // There is only border *sigh*
+        for (; p < n; ++p)
+            f[p] = f[p - 1] +
+                this->p_bt->get(tmp, p + center - (1 - (m % 2)), n) -
+                this->p_bt->get(tmp, p - center - 1, n);
       }
 
       DataT *lineIter = &filtered(pos);
@@ -210,7 +209,7 @@ namespace atb
     }
     if (pr != NULL) pr->setProgress(pStart + pScale);
   }
-  
+
   template<typename DataT, int Dim>
   void LocalSumFilter<DataT,Dim>::apply(
       blitz::Array<DataT,Dim> const &data,
@@ -223,7 +222,7 @@ namespace atb
     LocalSumFilter<DataT,Dim> f(kernelShapePx, btType, boundaryValue);
     f.apply(data, elementSizeUm, filtered, pr);
   }
-  
+
   template<typename DataT, int Dim>
   void LocalSumFilter<DataT,Dim>::apply(
       Array<DataT,Dim> const &data, Array<DataT,Dim> &filtered,
@@ -236,4 +235,3 @@ namespace atb
   }
 
 }
-
