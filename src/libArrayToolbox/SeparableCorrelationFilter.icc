@@ -364,9 +364,9 @@ namespace atb
         for (ptrdiff_t j = 0; j < m; ++j) {
           ptrdiff_t idx = i + j - center;
           if (this->p_bt->type() == CropBT) {
-            if (idx >= 0 && idx < n) f[i] += tmp[idx];
+            if (idx >= 0 && idx < n) f[i] += kernel[j] * tmp[idx];
           }
-          else f[i] += kernel[j - center] * this->p_bt->get(tmp, idx, n);
+          else f[i] += kernel[j] * this->p_bt->get(tmp, idx, n);
         }
         if (this->p_bt->type() == CropBT) f[i] /= weights[i];
       }
