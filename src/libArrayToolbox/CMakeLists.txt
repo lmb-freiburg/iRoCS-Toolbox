@@ -1,4 +1,4 @@
-set(ArrayToolbox_VERSION_MAJOR 3)
+set(ArrayToolbox_VERSION_MAJOR 4)
 set(ArrayToolbox_VERSION_MINOR 0)
 set(ArrayToolbox_VERSION_PATCH 0)
 set(ArrayToolbox_VERSION ${ArrayToolbox_VERSION_MAJOR}.${ArrayToolbox_VERSION_MINOR}.${ArrayToolbox_VERSION_PATCH})
