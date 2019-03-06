@@ -81,8 +81,11 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < result.size(); ++i)
-    {
+#if defined _OPENMP && defined _WIN32
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(result.size()); ++i) {
+#else
+    for (size_t i = 0; i < result.size(); ++i) {
+#endif
       if (progress != NULL)
       {
         if (progress->isAborted()) continue;
@@ -144,7 +147,11 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
+#if defined _OPENMP && defined _WIN32
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(result.size()); ++i)
+#else
     for (size_t i = 0; i < result.size(); ++i)
+#endif
         result.data()[i] = (result.data()[i] == -1) ? maxVal : result.data()[i];
 
     std::cout << "profile filter max val " << maxVal << std::endl;
@@ -153,7 +160,11 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
+#if defined _OPENMP && defined _WIN32
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(result.size()); ++i)
+#else
     for (size_t i = 0; i < result.size(); ++i)
+#endif
         result.data()[i] = static_cast<T>(1) - result.data()[i] / maxVal;
 
     return roi;

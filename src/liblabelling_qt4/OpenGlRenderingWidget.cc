@@ -60,7 +60,7 @@ void OpenGlRenderingWidget::_paintPlane(
   glBindTexture(GL_TEXTURE_2D, textureID);
   glTexImage2D(
       GL_TEXTURE_2D, 0, GL_RGBA, image.extent(1), image.extent(0),
-      0, GL_BGRA, GL_UNSIGNED_BYTE, image.dataFirst());
+      0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, image.dataFirst());
   glBegin(GL_QUADS);
   glTexCoord2f(0.0, 0.0);
   glVertex3f(corners(0)(0), corners(0)(1), corners(0)(2));

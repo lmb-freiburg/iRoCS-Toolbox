@@ -61,8 +61,11 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < gradient.size(); ++i)
-    {
+#if defined _OPENMP && defined _WIN32
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(gradient.size()); ++i) {
+#else
+    for (size_t i = 0; i < gradient.size(); ++i) {
+#endif
       gradient_norm_sq.data()[i] =
           gradient.data()[i](0) * gradient.data()[i](0)
           + gradient.data()[i](1) * gradient.data()[i](1)
@@ -77,8 +80,11 @@ namespace segmentation
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < gradient.size(); ++i)
-    {
+#if defined _OPENMP && defined _WIN32
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(gradient.size()); ++i) {
+#else
+    for (size_t i = 0; i < gradient.size(); ++i) {
+#endif
       gradient.data()[i] /= std::sqrt(max_norm_sq);
       gradient_norm_sq.data()[i] /= max_norm_sq;
     }
