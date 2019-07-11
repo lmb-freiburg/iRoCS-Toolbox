@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -68,10 +68,10 @@ public:
   };
   Q_DECLARE_FLAGS(ChannelTypes, ChannelType)
   static ChannelTypes const Any;
-  
+
   ChannelSpecs(MultiChannelModel *model = NULL);
   virtual ~ChannelSpecs();
-  
+
   virtual ChannelType channelType() const = 0;
 
   void setModel(MultiChannelModel *model);
@@ -82,7 +82,7 @@ public:
   QIcon icon() const;
 
   float alpha() const;
-  
+
   bool visible() const;
 
   bool hasNewData() const;
@@ -107,7 +107,7 @@ public:
   std::map<ViewWidget*,ChannelSpecsRenderer*> &renderers();
 
 /*======================================================================*/
-/*! 
+/*!
  *   Check whether cache updates for this channel are enabled.
  *
  *   \return true if cache updates are enabled, false otherwise
@@ -116,7 +116,7 @@ public:
   bool updatesEnabled() const;
 
 public slots:
-  
+
   void setName(std::string const &name);
   void setIcon(QIcon const &icon);
   void setAlpha(float alpha);
@@ -126,7 +126,7 @@ public slots:
       blitz::TinyMatrix<double,4,4> const &transformation);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Enables/Disables cache updates for this channel. If you programmatically
  *   apply many subsequent changes to a channel like automatic marker
  *   insertion or property changes, disable cache updates, otherwise each
@@ -139,7 +139,7 @@ public slots:
   void setUpdatesEnabled(bool enable);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Explicitely trigger a cache update for all associated renderers.
  *   This is only necessary if updates were disabled and after all changes
  *   the cache has to be updated. If updates are disabled a call to this
@@ -149,7 +149,7 @@ public slots:
   void update();
 
 /*======================================================================*/
-/*! 
+/*!
  *   Reset the channel shape, element size, transformation and bounding box
  *   from the underlying data. This method must be called whenever the
  *   underlying data were programmatically changed using the direct data
@@ -168,11 +168,11 @@ signals:
   void transformationChanged();
 
 /*======================================================================*/
-/*! 
+/*!
  *   This signal is emitted whenever the contents or visualization of the
  *   channel are altered and an update of the views is required to reflect
  *   these changes. The MultiChannelModel catches this SIGNAL, calls
- *   updateChache() and redraw() for all views and clears the hasNewData
+ *   updateCache() and redraw() for all views and clears the hasNewData
  *   flag for all channels when the redraw has finished.
  */
 /*======================================================================*/
@@ -181,7 +181,7 @@ signals:
 protected slots:
 
 /*======================================================================*/
-/*! 
+/*!
  *   This function sets the hasNewData flag for this channel to true, to
  *   inform the renderers that this channel has new data and possibly cached
  *   values are invalid. It also saves the current visibility state to
@@ -221,9 +221,9 @@ private:
   bool _updatesEnabled;
   std::string _name;
   QIcon _icon;
-  
+
 };
-    
+
 Q_DECLARE_OPERATORS_FOR_FLAGS(ChannelSpecs::ChannelTypes)
 
 #endif

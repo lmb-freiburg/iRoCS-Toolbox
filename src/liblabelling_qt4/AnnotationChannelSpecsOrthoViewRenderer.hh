@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -42,25 +42,25 @@ class AnnotationChannelSpecsOrthoViewRenderer :
 Q_OBJECT
 
 public:
-  
+
   AnnotationChannelSpecsOrthoViewRenderer(
       AnnotationChannelSpecs* channel, OrthoViewWidget* view);
   ~AnnotationChannelSpecsOrthoViewRenderer();
-  
-  void userInteractionEvent(UserInteractionEvent* event);
-  void render(QPainter* painter = NULL) const;
+
+  void userInteractionEvent(UserInteractionEvent* event) override;
+  void render(QPainter* painter = NULL) const override;
   void render(
       QXmlStreamWriter &svgStream,
       blitz::TinyVector<double,3> const &shapePx,
       blitz::TinyVector<double,3> const &lowerBoundUm,
       blitz::TinyVector<double,3> const &upperBoundUm,
       std::string const &font, double fontSizePt,
-      iRoCS::ProgressReporter *pr = NULL) const;
+      iRoCS::ProgressReporter *pr = NULL) const override;
 
 public slots:
 
 /*======================================================================*/
-/*! 
+/*!
  *   Enables or disables the updates of the rendering cache. This usually
  *   means that changes in the ChannelSpecs or the view position don't
  *   lead to an update of the view. This is useful, if you have to
@@ -70,10 +70,10 @@ public slots:
  *   \param enable true to enable, false to disable cache updates
  */
 /*======================================================================*/
-  virtual void setCacheUpdatesEnabled(bool enable);
+  virtual void setCacheUpdatesEnabled(bool enable) override;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Update the rendering cache for the specified orthoview dimension. This
  *   function is called by the updateCache()-Method for every direction.
  *   On crosshair position change the view widget explicitely calls this
@@ -90,10 +90,10 @@ public slots:
  *   to the view before these changes.
  */
 /*======================================================================*/
-  virtual void updateCache(int direction) const;
+  virtual void updateCache(int direction) const override;
 
 private:
-  
+
   Marker *p_marker;
 
 };

@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -43,7 +43,7 @@ class ChannelSpecsOrthoViewRenderer : public ChannelSpecsRenderer
 Q_OBJECT
 
 public:
-  
+
   ChannelSpecsOrthoViewRenderer(ChannelSpecs* channel, OrthoViewWidget* view);
   virtual ~ChannelSpecsOrthoViewRenderer();
 
@@ -54,7 +54,7 @@ public:
 public slots:
 
 /*======================================================================*/
-/*! 
+/*!
  *   Update the rendering cache. This function is called by the
  *   associated ChannelSpecs if its content changes such that an cache
  *   update might be neccessary. The default implementation calls the
@@ -71,10 +71,10 @@ public slots:
  *   dimension-aware version updateCache(int) instead.
  */
 /*======================================================================*/
-  virtual void updateCache() const;
+  virtual void updateCache() const override;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Update the rendering cache for the specified orthoview dimension. This
  *   function is called by the updateCache()-Method for every direction.
  *   On crosshair position change the view widget explicitely calls this
@@ -94,7 +94,7 @@ public slots:
   virtual void updateCache(int direction) const;
 
 /*======================================================================*/
-/*! 
+/*!
  *   Render this channel into the given SVG-stream. The default implementation
  *   does nothing. Overload this function if you want to be able to render
  *   the view of the given channel type as 2D vector graphics.
@@ -122,9 +122,9 @@ public slots:
       iRoCS::ProgressReporter *pr = NULL) const = 0;
 
 signals:
-  
+
 /*======================================================================*/
-/*! 
+/*!
  *   This signal must be emitted at the end of a cache update to inform the
  *   view, that the cache for the orthoview plane has new data.
  *
@@ -136,7 +136,7 @@ signals:
       ChannelSpecsOrthoViewRenderer const *source, int direction) const;
 
 protected:
-  
+
   int _orthogonalDimension;
 
 };

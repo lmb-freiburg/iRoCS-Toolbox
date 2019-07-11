@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -43,7 +43,7 @@ AnnotationChannelSpecsOrthoViewRenderer(
     AnnotationChannelSpecs* channel, OrthoViewWidget* view)
         : ChannelSpecsOrthoViewRenderer(channel, view), p_marker(NULL)
 {}
-  
+
 AnnotationChannelSpecsOrthoViewRenderer::
 ~AnnotationChannelSpecsOrthoViewRenderer()
 {}
@@ -72,12 +72,12 @@ void AnnotationChannelSpecsOrthoViewRenderer::userInteractionEvent(
     event->ignore();
     return;
   }
-  
+
   AnnotationChannelSpecs* channel =
-      reinterpret_cast<AnnotationChannelSpecs*>(p_channel);
+      static_cast<AnnotationChannelSpecs*>(p_channel);
   OrthoViewUserInteractionEvent* e =
-      reinterpret_cast<OrthoViewUserInteractionEvent*>(event);
-  
+      static_cast<OrthoViewUserInteractionEvent*>(event);
+
   // If mouse is moved while the left mouse button is pressed and a marker
   // is available for dragging, drag it and tell it, that it is currently
   // dragged
@@ -98,7 +98,7 @@ void AnnotationChannelSpecsOrthoViewRenderer::userInteractionEvent(
     e->accept();
     return;
   }
-  
+
   // If left mouse button is released while a marker is dragged, release it
   if (p_marker != NULL && p_marker->renderer(p_view)->isDragging() &&
       e->mouseEvent() != NULL &&
@@ -110,7 +110,7 @@ void AnnotationChannelSpecsOrthoViewRenderer::userInteractionEvent(
     e->accept();
     return;
   }
-  
+
   // If left mouse button is released and we are in Add marker mode,
   // add a marker
   if (e->mouseEvent() != NULL &&
@@ -130,10 +130,10 @@ void AnnotationChannelSpecsOrthoViewRenderer::userInteractionEvent(
     e->accept();
     return;
   }
-  
+
   // Get current mouse position in volume
   blitz::TinyVector<float,3> posUm;
-  if (e->mouseEvent() != NULL) 
+  if (e->mouseEvent() != NULL)
   {
     posUm = e->orthoViewPlane()->mousePositionUm(
         e->mouseEvent()->x(), e->mouseEvent()->y());
@@ -148,7 +148,7 @@ void AnnotationChannelSpecsOrthoViewRenderer::userInteractionEvent(
     e->ignore();
     return;
   }
-  
+
   // Find the marker under the cursor
   Marker *marker = channel->closestMarker(posUm, true);
 
@@ -194,7 +194,7 @@ void AnnotationChannelSpecsOrthoViewRenderer::userInteractionEvent(
     e->accept();
     return;
   }
-  
+
   // Send all other events directly to the marker
   marker->renderer(p_view)->userInteractionEvent(e);
   if (e->isAccepted())
@@ -221,7 +221,7 @@ void AnnotationChannelSpecsOrthoViewRenderer::render(QPainter* painter) const
       renderer->setOrthogonalDimension(_orthogonalDimension);
       renderer->render(painter);
     }
-    else 
+    else
     {
       std::cerr << "Warning: Marker at " << markers[i]->positionUm()
                 << " could not be rendered. No associated renderer found"
@@ -240,7 +240,7 @@ void AnnotationChannelSpecsOrthoViewRenderer::render(
 {
   AnnotationChannelSpecs* channel =
       static_cast<AnnotationChannelSpecs*>(p_channel);
-  
+
   std::string viewId = static_cast<OrthoViewWidget*>(p_view)->orthoViewPlane(
       _orthogonalDimension)->viewId();
 
@@ -284,12 +284,12 @@ void AnnotationChannelSpecsOrthoViewRenderer::setCacheUpdatesEnabled(
     bool enable)
 {
   if (_cacheUpdatesEnabled == enable) return;
-  
+
   _cacheUpdatesEnabled = enable;
 
   std::vector<Marker*> const &markers =
       static_cast<AnnotationChannelSpecs*>(p_channel)->markers();
-  
+
   for (size_t i = 0; i < markers.size(); ++i)
       markers[i]->setUpdatesEnabled(enable);
 }
@@ -303,7 +303,7 @@ void AnnotationChannelSpecsOrthoViewRenderer::updateCache(int direction) const
 
   std::vector<Marker*> const &markers =
       static_cast<AnnotationChannelSpecs*>(p_channel)->markers();
-  
+
   for (size_t i = 0; i < markers.size(); ++i)
   {
       MarkerOrthoViewRenderer* renderer =
@@ -316,4 +316,3 @@ void AnnotationChannelSpecsOrthoViewRenderer::updateCache(int direction) const
   p_view->setUpdatesEnabled(oldUpdatesEnabledState);
   p_view->update();
 }
-
