@@ -61,6 +61,19 @@ class OrthoViewPlane : public QWidget
 
   void addOverlay(OrthoViewOverlay* overlay);
   void removeOverlay(OrthoViewOverlay* overlay);
+
+/*======================================================================*/
+/*!
+ *   Get the absolute micrometer position in the volume for the given screen
+ *   coordinates.
+ *
+ *   \param x x-coordinate on screen
+ *   \param y y-coordinate on screen
+ *
+ *   \return The 3-D coordinates of the selected pixel in this
+ *     OrthoviewPlane in micrometers
+ */
+/*======================================================================*/
   blitz::TinyVector<double,3> mousePositionUm(int x, int y) const;
   blitz::TinyVector<double,3> mousePositionPx(int x, int y) const;
 
