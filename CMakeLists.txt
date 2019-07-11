@@ -47,7 +47,7 @@ endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-long-long")
+    "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -pedantic -Wno-long-long")
   # Check for undefined symbols when linking shared libraries to get early
   # feedback on missing dependencies
   set(CMAKE_SHARED_LINKER_FLAGS
