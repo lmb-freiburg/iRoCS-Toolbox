@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -24,6 +24,7 @@
 
 // Include QFont to avoid usage of incomplete Implementation
 #include <QtGui/QFont>
+#include <QtGui/QMouseEvent>
 
 #include "VisualizationChannelSpecsOrthoViewRenderer.hh"
 
@@ -33,6 +34,7 @@
 #include "VisualizationChannelSpecs.hh"
 #include "OrthoViewWidget.hh"
 #include "OrthoViewPlane.hh"
+#include "OrthoViewUserInteractionEvent.hh"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -47,6 +49,60 @@ VisualizationChannelSpecsOrthoViewRenderer(
 VisualizationChannelSpecsOrthoViewRenderer::
 ~VisualizationChannelSpecsOrthoViewRenderer()
 {}
+
+void VisualizationChannelSpecsOrthoViewRenderer::userInteractionEvent(
+    UserInteractionEvent *event) {
+
+  event->ignore();
+
+  if (!p_channel->visible()) return;
+
+  VisualizationChannelSpecs* channel{
+    static_cast<VisualizationChannelSpecs*>(p_channel)};
+  OrthoViewUserInteractionEvent* e{
+    static_cast<OrthoViewUserInteractionEvent*>(event)};
+
+  if (e->mouseEvent() == NULL) return;
+
+  if (e->mouseEvent()->type() == QEvent::MouseButtonRelease) {
+
+    if (e->mouseEvent()->button() == Qt::LeftButton) {
+
+      if (e->mouseEvent()->modifiers().testFlag(Qt::ShiftModifier)) {
+
+        // If left mouse button is released while shift is pressed, fill region
+        channel->floodFill(
+            e->orthoViewPlane()->mousePositionUm(
+                e->mouseEvent()->x(), e->mouseEvent()->y()));
+        e->accept();
+        return;
+      }
+      else if (e->mouseEvent()->modifiers().testFlag(Qt::ControlModifier)) {
+
+        // If left mouse button is released while ctrl is pressed, fill region
+        // and remove 1px gaps to adjacent regions with same label
+        // ==> fix over-segmentation
+        channel->floodFill(
+            e->orthoViewPlane()->mousePositionUm(
+                e->mouseEvent()->x(), e->mouseEvent()->y()), true);
+        e->accept();
+        return;
+      }
+    }
+
+    // If right mouse button is released while shift or ctrl is pressed,
+    // set fill value
+    if (e->mouseEvent()->button() == Qt::RightButton and
+        (e->mouseEvent()->modifiers().testFlag(Qt::ShiftModifier) or
+         e->mouseEvent()->modifiers().testFlag(Qt::ControlModifier))) {
+      channel->pickFillValue(
+          e->orthoViewPlane()->mousePositionUm(
+              e->mouseEvent()->x(), e->mouseEvent()->y()));
+      e->accept();
+      return;
+    }
+  }
+}
 
 void VisualizationChannelSpecsOrthoViewRenderer::render(QPainter*) const
 {
@@ -111,7 +167,7 @@ void VisualizationChannelSpecsOrthoViewRenderer::updateCache(int direction)
   std::cerr << "VisualizationChannelSpecsOrthoViewRenderer::updateCache("
             << direction << ")" << std::endl;
 #endif
-  
+
   OrthoViewWidget *view = static_cast<OrthoViewWidget*>(p_view);
   blitz::TinyVector<double,3> const &viewPosUm = view->positionUm();
 
@@ -121,7 +177,7 @@ void VisualizationChannelSpecsOrthoViewRenderer::updateCache(int direction)
   blitz::TinyVector<atb::BlitzIndexT,3> lbPx(cacheOffsetPx());
   blitz::TinyVector<atb::BlitzIndexT,3> shapePx(cacheShapePx());
   _cache(direction).resize(shapePx(dims(0)), shapePx(dims(1)));
-  
+
   VisualizationChannelSpecs *channel =
       static_cast<VisualizationChannelSpecs*>(p_channel);
   blitz::TinyVector<double,3> const &channelLbUm = channel->lowerBoundUm();
@@ -139,7 +195,7 @@ void VisualizationChannelSpecsOrthoViewRenderer::updateCache(int direction)
   {
     atb::Array<int,3>* data = channel->data();
     blitz::TinyVector<double,3> const &dataElSizeUm = data->elementSizeUm();
-    
+
     blitz::TinyMatrix<double,4,4> const &trafo = data->transformation();
     bool simpleScaleTranslateTransform =
         trafo(0, 1) == 0.0 && trafo(0, 2) == 0.0 &&
@@ -238,7 +294,7 @@ void VisualizationChannelSpecsOrthoViewRenderer::updateCache(int direction)
                   << direction << "): Scaling and translation detected: "
                   << "scaling = " << scaling << ", translation = "
                   << translation << std::endl;
-#endif        
+#endif
         double zUm =
             (scaling(direction) * viewPosUm(direction) +
              translation(direction)) / dataElSizeUm(direction);

@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -48,25 +48,26 @@ public:
     VisualizationChannelSpecs* channel, OrthoViewWidget* view);
   ~VisualizationChannelSpecsOrthoViewRenderer();
 
-  void render(QPainter* painter = NULL) const;
+  void userInteractionEvent(UserInteractionEvent* event) override;
+  void render(QPainter* painter = NULL) const override;
   void render(
       QXmlStreamWriter &svgStream,
       blitz::TinyVector<double,3> const &shapePx,
       blitz::TinyVector<double,3> const &lowerBoundUm,
       blitz::TinyVector<double,3> const &upperBoundUm,
       std::string const &font, double fontSizePt,
-      iRoCS::ProgressReporter *pr = NULL) const;
+      iRoCS::ProgressReporter *pr = NULL) const override;
 
   blitz::TinyVector<atb::BlitzIndexT,3> cacheOffsetPx() const;
   blitz::TinyVector<atb::BlitzIndexT,3> cacheShapePx() const;
   blitz::Array<blitz::TinyVector<float,3>,2> const &cache(int direction) const;
-                                                 
+
 public slots:
-  
-  virtual void updateCache(int direction) const;
+
+  virtual void updateCache(int direction) const override;
 
 private:
-  
+
   mutable blitz::TinyVector<blitz::Array<blitz::TinyVector<float,3>,2>,3>
   _cache;
 

@@ -1603,11 +1603,12 @@ HDF5DataIO::RetVal HDF5DataIO::readChannel(
       ("Loading annotation channel '" + _fileName + ":" +
        metaData.channelName + "' of type " +
        Marker::markerTypeToString(metaData.markerType).toStdString()).c_str());
-  AnnotationChannelSpecs* specs = 0;
+  AnnotationChannelSpecs* specs = NULL;
   try
   {
     BlitzH5File inFile(_fileName);
     specs = p_model->addAnnotationChannel(metaData.markerType);
+    if (specs == NULL) throw BlitzH5Error();
     specs->setUpdatesEnabled(false);
     specs->setName(metaData.channelName);
     specs->load(inFile, p_progress);
@@ -1888,6 +1889,11 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(VisualizationChannelSpecs* specs)
       BlitzH5File outFile(_fileName, BlitzH5File::WriteOrNew);
       exists = outFile.existsDataset(specs->name());
     }
+    if (exists and specs->dataChanged()) {
+      BlitzH5File outFile(_fileName, BlitzH5File::WriteOrNew);
+      outFile.deleteDataset(specs->name());
+      exists = false;
+    }
     if (!exists)
     {
       if (specs->sign())
@@ -1962,6 +1968,7 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(VisualizationChannelSpecs* specs)
   }
   if (p_progress->isAborted()) return Abort;
   metaData.save(_fileName);
+  specs->setDataChanged(false);
   return Ok;
 }
 

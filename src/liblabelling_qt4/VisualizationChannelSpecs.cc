@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -43,7 +43,8 @@
 
 VisualizationChannelSpecs::VisualizationChannelSpecs(
   atb::Array<int,3> *data, MultiChannelModel *model, bool sign, int bitDepth)
-        : ChannelSpecs(model), p_data(data), _sign(sign), _bitDepth(bitDepth)
+        : ChannelSpecs(model), p_data(data), _fillValue(0), _sign(sign),
+          _bitDepth(bitDepth), _dataChanged(false)
 {
   this->_lowerBoundUm = data->lowerBoundUm();
   this->_upperBoundUm = data->upperBoundUm();
@@ -80,9 +81,17 @@ ChannelSpecs::ChannelType VisualizationChannelSpecs::channelType() const
   return ChannelSpecs::Visualization;
 }
 
-void VisualizationChannelSpecs::hasNewData()
+void VisualizationChannelSpecs::setHasNewData()
 {
   _hasNewData = true;
+}
+
+bool VisualizationChannelSpecs::dataChanged() const {
+  return _dataChanged;
+}
+
+void VisualizationChannelSpecs::setDataChanged(bool dataChanged) {
+  _dataChanged = dataChanged;
 }
 
 atb::Array<int,3> const *VisualizationChannelSpecs::data() const
@@ -92,6 +101,7 @@ atb::Array<int,3> const *VisualizationChannelSpecs::data() const
 
 atb::Array<int,3> *VisualizationChannelSpecs::data()
 {
+  _dataChanged = true;
   return p_data;
 }
 
@@ -124,7 +134,7 @@ int &VisualizationChannelSpecs::labelAtVoxel(
   if (blitz::all(pos >= 0) && blitz::all(pos < p_data->shape()))
       return (*p_data)(pos);
   else
-      throw std::runtime_error(
+      throw std::out_of_range(
           "VisualizationChannelSpecs: Called labelAtVoxel with position out of "
           "bounds");
 }
@@ -183,6 +193,79 @@ ColorMap const &VisualizationChannelSpecs::colorMap() const
 ColorMap &VisualizationChannelSpecs::colorMap()
 {
   return *p_colorMap;
+}
+
+void VisualizationChannelSpecs::setFillValue(int value) {
+  std::cout << "Setting fill value to " << value << std::endl;
+  _fillValue = value;
+}
+
+void VisualizationChannelSpecs::pickFillValue(
+    blitz::TinyVector<double,3> const &positionUm) {
+  blitz::TinyVector<atb::BlitzIndexT,3> posPx{
+    blitz::floor(
+        atb::homogeneousToEuclidean(
+            p_data->transformation() *
+            atb::euclideanToHomogeneous(positionUm)) /
+        p_data->elementSizeUm() + 0.5)};
+
+  if (blitz::any(posPx < 0 || posPx >= p_data->shape())) return;
+
+  setFillValue((*p_data)(posPx));
+}
+
+int VisualizationChannelSpecs::fillValue() const {
+  return _fillValue;
+}
+
+void VisualizationChannelSpecs::floodFill(
+    blitz::TinyVector<double,3> const &positionUm,
+    bool mergeNeighboringSegments) {
+  blitz::TinyVector<atb::BlitzIndexT,3> posPx{
+    blitz::floor(
+        atb::homogeneousToEuclidean(
+            p_data->transformation() *
+            atb::euclideanToHomogeneous(positionUm)) /
+        p_data->elementSizeUm() + 0.5)};
+
+  if (blitz::any(posPx < 0 or posPx >= p_data->shape()) or
+      (*p_data)(posPx) == _fillValue ||
+      blitz::all(p_colorMap->color((*p_data)(posPx)) == 0)) return;
+
+  // In merge segment mode identify the boundary pixels to fill with _fillValue
+  // and mark them with INT_MIN as "must be filled"
+  if (mergeNeighboringSegments) {
+    // First grassfire pass: Fill segment with INT_MIN and get boundary pixels
+    PixelSet boundarySet{_grassfire(posPx, INT_MIN, true)};
+
+    // Fill gap pixels with INT_MIN if a segment with label _fillValue touches
+    // the boundary
+    atb::Neighborhood<3> nh(atb::Neighborhood<3>::Complex);
+    for (PixelSet::const_iterator it = boundarySet.begin();
+         it != boundarySet.end(); ++it) {
+      bool merge{false};
+      int const value{(*p_data)(*it)};
+      for (typename atb::Neighborhood<3>::const_iterator it2 = nh.begin();
+           it2 != nh.end(); ++it2) {
+        blitz::TinyVector<atb::BlitzIndexT,3> const nbPos{*it + *it2};
+        int const nbValue{(*p_data)(nbPos)};
+        if (nbValue == INT_MIN or nbValue == value) continue;
+        if (nbValue == _fillValue) merge = true;
+        else {
+          merge = false;
+          break;
+        }
+      }
+      if (merge) (*p_data)(*it) = INT_MIN;
+    }
+  }
+
+  // The actual flood fill
+  _grassfire(posPx, _fillValue, false);
+
+  _dataChanged = true;
+  p_model->setModified(true);
+  emitUpdateRequest();
 }
 
 void VisualizationChannelSpecs::setSign(bool sign)
@@ -301,4 +384,29 @@ void VisualizationChannelSpecs::normalizeIndexRange()
   p_colorMap->setStartIndex(blitz::min(*p_data));
   p_colorMap->setEndIndex(blitz::max(*p_data));
   emitUpdateRequest();
+}
+
+VisualizationChannelSpecs::PixelSet VisualizationChannelSpecs::_grassfire(
+    blitz::TinyVector<atb::BlitzIndexT,3> const &posPx,
+    int value, bool getBoundary) {
+  int oldValue = (*p_data)(posPx);
+  atb::Neighborhood<3> const nh{
+    getBoundary ? atb::Neighborhood<3>::Complex : atb::Neighborhood<3>::Simple};
+  PixelSet activeSet{};
+  PixelSet boundarySet{};
+  activeSet.insert(posPx);
+  while (!activeSet.empty()) {
+    blitz::TinyVector<atb::BlitzIndexT,3> p{*activeSet.begin()};
+    activeSet.erase(activeSet.begin());
+    (*p_data)(p) = value;
+    for (typename atb::Neighborhood<3>::const_iterator it = nh.begin();
+         it != nh.end(); ++it) {
+      blitz::TinyVector<atb::BlitzIndexT,3> const nbPos{p + *it};
+      if (blitz::all(nbPos >= 0) and blitz::all(nbPos < p_data->shape())) {
+        if ((*p_data)(nbPos) == oldValue) activeSet.insert(nbPos);
+        else if (getBoundary) boundarySet.insert(nbPos);
+      }
+    }
+  }
+  return boundarySet;
 }
