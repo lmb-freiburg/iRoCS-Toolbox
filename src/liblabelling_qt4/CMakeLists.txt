@@ -1,5 +1,5 @@
 set(Labelling_qt4_VERSION_MAJOR 3)
-set(Labelling_qt4_VERSION_MINOR 0)
+set(Labelling_qt4_VERSION_MINOR 1)
 set(Labelling_qt4_VERSION_PATCH 0)
 set(Labelling_qt4_VERSION ${Labelling_qt4_VERSION_MAJOR}.${Labelling_qt4_VERSION_MINOR}.${Labelling_qt4_VERSION_PATCH})
 
