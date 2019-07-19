@@ -92,8 +92,8 @@ void VisualizationChannelSpecsOrthoViewRenderer::userInteractionEvent(
 
     // If right mouse button is released while shift or ctrl is pressed,
     // set fill value
-    if (e->mouseEvent()->button() == Qt::RightButton and
-        (e->mouseEvent()->modifiers().testFlag(Qt::ShiftModifier) or
+    if (e->mouseEvent()->button() == Qt::RightButton &&
+        (e->mouseEvent()->modifiers().testFlag(Qt::ShiftModifier) ||
          e->mouseEvent()->modifiers().testFlag(Qt::ControlModifier))) {
       channel->pickFillValue(
           e->orthoViewPlane()->mousePositionUm(

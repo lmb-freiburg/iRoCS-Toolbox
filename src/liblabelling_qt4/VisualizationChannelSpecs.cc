@@ -30,6 +30,7 @@
 #include <QtGui/QColorDialog>
 #include <QtGui/QComboBox>
 #include <QtGui/QVBoxLayout>
+#include <QtGui/QSpinBox>
 
 #include "MultiChannelModel.hh"
 #include "OrthoViewWidget.hh"
@@ -43,21 +44,36 @@
 
 VisualizationChannelSpecs::VisualizationChannelSpecs(
   atb::Array<int,3> *data, MultiChannelModel *model, bool sign, int bitDepth)
-        : ChannelSpecs(model), p_data(data), _fillValue(0), _sign(sign),
-          _bitDepth(bitDepth), _dataChanged(false)
+        : ChannelSpecs(model), p_data{data},
+          p_fillValueSpinner{new QSpinBox()}, _sign(sign), _bitDepth(bitDepth),
+          p_colorMap{new ColorMap(0, 1 << (_bitDepth - 1))},
+          p_colorMapEditor{new ColorMapEditorWidget(p_colorMap)},
+          _dataChanged{false}
 {
   this->_lowerBoundUm = data->lowerBoundUm();
   this->_upperBoundUm = data->upperBoundUm();
   this->_elementSizeUm = data->elementSizeUm();
   this->_originalTransformation = data->transformation();
   setTransformation(this->_originalTransformation);
-  p_colorMap = new ColorMap(0, 1 << (_bitDepth - 1));
 
+  QLabel *fillValueLabel{new QLabel("Fill Value:")};
+  p_fillValueSpinner->setRange(INT_MIN, INT_MAX);
+  p_fillValueSpinner->setValue(0);
+  p_fillValueSpinner->setToolTip(
+    tr("Shift+Right Click to pick value from volume (Pipette mode)\n"
+       "        Shift + Left mouse button : Flood Fill\n"
+       "        Ctrl  + Left mouse button : Merge adjacent segments\n"
+       "Shift + Ctrl  + Left mouse button : Replace all voxels with "
+       "clicked color by fill color."));
+  QHBoxLayout *fillValueLayout{new QHBoxLayout()};
+  fillValueLayout->addWidget(fillValueLabel);
+  fillValueLayout->addWidget(p_fillValueSpinner);
+  p_channelControlLayout->addLayout(fillValueLayout);
+  
   QPushButton *normalizeButton = new QPushButton(tr("normalize"));
   connect(normalizeButton, SIGNAL(clicked()), SLOT(normalizeIndexRange()));
   p_channelControlLayout->addWidget(normalizeButton);
 
-  p_colorMapEditor = new ColorMapEditorWidget(p_colorMap);
   p_colorMap->setColorMapEditor(p_colorMapEditor);
   p_channelControlLayout->addWidget(p_colorMapEditor);
   connect(p_colorMapEditor, SIGNAL(colorMapChanged()),
@@ -196,8 +212,7 @@ ColorMap &VisualizationChannelSpecs::colorMap()
 }
 
 void VisualizationChannelSpecs::setFillValue(int value) {
-  std::cout << "Setting fill value to " << value << std::endl;
-  _fillValue = value;
+  p_fillValueSpinner->setValue(value);
 }
 
 void VisualizationChannelSpecs::pickFillValue(
@@ -215,7 +230,7 @@ void VisualizationChannelSpecs::pickFillValue(
 }
 
 int VisualizationChannelSpecs::fillValue() const {
-  return _fillValue;
+  return p_fillValueSpinner->value();
 }
 
 void VisualizationChannelSpecs::floodFill(
@@ -228,17 +243,17 @@ void VisualizationChannelSpecs::floodFill(
             atb::euclideanToHomogeneous(positionUm)) /
         p_data->elementSizeUm() + 0.5)};
 
-  if (blitz::any(posPx < 0 or posPx >= p_data->shape()) or
-      (*p_data)(posPx) == _fillValue ||
+  if (blitz::any(posPx < 0 || posPx >= p_data->shape()) ||
+      (*p_data)(posPx) == fillValue() ||
       blitz::all(p_colorMap->color((*p_data)(posPx)) == 0)) return;
 
-  // In merge segment mode identify the boundary pixels to fill with _fillValue
+  // In merge segment mode identify the boundary pixels to fill with fill value
   // and mark them with INT_MIN as "must be filled"
   if (mergeNeighboringSegments) {
     // First grassfire pass: Fill segment with INT_MIN and get boundary pixels
     PixelSet boundarySet{_grassfire(posPx, INT_MIN, true)};
 
-    // Fill gap pixels with INT_MIN if a segment with label _fillValue touches
+    // Fill gap pixels with INT_MIN if a segment with label fill value touches
     // the boundary
     atb::Neighborhood<3> nh(atb::Neighborhood<3>::Complex);
     for (PixelSet::const_iterator it = boundarySet.begin();
@@ -249,8 +264,8 @@ void VisualizationChannelSpecs::floodFill(
            it2 != nh.end(); ++it2) {
         blitz::TinyVector<atb::BlitzIndexT,3> const nbPos{*it + *it2};
         int const nbValue{(*p_data)(nbPos)};
-        if (nbValue == INT_MIN or nbValue == value) continue;
-        if (nbValue == _fillValue) merge = true;
+        if (nbValue == INT_MIN || nbValue == value) continue;
+        if (nbValue == fillValue()) merge = true;
         else {
           merge = false;
           break;
@@ -261,7 +276,7 @@ void VisualizationChannelSpecs::floodFill(
   }
 
   // The actual flood fill
-  _grassfire(posPx, _fillValue, false);
+  _grassfire(posPx, fillValue(), false);
 
   _dataChanged = true;
   p_model->setModified(true);
@@ -402,7 +417,7 @@ VisualizationChannelSpecs::PixelSet VisualizationChannelSpecs::_grassfire(
     for (typename atb::Neighborhood<3>::const_iterator it = nh.begin();
          it != nh.end(); ++it) {
       blitz::TinyVector<atb::BlitzIndexT,3> const nbPos{p + *it};
-      if (blitz::all(nbPos >= 0) and blitz::all(nbPos < p_data->shape())) {
+      if (blitz::all(nbPos >= 0) && blitz::all(nbPos < p_data->shape())) {
         if ((*p_data)(nbPos) == oldValue) activeSet.insert(nbPos);
         else if (getBoundary) boundarySet.insert(nbPos);
       }

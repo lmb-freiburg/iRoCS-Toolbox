@@ -40,6 +40,7 @@ class ColorMap;
 class ColorMapEditorWidget;
 
 class QComboBox;
+class QSpinBox;
 
 class VisualizationChannelSpecs : public ChannelSpecs
 {
@@ -120,15 +121,6 @@ public:
 
 /*======================================================================*/
 /*!
- *   Set the value for subsequent flood fill operations
- *
- *   \param value The new fill value
- */
-/*======================================================================*/
-  void setFillValue(int value);
-
-/*======================================================================*/
-/*!
  *   Pick the value for subsequent flood fill operations from the current
  *   volume. Sets fill value to the value at the specified world coordinates
  *   of this VisualizationChannelSpecs. Positions will be rounded to the
@@ -205,6 +197,15 @@ public:
 
 public slots:
 
+/*======================================================================*/
+/*!
+ *   Set the value for subsequent flood fill operations
+ *
+ *   \param value The new fill value
+ */
+/*======================================================================*/
+  void setFillValue(int value);
+
   void normalizeIndexRange();
   void setTransformation(
       blitz::TinyMatrix<double,4,4> const &transformation) override;
@@ -233,7 +234,7 @@ private:
 
   atb::Array<int,3> *p_data;
 
-  int _fillValue;
+  QSpinBox *p_fillValueSpinner;
 
   bool _sign;
   int _bitDepth;

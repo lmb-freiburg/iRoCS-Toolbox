@@ -1889,7 +1889,7 @@ HDF5DataIO::RetVal HDF5DataIO::writeChannel(VisualizationChannelSpecs* specs)
       BlitzH5File outFile(_fileName, BlitzH5File::WriteOrNew);
       exists = outFile.existsDataset(specs->name());
     }
-    if (exists and specs->dataChanged()) {
+    if (exists && specs->dataChanged()) {
       BlitzH5File outFile(_fileName, BlitzH5File::WriteOrNew);
       outFile.deleteDataset(specs->name());
       exists = false;
