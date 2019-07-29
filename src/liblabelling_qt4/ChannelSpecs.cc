@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -25,7 +25,7 @@
 #include "ChannelSpecs.hh"
 
 #include <QtCore/QCoreApplication>
-#include <QtGui/QVBoxLayout>
+#include <QtGui/QFormLayout>
 
 #include "StringControlElement.hh"
 #include "DoubleControlElement.hh"
@@ -41,7 +41,7 @@ ChannelSpecs::ChannelTypes const ChannelSpecs::Any =
     ChannelSpecs::RGB | ChannelSpecs::Annotation |
     ChannelSpecs::SplineCurve | ChannelSpecs::IRoCS | ChannelSpecs::IRoCSSCT;
 
-ChannelSpecs::ChannelSpecs(MultiChannelModel *model) 
+ChannelSpecs::ChannelSpecs(MultiChannelModel *model)
         : QObject(), p_model(model), _oldVisibilityState(false),
           _hasNewData(true),
           _lowerBoundUm(std::numeric_limits<double>::infinity()),
@@ -52,26 +52,28 @@ ChannelSpecs::ChannelSpecs(MultiChannelModel *model)
           _transformation(atb::traits< blitz::TinyMatrix<double,4,4> >::one),
     _updatesEnabled(true)
 {
-  p_channelControlLayout = new QVBoxLayout;
+  p_channelControlLayout = new QFormLayout;
   p_channelControlLayout->setContentsMargins(0, 0, 0, 0);
-    
+
   p_alphaControl = new DoubleControlElement(tr("Alpha:"), 1.0);
   p_alphaControl->setRange(0.0, 1.0);
   p_alphaControl->setSingleStep(0.01);
   p_alphaControl->setSliderViewEnabled(true);
   p_alphaControl->setToolTip(tr("Set the selected channel's transparency"));
   connect(p_alphaControl, SIGNAL(valueChanged()), SLOT(emitUpdateRequest()));
-  p_channelControlLayout->addWidget(p_alphaControl);
-    
+  p_channelControlLayout->addRow(
+      p_alphaControl->labelWidget(), p_alphaControl->controlWidget());
+
   p_visibleControl = new BoolControlElement(tr("Visible:"), true);
   p_visibleControl->setToolTip(tr("Show/Hide the selected channel"));
   connect(
       p_visibleControl, SIGNAL(valueChanged()), SLOT(emitUpdateRequest()));
-  p_channelControlLayout->addWidget(p_visibleControl);
-    
+  p_channelControlLayout->addRow(
+      p_visibleControl->labelWidget(), p_visibleControl->controlWidget());
+
   p_channelControlWidget = new QWidget;
   p_channelControlWidget->setLayout(p_channelControlLayout);
-    
+
   p_toggleAdvancedButton = new QToolButton;
   p_toggleAdvancedButton->setFixedHeight(15);
   p_toggleAdvancedButton->setArrowType(Qt::DownArrow);
@@ -81,26 +83,27 @@ ChannelSpecs::ChannelSpecs(MultiChannelModel *model)
   p_toggleAdvancedButton->setToolTip(tr("Advanced channel settings"));
   connect(p_toggleAdvancedButton, SIGNAL(toggled(bool)),
           SLOT(toggleAdvanced(bool)));
-  p_channelControlLayout->addWidget(p_toggleAdvancedButton);
-    
+  p_channelControlLayout->addRow(p_toggleAdvancedButton);
+
   p_advancedControlWidget = new QWidget;
   p_advancedControlWidget->setContentsMargins(0, 0, 0, 0);
   p_advancedControlWidget->setSizePolicy(
       QSizePolicy::Expanding, QSizePolicy::Expanding);
   p_advancedControlWidget->setVisible(false);
-    
-  p_advancedControlLayout = new QVBoxLayout;
+
+  p_advancedControlLayout = new QFormLayout;
   p_advancedControlLayout->setContentsMargins(0, 0, 0, 0);
   p_advancedControlWidget->setLayout(p_advancedControlLayout);
-    
+
   p_transformationControl = new Double4x4ControlElement(
       "Transform:", _transformation);
   p_transformationControl->setSwitchable(true);
   p_transformationControl->setActive(false);
   connect(p_transformationControl, SIGNAL(valueChanged()),
           SLOT(setTransformationFromControl()));
-  p_advancedControlLayout->addWidget(p_transformationControl);
-    
+  p_advancedControlLayout->addRow(p_transformationControl->labelWidget(),
+                                  p_transformationControl->controlWidget());
+
   p_channelControlLayout->addWidget(p_advancedControlWidget);
   _icon = QIcon();
 }
@@ -120,22 +123,22 @@ MultiChannelModel *ChannelSpecs::model() const
   return p_model;
 }
 
-std::string ChannelSpecs::name() const 
+std::string ChannelSpecs::name() const
 {
   return _name;
 }
 
-QIcon ChannelSpecs::icon() const 
+QIcon ChannelSpecs::icon() const
 {
   return _icon;
 }
 
-float ChannelSpecs::alpha() const 
+float ChannelSpecs::alpha() const
 {
   return static_cast<float>(p_alphaControl->value());
 }
 
-bool ChannelSpecs::visible() const 
+bool ChannelSpecs::visible() const
 {
   return p_visibleControl->value();
 }
@@ -175,7 +178,7 @@ void ChannelSpecs::setTransformation(
   emitUpdateRequest();
 }
 
-QWidget *ChannelSpecs::channelControlWidget() const 
+QWidget *ChannelSpecs::channelControlWidget() const
 {
   return p_channelControlWidget;
 }
@@ -210,7 +213,7 @@ bool ChannelSpecs::updatesEnabled() const
   return _updatesEnabled;
 }
 
-void ChannelSpecs::setName(std::string const &name) 
+void ChannelSpecs::setName(std::string const &name)
 {
   if (this->name() == name) return;
   _name = name;
@@ -218,24 +221,24 @@ void ChannelSpecs::setName(std::string const &name)
   emit nameChanged();
 }
 
-void ChannelSpecs::setIcon(QIcon const &icon) 
+void ChannelSpecs::setIcon(QIcon const &icon)
 {
   _icon = icon;
   emit iconChanged();
 }
 
-void ChannelSpecs::setAlpha(float alpha) 
+void ChannelSpecs::setAlpha(float alpha)
 {
   if (this->alpha() == alpha) return;
   p_alphaControl->setValue(alpha);
   if (p_model != NULL) p_model->setModified(true);
 }
-  
-void ChannelSpecs::setVisible(bool visible) 
+
+void ChannelSpecs::setVisible(bool visible)
 {
   if (this->visible() == visible) return;
   p_visibleControl->setValue(visible);
-  if (p_model != NULL) p_model->setModified(true);  
+  if (p_model != NULL) p_model->setModified(true);
 }
 
 void ChannelSpecs::setHasNewData(bool hasNewData)

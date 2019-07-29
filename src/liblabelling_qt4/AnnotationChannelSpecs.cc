@@ -34,6 +34,7 @@
 #include <QtGui/QInputDialog>
 #include <QtGui/QApplication>
 #include <QtGui/QPushButton>
+#include <QtGui/QFormLayout>
 
 #include "DoubleControlElement.hh"
 #include "BoolControlElement.hh"
@@ -68,24 +69,18 @@ AnnotationChannelSpecs::AnnotationChannelSpecs(
   connect(p_alphaControl, SIGNAL(valueChanged()), SIGNAL(viewChanged()));
   connect(p_visibleControl, SIGNAL(valueChanged()), SIGNAL(viewChanged()));
 
-  QHBoxLayout *viewTypeLayout = new QHBoxLayout;
-  QLabel *viewTypeLabel = new QLabel(tr("View Type:"));
-  viewTypeLayout->addWidget(viewTypeLabel);
+  QLabel *viewTypeLabel{new QLabel(tr("View Type:"))};
   p_viewTypeComboBox = new QComboBox;
-  p_viewTypeComboBox->setSizePolicy(
-      QSizePolicy::Expanding, QSizePolicy::Fixed);
+  p_viewTypeComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   p_viewTypeComboBox->addItem(tr("Label"));
   p_viewTypeComboBox->addItem(tr("Predicted Label"));
   p_viewTypeComboBox->addItem(tr("Confusion"));
   p_viewTypeComboBox->addItem(tr("Random"));
   connect(p_viewTypeComboBox, SIGNAL(currentIndexChanged(int)),
           SIGNAL(viewChanged()));
-  viewTypeLayout->addWidget(p_viewTypeComboBox);
-  p_channelControlLayout->addLayout(viewTypeLayout);
+  p_channelControlLayout->addRow(viewTypeLabel, p_viewTypeComboBox);
 
-  QHBoxLayout *operationLayout = new QHBoxLayout;
   QLabel *operationLabel = new QLabel(tr("Operation:"));
-  operationLayout->addWidget(operationLabel);
   p_operationComboBox = new QComboBox;
   p_operationComboBox->setSizePolicy(
       QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -93,8 +88,7 @@ AnnotationChannelSpecs::AnnotationChannelSpecs(
   p_operationComboBox->addItem(tr("Label marker"));
   p_operationComboBox->addItem(tr("Edit marker"));
   p_operationComboBox->addItem(tr("Delete marker"));
-  operationLayout->addWidget(p_operationComboBox);
-  p_channelControlLayout->addLayout(operationLayout);
+  p_channelControlLayout->addRow(operationLabel, p_operationComboBox);
 
   p_coordinateUpdateButton = new QPushButton(tr("Update coordinates"));
   p_coordinateUpdateButton->setEnabled(
@@ -102,7 +96,7 @@ AnnotationChannelSpecs::AnnotationChannelSpecs(
           ChannelSpecs::IRoCS | ChannelSpecs::IRoCSSCT) != 0);
   connect(p_coordinateUpdateButton, SIGNAL(clicked()),
           SLOT(updateCoordinates()));
-  p_channelControlLayout->addWidget(p_coordinateUpdateButton);
+  p_channelControlLayout->addRow(p_coordinateUpdateButton);
 
   switch (markerType)
   {
@@ -152,9 +146,9 @@ AnnotationChannelSpecs::AnnotationChannelSpecs(
   setColorForLabel(
       6, blitz::TinyVector<float,3>(2.0f / 3.0f, 1.0f / 3.0f, 0.0f));
 
-  p_channelControlLayout->addWidget(p_presetWidget);
+  p_channelControlLayout->addRow(p_presetWidget);
   connect(p_presetWidget, SIGNAL(colormapChanged()), SIGNAL(viewChanged()));
-  p_channelControlLayout->addWidget(p_controlWidget);
+  p_channelControlLayout->addRow(p_controlWidget);
   p_controlWidget->setSizePolicy(
       QSizePolicy::Expanding, QSizePolicy::Expanding);
   connect(p_controlWidget, SIGNAL(contentsChanged()),
@@ -163,7 +157,7 @@ AnnotationChannelSpecs::AnnotationChannelSpecs(
           p_controlWidget, SLOT(resizeFeatures(int)));
   p_controlWidget->setEnabled(false);
 
-  p_channelControlLayout->addStretch(1);
+  // p_channelControlLayout->addStretch(1);
 }
 
 AnnotationChannelSpecs::~AnnotationChannelSpecs()

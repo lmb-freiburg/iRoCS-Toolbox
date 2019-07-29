@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -49,7 +49,7 @@ ColorControlElement::ColorControlElement(
     _spinbox(d)->setValue(value(d));
     _spinbox(d)->setFixedWidth(60);
     _spinbox(d)->setKeyboardTracking(false);
-    p_layout->addWidget(_spinbox(d), 1);
+    p_controlLayout->addWidget(_spinbox(d), 1);
     connect(_spinbox(d), SIGNAL(valueChanged(int)), SIGNAL(valueChanged()));
     connect(_spinbox(d), SIGNAL(valueChanged(int)),
             SLOT(updateToolButtonColor()));
@@ -59,8 +59,8 @@ ColorControlElement::ColorControlElement(
   updateToolButtonColor();
   connect(p_colorToolButton, SIGNAL(clicked()), SLOT(chooseColor()));
   p_colorToolButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-  p_layout->addWidget(p_colorToolButton);
-  p_layout->addStretch(1);
+  p_controlLayout->addWidget(p_colorToolButton);
+  p_controlLayout->addStretch(1);
 }
 
 ColorControlElement::~ColorControlElement()
@@ -74,7 +74,7 @@ blitz::TinyVector<unsigned char,3> ColorControlElement::value() const
       static_cast<unsigned char>(_spinbox(2)->value()));
 }
 
-std::string ColorControlElement::toStdString() const 
+std::string ColorControlElement::toStdString() const
 {
   std::stringstream outStream;
   outStream << value();
@@ -114,14 +114,14 @@ void ColorControlElement::chooseColor()
   QColor color = QColorDialog::getColor(
       QColor(static_cast<int>(col(0)), static_cast<int>(col(1)),
              static_cast<int>(col(2))), this);
-  if (color.isValid()) 
+  if (color.isValid())
       setValue(blitz::TinyVector<unsigned char,3>(
                    static_cast<unsigned char>(color.red()),
                    static_cast<unsigned char>(color.green()),
                    static_cast<unsigned char>(color.blue())));
 }
 
-void ColorControlElement::updateToolButtonColor() 
+void ColorControlElement::updateToolButtonColor()
 {
   blitz::TinyVector<unsigned char,3> col = value();
   QPixmap pixmap(16, 16);

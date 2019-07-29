@@ -38,6 +38,7 @@
 
 class ColorMap;
 class ColorMapEditorWidget;
+class IntControlElement;
 
 class QComboBox;
 class QSpinBox;
@@ -234,7 +235,7 @@ private:
 
   atb::Array<int,3> *p_data;
 
-  QSpinBox *p_fillValueSpinner;
+  IntControlElement *p_fillValueControl;
 
   bool _sign;
   int _bitDepth;

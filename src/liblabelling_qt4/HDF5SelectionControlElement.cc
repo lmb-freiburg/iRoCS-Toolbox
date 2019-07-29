@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -40,11 +40,11 @@ HDF5SelectionControlElement::HDF5SelectionControlElement(
 {
   p_lineedit = new QLineEdit;
   p_lineedit->setText(value.c_str());
-  p_layout->addWidget(p_lineedit);
+  p_controlLayout->addWidget(p_lineedit);
   connect(p_lineedit, SIGNAL(editingFinished()), SIGNAL(valueChanged()));
-  
+
   QPushButton* browseButton = new QPushButton(tr("Choose..."));
-  p_layout->addWidget(browseButton);
+  p_controlLayout->addWidget(browseButton);
   connect(browseButton, SIGNAL(clicked()), SLOT(openHDF5SelectionDialog()));
 }
 
@@ -61,7 +61,7 @@ std::string HDF5SelectionControlElement::value() const
   return p_lineedit->text().toStdString();
 }
 
-std::string HDF5SelectionControlElement::toStdString() const 
+std::string HDF5SelectionControlElement::toStdString() const
 {
   return value();
 }

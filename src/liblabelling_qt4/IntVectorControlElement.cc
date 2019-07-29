@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -42,7 +42,7 @@ IntVectorControlElement::IntVectorControlElement(
     _spinbox[d]->setValue(value[d]);
     _spinbox[d]->setMinimumWidth(80);
     _spinbox[d]->setKeyboardTracking(false);
-    p_layout->addWidget(_spinbox[d], 1);
+    p_controlLayout->addWidget(_spinbox[d], 1);
     connect(_spinbox[d], SIGNAL(valueChanged(int)), SIGNAL(valueChanged()));
   }
 }
@@ -74,7 +74,8 @@ void IntVectorControlElement::push_back(const int value)
   _spinbox.back()->setRange(_min, _max);
   _spinbox.back()->setValue(value);
   _spinbox.back()->setMinimumWidth(80);
-  p_layout->insertWidget(static_cast<int>(_spinbox.size()), _spinbox.back());
+  p_controlLayout->insertWidget(
+      static_cast<int>(_spinbox.size()), _spinbox.back());
   connect(_spinbox.back(), SIGNAL(valueChanged(int)), SIGNAL(valueChanged()));
 }
 
@@ -92,7 +93,7 @@ std::vector<int> IntVectorControlElement::value() const
   return value;
 }
 
-std::string IntVectorControlElement::toStdString() const 
+std::string IntVectorControlElement::toStdString() const
 {
   std::stringstream outStream;
   outStream << "( ";

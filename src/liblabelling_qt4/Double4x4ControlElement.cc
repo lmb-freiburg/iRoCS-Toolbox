@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -42,7 +42,7 @@ Double4x4ControlElement::Double4x4ControlElement(
     {
       _spinbox(r, c) = new QDoubleSpinBox;
       _spinbox(r, c)->setRange(
-          -std::numeric_limits<double>::infinity(), 
+          -std::numeric_limits<double>::infinity(),
           std::numeric_limits<double>::infinity());
       _spinbox(r, c)->setSingleStep(0.1);
       _spinbox(r, c)->setDecimals(5);
@@ -63,7 +63,7 @@ Double4x4ControlElement::Double4x4ControlElement(
   {
     setValue(_lastValidMatrix);
   }
-  p_layout->addLayout(matrixLayout);
+  p_controlLayout->addLayout(matrixLayout);
 }
 
 Double4x4ControlElement::~Double4x4ControlElement()
@@ -95,7 +95,7 @@ blitz::TinyMatrix<double,4,4> Double4x4ControlElement::value() const
   return res;
 }
 
-std::string Double4x4ControlElement::toStdString() const 
+std::string Double4x4ControlElement::toStdString() const
 {
   std::stringstream outStream;
   outStream << value();

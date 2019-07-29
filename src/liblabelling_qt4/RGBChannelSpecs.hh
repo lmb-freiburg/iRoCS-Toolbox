@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -39,11 +39,11 @@ class RGBChannelSpecs : public ChannelSpecs
   Q_OBJECT
 
 public:
-  
+
   RGBChannelSpecs(atb::Array<blitz::TinyVector<float,3>,3> *data,
                   MultiChannelModel *model = NULL);
   ~RGBChannelSpecs();
-  
+
   ChannelSpecs::ChannelType channelType() const;
 
   static RGBChannelSpecs *load();
@@ -65,16 +65,16 @@ public:
   float valueAt(blitz::TinyVector<double,3> const &positionUm) const;
   std::string stringValueAt(
       blitz::TinyVector<double,3> const &positionUm) const;
-  
+
   ChannelSpecsRenderer *addRenderer(ViewWidget *view);
 
 public slots:
-  
+
   void setTransformation(
       blitz::TinyMatrix<double,4,4> const &transformation);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Reset the channel shape, element size, transformation and bounding box
  *   from the underlying data. This method must be called whenever the
  *   underlying data were programmatically changed using the direct data
@@ -98,7 +98,7 @@ private:
   DoubleControlElement *p_gammaControl;
   BoolControlElement *p_normalizeControl;
   BoolControlElement *p_showExposureProblemsControl;
-  
+
 };
-    
+
 #endif

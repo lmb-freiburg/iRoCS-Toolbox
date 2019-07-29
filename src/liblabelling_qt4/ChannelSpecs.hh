@@ -39,7 +39,7 @@
 
 #include <blitz/array.h>
 
-class QVBoxLayout;
+class QFormLayout;
 
 class StringControlElement;
 class DoubleControlElement;
@@ -200,13 +200,13 @@ protected:
   MultiChannelModel *p_model;
   std::map<ViewWidget*,ChannelSpecsRenderer*> _renderers;
   QWidget *p_channelControlWidget;
-  QVBoxLayout *p_channelControlLayout;
+  QFormLayout *p_channelControlLayout;
   DoubleControlElement *p_alphaControl;
   BoolControlElement *p_visibleControl;
 
   QToolButton *p_toggleAdvancedButton;
   QWidget *p_advancedControlWidget;
-  QVBoxLayout *p_advancedControlLayout;
+  QFormLayout *p_advancedControlLayout;
 
   Double4x4ControlElement *p_transformationControl;
 

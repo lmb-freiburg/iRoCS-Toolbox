@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -36,14 +36,14 @@ Double3ControlElement::Double3ControlElement(
   {
     _spinbox(d) = new QDoubleSpinBox;
     _spinbox(d)->setRange(
-        -std::numeric_limits<double>::infinity(), 
+        -std::numeric_limits<double>::infinity(),
         std::numeric_limits<double>::infinity());
     _spinbox(d)->setSingleStep(0.1);
     _spinbox(d)->setDecimals(5);
     _spinbox(d)->setValue(value(d));
     _spinbox(d)->setMinimumWidth(80);
     _spinbox(d)->setKeyboardTracking(false);
-    p_layout->addWidget(_spinbox(d), 1);
+    p_controlLayout->addWidget(_spinbox(d), 1);
     connect(_spinbox(d), SIGNAL(valueChanged(double)), SIGNAL(valueChanged()));
   }
 }
@@ -69,7 +69,7 @@ blitz::TinyVector<double,3> Double3ControlElement::value() const
       _spinbox(0)->value(), _spinbox(1)->value(), _spinbox(2)->value());
 }
 
-std::string Double3ControlElement::toStdString() const 
+std::string Double3ControlElement::toStdString() const
 {
   std::stringstream outStream;
   outStream << value();

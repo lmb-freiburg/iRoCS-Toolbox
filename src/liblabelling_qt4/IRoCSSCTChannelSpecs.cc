@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -22,8 +22,7 @@
  *
  **************************************************************************/
 
-// Include QFont to avoid usage of incomplete Implementation
-#include <QtGui/QVBoxLayout>
+#include <QtGui/QFormLayout>
 
 #include "IRoCSSCTChannelSpecs.hh"
 
@@ -41,9 +40,10 @@ IRoCSSCTChannelSpecs::IRoCSSCTChannelSpecs(
   p_colorControl = new ColorControlElement(
       tr("Color:"), blitz::TinyVector<unsigned char,3>(255, 255, 255));
   connect(p_colorControl, SIGNAL(valueChanged()), SLOT(updateChannelColor()));
-  p_channelControlLayout->addWidget(p_colorControl);
+  p_channelControlLayout->addRow(p_colorControl->labelWidget(),
+                                 p_colorControl->controlWidget());
 
-  p_channelControlLayout->addStretch(1);
+  // p_channelControlLayout->addStretch(1);
 }
 
 IRoCSSCTChannelSpecs::~IRoCSSCTChannelSpecs()
@@ -56,19 +56,19 @@ ChannelSpecs::ChannelType IRoCSSCTChannelSpecs::channelType() const
   return ChannelSpecs::IRoCSSCT;
 }
 
-blitz::TinyVector<float,3> IRoCSSCTChannelSpecs::color() const 
+blitz::TinyVector<float,3> IRoCSSCTChannelSpecs::color() const
 {
   return blitz::TinyVector<float,3>(p_colorControl->value()) / 255.0f;
 }
 
 float IRoCSSCTChannelSpecs::valueAt(
-    blitz::TinyVector<double,3> const &positionUm) const 
+    blitz::TinyVector<double,3> const &positionUm) const
 {
   return static_cast<float>(p_sct->getCoordinates(positionUm)(0));
 }
 
 std::string IRoCSSCTChannelSpecs::stringValueAt(
-    blitz::TinyVector<double,3> const &positionUm) const 
+    blitz::TinyVector<double,3> const &positionUm) const
 {
   blitz::TinyVector<double,3> p(p_sct->getCoordinates(positionUm));
   std::stringstream os;
@@ -140,7 +140,7 @@ ShellCoordinateTransform *IRoCSSCTChannelSpecs::sct()
 }
 
 void IRoCSSCTChannelSpecs::setColor(
-    blitz::TinyVector<float,3> const &color) 
+    blitz::TinyVector<float,3> const &color)
 {
   if (blitz::all(this->color() == color)) return;
   p_colorControl->setValue(blitz::TinyVector<unsigned char,3>(color * 255.0f));

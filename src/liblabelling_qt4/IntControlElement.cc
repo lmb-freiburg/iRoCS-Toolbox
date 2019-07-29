@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -37,9 +37,9 @@ IntControlElement::IntControlElement(
   p_spinbox->setValue(value);
   p_spinbox->setMinimumWidth(80);
   p_spinbox->setKeyboardTracking(false);
-  p_layout->addWidget(p_spinbox);
+  p_controlLayout->addWidget(p_spinbox);
   connect(p_spinbox, SIGNAL(valueChanged(int)), SIGNAL(valueChanged()));
-  connect(p_spinbox, SIGNAL(valueChanged(int)), SIGNAL(valueChanged(int))); 
+  connect(p_spinbox, SIGNAL(valueChanged(int)), SIGNAL(valueChanged(int)));
 }
 
 IntControlElement::~IntControlElement()
@@ -65,7 +65,7 @@ int IntControlElement::value() const
   return p_spinbox->value();
 }
 
-std::string IntControlElement::toStdString() const 
+std::string IntControlElement::toStdString() const
 {
   return QString::number(value()).toStdString();
 }

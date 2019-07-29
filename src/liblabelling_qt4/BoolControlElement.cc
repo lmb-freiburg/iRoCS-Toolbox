@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -33,7 +33,7 @@ BoolControlElement::BoolControlElement(
 {
   p_checkbox = new QCheckBox;
   p_checkbox->setChecked(value);
-  p_layout->addWidget(p_checkbox);
+  p_controlLayout->addWidget(p_checkbox);
   connect(p_checkbox, SIGNAL(toggled(bool)), SIGNAL(valueChanged()));
   connect(p_checkbox, SIGNAL(toggled(bool)), SIGNAL(valueChanged(bool)));
   setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -47,7 +47,7 @@ bool BoolControlElement::value() const
   return p_checkbox->isChecked();
 }
 
-std::string BoolControlElement::toStdString() const 
+std::string BoolControlElement::toStdString() const
 {
   return (value()) ? std::string("true") : std::string("false");
 }

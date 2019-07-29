@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -39,14 +39,14 @@ ChannelSelectionControlElement::ChannelSelectionControlElement(
   p_combobox = new QComboBox;
   p_combobox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   p_combobox->setInsertPolicy(QComboBox::InsertAtCurrent);
-  p_layout->addWidget(p_combobox);
+  p_controlLayout->addWidget(p_combobox);
 
   connect(p_model, SIGNAL(channelAdded(ChannelSpecs *)),
           SLOT(appendChannel(ChannelSpecs *)));
   connect(p_model, SIGNAL(channelRemoved(ChannelSpecs *)),
           SLOT(removeChannel(ChannelSpecs *)));
   connect(p_model, SIGNAL(channelNamesOrIconsChanged()),
-          SLOT(updateChannelNamesAndIcons()));  
+          SLOT(updateChannelNamesAndIcons()));
 
   connect(p_combobox, SIGNAL(activated(int)), SIGNAL(activated(int)));
   connect(p_combobox, SIGNAL(activated(const QString&)),
@@ -134,7 +134,7 @@ std::string ChannelSelectionControlElement::toStdString() const
 {
   return p_combobox->currentText().toStdString();
 }
-  
+
 void ChannelSelectionControlElement::setValue(ChannelSpecs *channel)
 {
   if (_channels[p_combobox->currentIndex()] == channel) return;
@@ -276,9 +276,9 @@ void ChannelSelectionControlElement::updateChannels()
   if (p_combobox->isEditable())
       disconnect(p_combobox->lineEdit(), SIGNAL(editingFinished()),
                  this, SIGNAL(editingFinished()));
-  
+
   size_t nChannelsOld = _channels.size();
-  
+
   p_combobox->clear();
   _channels.clear();
   int index = 0;
@@ -299,7 +299,7 @@ void ChannelSelectionControlElement::updateChannels()
   if (nChannelsOld == 0 && _channels.size() != 0)
       emit channelListEmpty(false);
   p_combobox->setCurrentIndex(index);
-  
+
   connect(p_combobox, SIGNAL(activated(int)), SIGNAL(activated(int)));
   connect(p_combobox, SIGNAL(activated(const QString&)),
           SIGNAL(activated(const QString&)));
@@ -318,4 +318,3 @@ void ChannelSelectionControlElement::updateChannels()
   p_combobox->setEnabled(_channels.size() != 0);
   emit channelListEmpty(_channels.size() == 0);
 }
-

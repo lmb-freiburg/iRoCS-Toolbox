@@ -29,7 +29,7 @@
 #include <QtGui/QIcon>
 #include <QtGui/QColorDialog>
 #include <QtGui/QComboBox>
-#include <QtGui/QVBoxLayout>
+#include <QtGui/QFormLayout>
 #include <QtGui/QSpinBox>
 
 #include "MultiChannelModel.hh"
@@ -38,6 +38,7 @@
 #include "VisualizationChannelSpecsOpenGlRenderingViewRenderer.hh"
 #include "ColorMap.hh"
 #include "ColorMapEditorWidget.hh"
+#include "IntControlElement.hh"
 
 #include <iostream>
 #include <stdexcept>
@@ -45,7 +46,8 @@
 VisualizationChannelSpecs::VisualizationChannelSpecs(
   atb::Array<int,3> *data, MultiChannelModel *model, bool sign, int bitDepth)
         : ChannelSpecs(model), p_data{data},
-          p_fillValueSpinner{new QSpinBox()}, _sign(sign), _bitDepth(bitDepth),
+          p_fillValueControl{new IntControlElement(tr("Fill value:", 0))},
+          _sign{sign}, _bitDepth{bitDepth},
           p_colorMap{new ColorMap(0, 1 << (_bitDepth - 1))},
           p_colorMapEditor{new ColorMapEditorWidget(p_colorMap)},
           _dataChanged{false}
@@ -56,31 +58,27 @@ VisualizationChannelSpecs::VisualizationChannelSpecs(
   this->_originalTransformation = data->transformation();
   setTransformation(this->_originalTransformation);
 
-  QLabel *fillValueLabel{new QLabel("Fill Value:")};
-  p_fillValueSpinner->setRange(INT_MIN, INT_MAX);
-  p_fillValueSpinner->setValue(0);
-  p_fillValueSpinner->setToolTip(
-    tr("Shift+Right Click to pick value from volume (Pipette mode)\n"
-       "        Shift + Left mouse button : Flood Fill\n"
-       "        Ctrl  + Left mouse button : Merge adjacent segments\n"
-       "Shift + Ctrl  + Left mouse button : Replace all voxels with "
-       "clicked color by fill color."));
-  QHBoxLayout *fillValueLayout{new QHBoxLayout()};
-  fillValueLayout->addWidget(fillValueLabel);
-  fillValueLayout->addWidget(p_fillValueSpinner);
-  p_channelControlLayout->addLayout(fillValueLayout);
-  
+  p_fillValueControl->setRange(INT_MIN, INT_MAX);
+  p_fillValueControl->setToolTip(
+      tr("Shift+Right Click to pick value from volume (Pipette mode)\n"
+         "        Shift + Left mouse button : Flood Fill\n"
+         "        Ctrl  + Left mouse button : Merge adjacent segments\n"
+         "Shift + Ctrl  + Left mouse button : Replace all voxels with "
+         "clicked color by fill color."));
+  p_channelControlLayout->addRow(p_fillValueControl->labelWidget(),
+                                 p_fillValueControl->controlWidget());
+
   QPushButton *normalizeButton = new QPushButton(tr("normalize"));
   connect(normalizeButton, SIGNAL(clicked()), SLOT(normalizeIndexRange()));
-  p_channelControlLayout->addWidget(normalizeButton);
+  p_channelControlLayout->addRow(normalizeButton);
 
   p_colorMap->setColorMapEditor(p_colorMapEditor);
-  p_channelControlLayout->addWidget(p_colorMapEditor);
+  p_channelControlLayout->addRow(p_colorMapEditor);
   connect(p_colorMapEditor, SIGNAL(colorMapChanged()),
           SLOT(emitUpdateRequest()));
   connect(p_colorMapEditor, SIGNAL(colorMapChanged()), SLOT(updateIcon()));
 
-  p_channelControlLayout->addStretch(1);
+  // p_channelControlLayout->addStretch(1);
 
   updateIcon();
 }
@@ -212,7 +210,7 @@ ColorMap &VisualizationChannelSpecs::colorMap()
 }
 
 void VisualizationChannelSpecs::setFillValue(int value) {
-  p_fillValueSpinner->setValue(value);
+  p_fillValueControl->setValue(value);
 }
 
 void VisualizationChannelSpecs::pickFillValue(
@@ -230,7 +228,7 @@ void VisualizationChannelSpecs::pickFillValue(
 }
 
 int VisualizationChannelSpecs::fillValue() const {
-  return p_fillValueSpinner->value();
+  return p_fillValueControl->value();
 }
 
 void VisualizationChannelSpecs::floodFill(

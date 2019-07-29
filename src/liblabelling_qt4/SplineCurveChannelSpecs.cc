@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -27,7 +27,7 @@
 
 #include "SplineCurveChannelSpecs.hh"
 
-#include <QtGui/QHBoxLayout>
+#include <QtGui/QFormLayout>
 #include <QtGui/QColorDialog>
 #include <QtGui/QPushButton>
 
@@ -56,13 +56,13 @@ ChannelSpecs::ChannelType SplineCurveChannelSpecs::channelType() const
   return ChannelSpecs::SplineCurve;
 }
 
-blitz::TinyVector<float,3> SplineCurveChannelSpecs::color() const 
+blitz::TinyVector<float,3> SplineCurveChannelSpecs::color() const
 {
   return blitz::TinyVector<float,3>(p_channelColor->value());
 }
 
 void SplineCurveChannelSpecs::setColor(
-    blitz::TinyVector<float,3> const &color) 
+    blitz::TinyVector<float,3> const &color)
 {
   if (blitz::all(blitz::TinyVector<double,3>(color) == p_channelColor->value()))
       return;
@@ -71,7 +71,7 @@ void SplineCurveChannelSpecs::setColor(
 }
 
 float SplineCurveChannelSpecs::valueAt(
-    blitz::TinyVector<double,3> const &positionUm) const 
+    blitz::TinyVector<double,3> const &positionUm) const
 {
   double uOpt;
   atb::distance(*p_spline, positionUm, uOpt);
@@ -79,7 +79,7 @@ float SplineCurveChannelSpecs::valueAt(
 }
 
 std::string SplineCurveChannelSpecs::stringValueAt(
-    blitz::TinyVector<double,3> const &positionUm) const 
+    blitz::TinyVector<double,3> const &positionUm) const
 {
   double uOpt;
   double d = atb::distance(*p_spline, positionUm, uOpt);
@@ -165,14 +165,14 @@ void SplineCurveChannelSpecs::updateChannelColor()
   emitUpdateRequest();
 }
 
-void SplineCurveChannelSpecs::chooseColor() 
+void SplineCurveChannelSpecs::chooseColor()
 {
   QColor color = QColorDialog::getColor(
       QColor(static_cast<int>(this->color()(0) * 255),
              static_cast<int>(this->color()(1) * 255),
              static_cast<int>(this->color()(2) * 255)),
       p_channelControlWidget);
-  if (color.isValid()) 
+  if (color.isValid())
   {
     setColor(blitz::TinyVector<float,3>(
                  static_cast<float>(color.redF()),
@@ -191,13 +191,13 @@ void SplineCurveChannelSpecs::init()
                            blitz::TinyVector<double,3>(1.0, 1.0, 1.0));
   p_channelColor->setSingleStep(blitz::TinyVector<double,3>(0.01, 0.01, 0.01));
   connect(p_channelColor, SIGNAL(valueChanged()), SLOT(updateChannelColor()));
-  colorLayout->addWidget(p_channelColor);
+  colorLayout->addWidget(p_channelColor->controlWidget());
   QPushButton *colorChooserButton = new QPushButton(QIcon(":/palette.png"), "");
   colorLayout->addWidget(colorChooserButton);
   connect(colorChooserButton, SIGNAL(pressed()), SLOT(chooseColor()));
-  p_channelControlLayout->addLayout(colorLayout);
+  p_channelControlLayout->addRow(p_channelColor->labelWidget(), colorLayout);
 
-  p_channelControlLayout->addStretch(1);
+  // p_channelControlLayout->addStretch(1);
 }
 
 QColor SplineCurveChannelSpecs::qColor()

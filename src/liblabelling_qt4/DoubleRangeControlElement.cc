@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -45,9 +45,9 @@ DoubleRangeControlElement::DoubleRangeControlElement(
   connect(p_lbspinbox, SIGNAL(valueChanged(double)), SLOT(emitValueChange()));
   connect(p_lbspinbox, SIGNAL(valueChanged(double)),
           SLOT(setMinimumUpperBound(double)));
-  p_layout->addWidget(p_lbspinbox);
+  p_controlLayout->addWidget(p_lbspinbox);
 
-  p_layout->addWidget(new QLabel(tr(" - ")));
+  p_controlLayout->addWidget(new QLabel(tr(" - ")));
 
   p_ubspinbox = new QDoubleSpinBox;
   p_ubspinbox->setRange(lbound, std::numeric_limits<double>::infinity());
@@ -59,7 +59,7 @@ DoubleRangeControlElement::DoubleRangeControlElement(
   connect(p_ubspinbox, SIGNAL(valueChanged(double)), SLOT(emitValueChange()));
   connect(p_ubspinbox, SIGNAL(valueChanged(double)),
           SLOT(setMaximumLowerBound(double)));
-  p_layout->addWidget(p_ubspinbox);
+  p_controlLayout->addWidget(p_ubspinbox);
 
   setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 }
@@ -79,17 +79,17 @@ void DoubleRangeControlElement::setSingleStep(const double step)
   p_ubspinbox->setSingleStep(step);
 }
 
-double DoubleRangeControlElement::lowerBound() const 
+double DoubleRangeControlElement::lowerBound() const
 {
   return p_lbspinbox->value();
 }
 
-double DoubleRangeControlElement::upperBound() const 
+double DoubleRangeControlElement::upperBound() const
 {
   return p_ubspinbox->value();
 }
 
-std::string DoubleRangeControlElement::toStdString() const 
+std::string DoubleRangeControlElement::toStdString() const
 {
   return (QString::number(lowerBound()) + tr(" - ") +
           QString::number(upperBound())).toStdString();

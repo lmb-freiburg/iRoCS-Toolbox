@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -55,7 +55,7 @@ IntDoubleMapControlElement::IntDoubleMapControlElement(
     _values[i]->setValue(it->second);
     _values[i]->setMinimumWidth(80);
     _columns[i]->addWidget(_values[i]);
-    p_layout->addLayout(_columns[i]);
+    p_controlLayout->addLayout(_columns[i]);
     connect(_values[i], SIGNAL(valueChanged(double)), SIGNAL(valueChanged()));
   }
 }
@@ -127,7 +127,7 @@ IntDoubleMap IntDoubleMapControlElement::value() const
   return value;
 }
 
-std::string IntDoubleMapControlElement::toStdString() const 
+std::string IntDoubleMapControlElement::toStdString() const
 {
   std::stringstream outStream;
   outStream << "( ";
@@ -171,14 +171,14 @@ void IntDoubleMapControlElement::setValue(const std::string& value)
   setValue(tmp);
 }
 
-size_t IntDoubleMapControlElement::find(const int key) const 
+size_t IntDoubleMapControlElement::find(const int key) const
 {
   size_t i = 0;
   while (i < _keys.size() && _keys[i]->text().toInt() != key) ++i;
   return i;
 }
 
-void IntDoubleMapControlElement::push_back(const int key, const double value) 
+void IntDoubleMapControlElement::push_back(const int key, const double value)
 {
   _columns.push_back(new QVBoxLayout);
   _keys.push_back(new QLabel(QString::number(key)));
@@ -190,9 +190,9 @@ void IntDoubleMapControlElement::push_back(const int key, const double value)
   _values.back()->setValue(value);
   _values.back()->setMinimumWidth(80);
   _columns.back()->addWidget(_values.back());
-  p_layout->addLayout(_columns.back());
+  p_controlLayout->addLayout(_columns.back());
   connect(_values.back(), SIGNAL(valueChanged(double)),
-          SIGNAL(valueChanged()));  
+          SIGNAL(valueChanged()));
 }
 
 void IntDoubleMapControlElement::pop_back()
@@ -203,4 +203,3 @@ void IntDoubleMapControlElement::pop_back()
   _keys.pop_back();
   _values.pop_back();
 }
-

@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -33,7 +33,7 @@ StringControlElement::StringControlElement(
 {
   p_lineedit = new QLineEdit;
   p_lineedit->setText(value.c_str());
-  p_layout->addWidget(p_lineedit);
+  p_controlLayout->addWidget(p_lineedit);
   connect(p_lineedit, SIGNAL(editingFinished()), SLOT(emitValueChange()));
 }
 
@@ -45,7 +45,7 @@ std::string StringControlElement::value() const
   return p_lineedit->text().toStdString();
 }
 
-std::string StringControlElement::toStdString() const 
+std::string StringControlElement::toStdString() const
 {
   return value();
 }

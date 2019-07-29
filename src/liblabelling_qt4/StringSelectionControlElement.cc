@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -36,7 +36,7 @@ StringSelectionControlElement::StringSelectionControlElement(
   p_combobox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   p_combobox->addItems(elements);
   p_combobox->setEditable(false);
-  p_layout->addWidget(p_combobox);
+  p_controlLayout->addWidget(p_combobox);
 
   connect(p_combobox, SIGNAL(activated(int)), SIGNAL(activated(int)));
   connect(p_combobox, SIGNAL(activated(int)), SIGNAL(valueChanged(int)));
@@ -69,7 +69,7 @@ std::string StringSelectionControlElement::toStdString() const
 {
   return p_combobox->currentText().toStdString();
 }
-  
+
 void StringSelectionControlElement::setValue(const int value)
 {
   if (value >= 0 && value < p_combobox->count())
@@ -81,4 +81,3 @@ void StringSelectionControlElement::setValue(const std::string& value)
   int index = p_combobox->findText(value.c_str());
   setValue(index);
 }
-

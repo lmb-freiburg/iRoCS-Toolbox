@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -43,7 +43,7 @@ DoubleControlElement::DoubleControlElement(
   p_spinbox->setValue(value);
   p_spinbox->setMinimumWidth(80);
   p_spinbox->setKeyboardTracking(false);
-  p_layout->addWidget(p_spinbox);
+  p_controlLayout->addWidget(p_spinbox);
   connect(p_spinbox, SIGNAL(valueChanged(double)), SIGNAL(valueChanged()));
   connect(p_spinbox, SIGNAL(valueChanged(double)),
           SIGNAL(valueChanged(double)));
@@ -83,14 +83,14 @@ void DoubleControlElement::setSliderViewEnabled(bool enable)
     connect(p_slider, SIGNAL(sliderMoved(int)), SLOT(updateSpinBox(int)));
     connect(p_spinbox, SIGNAL(valueChanged(double)),
             SLOT(updateSlider(double)));
-    p_layout->insertWidget(p_layout->count() - 1, p_slider);
+    p_controlLayout->insertWidget(p_controlLayout->count() - 1, p_slider);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   }
   else
   {
     disconnect(p_spinbox, SIGNAL(valueChanged(double)),
                this, SLOT(updateSlider(double)));
-    p_layout->removeWidget(p_slider);
+    p_controlLayout->removeWidget(p_slider);
     delete p_slider;
     p_slider = NULL;
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -110,7 +110,7 @@ void DoubleControlElement::setRange(const double min, const double max)
             p_spinbox->singleStep()));
     p_slider->setPageStep(
         (p_slider->maximum() / 100 > 1) ? p_slider->maximum() / 100 : 1);
-    updateSlider(p_spinbox->value());    
+    updateSlider(p_spinbox->value());
   }
   else
   {
@@ -118,7 +118,7 @@ void DoubleControlElement::setRange(const double min, const double max)
     {
       disconnect(p_spinbox, SIGNAL(valueChanged(double)),
                  this, SLOT(updateSlider(double)));
-      p_layout->removeWidget(p_slider);
+      p_controlLayout->removeWidget(p_slider);
       delete p_slider;
       p_slider = NULL;
     }
@@ -138,7 +138,7 @@ void DoubleControlElement::setSingleStep(const double step)
             p_spinbox->singleStep()));
     p_slider->setPageStep(
         (p_slider->maximum() / 100 > 1) ? p_slider->maximum() / 100 : 1);
-    updateSlider(p_spinbox->value());    
+    updateSlider(p_spinbox->value());
   }
   else
   {
@@ -146,7 +146,7 @@ void DoubleControlElement::setSingleStep(const double step)
     {
       disconnect(p_spinbox, SIGNAL(valueChanged(double)),
                  this, SLOT(updateSlider(double)));
-      p_layout->removeWidget(p_slider);
+      p_controlLayout->removeWidget(p_slider);
       delete p_slider;
       p_slider = NULL;
     }
@@ -163,12 +163,12 @@ void DoubleControlElement::setSuffix(QString const &text)
   p_spinbox->setSuffix(text);
 }
 
-double DoubleControlElement::value() const 
+double DoubleControlElement::value() const
 {
   return p_spinbox->value();
 }
 
-std::string DoubleControlElement::toStdString() const 
+std::string DoubleControlElement::toStdString() const
 {
   return QString::number(value()).toStdString();
 }
@@ -208,4 +208,3 @@ void DoubleControlElement::updateSlider(double value)
   // connect(p_gammaSlider, SIGNAL(sliderMoved(int)),
   //         SLOT(updateGammaSpinBox(int)));
 }
-

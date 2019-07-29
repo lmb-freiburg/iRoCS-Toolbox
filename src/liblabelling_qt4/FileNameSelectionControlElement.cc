@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -38,16 +38,16 @@ FileNameSelectionControlElement::FileNameSelectionControlElement(
 {
   p_lineedit = new QLineEdit;
   p_lineedit->setText(value.c_str());
-  p_layout->addWidget(p_lineedit);
+  p_controlLayout->addWidget(p_lineedit);
   connect(p_lineedit, SIGNAL(textChanged(QString const &)),
           SIGNAL(valueChanged(QString const &)));
   connect(p_lineedit, SIGNAL(textChanged(QString const &)),
           SLOT(emitValueChange()));
   connect(p_lineedit, SIGNAL(textChanged(QString const &)),
           SIGNAL(valueChanged()));
-  
+
   QPushButton* browseButton = new QPushButton(tr("Browse..."));
-  p_layout->addWidget(browseButton);
+  p_controlLayout->addWidget(browseButton);
   connect(browseButton, SIGNAL(clicked()), SLOT(openFileSelector()));
 }
 
@@ -59,7 +59,7 @@ std::string FileNameSelectionControlElement::value() const
   return p_lineedit->text().toStdString();
 }
 
-std::string FileNameSelectionControlElement::toStdString() const 
+std::string FileNameSelectionControlElement::toStdString() const
 {
   return value();
 }

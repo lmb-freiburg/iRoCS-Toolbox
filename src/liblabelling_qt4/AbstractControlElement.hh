@@ -5,7 +5,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -50,9 +50,9 @@ class AbstractControlElement : public QWidget
 {
 
   Q_OBJECT
-  
+
 public:
-  
+
   AbstractControlElement(
       const QString& label, QWidget* parent = 0);
   virtual ~AbstractControlElement();
@@ -68,24 +68,31 @@ public:
 
   virtual std::string toStdString() const = 0;
 
+  QWidget *labelWidget();
+  QWidget *controlWidget();
+
 signals:
-  
+
   void activationStateChanged(bool);
   void valueChanged();
 
 public slots:
-  
+
   virtual void setValue(const std::string& value) = 0;
 
 protected:
-  
-  QWidget* p_control;
-  QHBoxLayout* p_outerLayout;
-  QHBoxLayout* p_layout;
+
+  QHBoxLayout *p_labelLayout;
+  QHBoxLayout *p_controlLayout;
 
   QCheckBox* p_switch;
   QLabel* p_label;
-  
+
+private:
+
+  QWidget *p_labelWidget;
+  QWidget *p_controlWidget;
+
 };
 
 #endif
