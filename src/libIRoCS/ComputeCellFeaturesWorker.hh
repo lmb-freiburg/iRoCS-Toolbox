@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -34,7 +34,7 @@
 
 namespace iRoCS
 {
-  
+
 /***************************************
  *
  * @param label
@@ -51,7 +51,7 @@ namespace iRoCS
       blitz::TinyVector<double,26> &rd);
 
 /*======================================================================*/
-/*! 
+/*!
  *   For each label compute the vector of voxel positions with that label
  *   in L. Voxels with intensities <= 0 or the given backgroundLabel are not
  *   added. The voxel positions for the segment with label i will be
@@ -70,7 +70,7 @@ namespace iRoCS
       &voxelSets, int backgroundLabel, ProgressReporter *pr = NULL);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Compute a convexity measure for a segment based on sample points.
  *
  *   From the given set of segment points, nRandomPairs random pairs are
@@ -95,7 +95,7 @@ namespace iRoCS
       int nRandomPairs = 100000);
 
 /*======================================================================*/
-/*! 
+/*!
  *   Compute cell shape features for the given segmentation masks aligned
  *   to the given iRoCS shell coordinate transform.
  *   Features that are computed per segment include: \n
@@ -138,6 +138,13 @@ namespace iRoCS
  *     this parameter. If not given (or a negative value is passed) the
  *     background label will be automatically determined as the label
  *     belonging to the largest connected component of the segmentation.
+ *   \param connectedComponentLabeling If given the connected components of
+ *     the binarized segmentation masks are used instead of the segments as
+ *     they are. This is important if the integer value of the segments
+ *     indicates class label instead of instance label or if the existing
+ *     segment numbering is not consecutive. Labels 0 and <backgroundLabel> are
+ *     background for the connected component labeling all other labels
+ *     foreground.
  *   \param pr  If given, progress will be reported to this progress reporter
  */
 /*======================================================================*/
@@ -145,7 +152,7 @@ namespace iRoCS
       atb::Array<int,3> const &L, ShellCoordinateTransform const &sct,
       double volumeThresholdUm, std::string const &outFileName,
       std::string const &featureGroup, int backgroundLabel = -1,
-      ProgressReporter *pr = NULL);
+      bool connectedComponentLabeling = false, ProgressReporter *pr = NULL);
 
 }
 

@@ -3,7 +3,7 @@
  * Copyright (C) 2015 Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -26,6 +26,7 @@
 
 #include <libArrayToolbox/ATBLinAlg.hh>
 #include <libArrayToolbox/Neighborhood.hh>
+#include <libArrayToolbox/ATBMorphology.hh>
 #include <libArrayToolbox/algo/lrootShapeAnalysis.hh>
 
 #include <libArrayToolbox/ATBTiming.hh>
@@ -57,12 +58,12 @@ namespace iRoCS
             step /= std::sqrt(blitz::dot(step, step));
             double unit = std::sqrt(
                 blitz::dot(step * L.elementSizeUm(), step * L.elementSizeUm()));
-            
+
             int d1 = 0;
             blitz::TinyVector<double,3> current(cc);
             blitz::TinyVector<atb::BlitzIndexT,3> currentI(current);
             int last = 0;
-            
+
             // This loop casts a ray in the given direction. It will search
             // for voxels with the given label until either the volume
             // boundary or - if it once hit the segment with the given label -
@@ -120,7 +121,7 @@ namespace iRoCS
     }
     if (pr != NULL) pr->updateProgress(pr->taskProgressMax());
   }
-  
+
   double computeConvexity(
       atb::Array<int,3> const &L,
       std::vector< blitz::TinyVector<atb::BlitzIndexT,3> > const &voxelSet,
@@ -150,28 +151,49 @@ namespace iRoCS
       atb::Array<int,3> const &L, ShellCoordinateTransform const &sct,
       double volumeThresholdUm, std::string const &outFileName,
       std::string const &featureGroup, int backgroundLabel,
-      ProgressReporter *pr)
+      bool connectedComponentLabeling, ProgressReporter *pr)
   {
     int pMin = (pr != NULL) ? pr->taskProgressMin() : 0;
     int pScale = (pr != NULL) ? (pr->taskProgressMax() - pMin) : 100;
     if (pr != NULL && !pr->updateProgress(pMin)) return;
 
-    //Variables
-    blitz::Array<double,1> volumes;
-    blitz::Array<blitz::TinyVector<double,3>,1> centers;
+    atb::Array<int,3> I;
+    if (connectedComponentLabeling) {
+      I.resize(L.shape());
+      I.setElementSizeUm(L.elementSizeUm());
+      I.setTransformation(L.transformation());
+      if (pr != NULL && !pr->updateProgressMessage(
+              "Connected Component Labeling")) return;
+      blitz::Array<bool,3> binary(L.shape());
+      binary = L > 0;
+      if (backgroundLabel >= 0) binary &= L != backgroundLabel;
+      atb::connectedComponentLabelling(binary, I, atb::SIMPLE_NHOOD, pr);
 
-    // Compute centers (in um) and volume (in um3) and get the number of
-    // segments
-    if (pr != NULL && !pr->updateProgressMessage(
-            "Computing segment centers and volumes")) return;
-    centerAndVolume(L, centers, volumes, -1, L.elementSizeUm());
-    std::cout << "  Processing " << centers.size() << " segments" << std::endl;
-    int LMin = blitz::min(L);
-    int LMax = blitz::max(L);
+      // If background label is given, set all background pixels to 1 and
+      // increment all instance labels by one
+      if (backgroundLabel >= 0) {
+        for (size_t i = 0; i < I.size(); ++i) {
+          if (I.dataFirst()[i] == 0) continue;
+          if (L.dataFirst()[i] == backgroundLabel) I.dataFirst()[i] = 1;
+          else I.dataFirst()[i]++;
+        }
+        backgroundLabel = 1;
+      }
+    }
+    atb::Array<int,3> const &instances = connectedComponentLabeling ? I : L;
+
+    // Get minimum and maximum raw labels
+    int LMin = blitz::min(instances);
+    int LMax = blitz::max(instances);
+
+    // Get center of gravity and volumes of all segments
+    blitz::Array<blitz::TinyVector<double,3>,1> centers;
+    blitz::Array<double,1> volumes;
+    centerAndVolume(instances, centers, volumes, -1, instances.elementSizeUm());
     if (LMin < 0 || LMax != static_cast<int>(centers.size()))
     {
-      std::cerr << "Labels are not positive and contiguous... that's "
-                << "currently not supported" << std::endl;
+      std::cerr << "Labels are not positive and contiguous... Connected "
+                << "component computation required" << std::endl;
       std::cerr << "  Smallest label = " << LMin << ", Largest label = "
                 << LMax << std::endl;
       std::cerr << "  nSegments = " << centers.size() << std::endl;
@@ -179,20 +201,14 @@ namespace iRoCS
       return;
     }
 
-    if (pr != NULL && !pr->updateProgress(
-            static_cast<int>(pMin + pScale * 0.01))) return;
-
-    //prepare for coordinate fitting
     if (backgroundLabel < 0)
-    {
-      if (pr != NULL && !pr->updateProgressMessage(
-              "Searching background label")) return;
-      backgroundLabel = (blitz::maxIndex(volumes))(0) + 1;
-    }
+        backgroundLabel = (blitz::maxIndex(volumes))(0) + 1;
     std::cout << "  background label = " << backgroundLabel << std::endl;
 
+    std::cout << "  Processing " << centers.size() << " segments" << std::endl;
+
     if (pr != NULL && !pr->updateProgress(
-            static_cast<int>(pMin + pScale * 0.02))) return;
+            static_cast<int>(pMin + pScale * 0.01))) return;
 
     // Set all background and too small segments invalid
     if (pr != NULL && !pr->updateProgressMessage(
@@ -209,7 +225,7 @@ namespace iRoCS
             "Removing cells cut by boundary")) return;
     blitz::Array<unsigned char, 1> borderFlag(centers.shape());
     borderFlag = true;
-    labelOnBorder(L, borderFlag);
+    labelOnBorder(instances, borderFlag);
 
     if (pr != NULL && !pr->updateProgress(
             static_cast<int>(pMin + pScale * 0.04))) return;
@@ -240,11 +256,13 @@ namespace iRoCS
       for (int d = 0; d < 3; ++d)
       {
         blitz::TinyVector<double,3> nbPos(centers(i));
-        nbPos(d) += L.elementSizeUm()(d);
+        nbPos(d) += instances.elementSizeUm()(d);
         blitz::TinyVector<double,3> nbCoords(
             sct.getCoordinatesWithNormalizedRadius(nbPos));
-        x(d) = (nbCoords(0) - iRoCSCenters(i)(0)) / L.elementSizeUm()(d);
-        y(d) = (nbCoords(1) - iRoCSCenters(i)(1)) / L.elementSizeUm()(d);
+        x(d) = (nbCoords(0) - iRoCSCenters(i)(0)) /
+            instances.elementSizeUm()(d);
+        y(d) = (nbCoords(1) - iRoCSCenters(i)(1)) /
+            instances.elementSizeUm()(d);
       }
       x /= std::sqrt(blitz::dot(x, x));
       blitz::TinyVector<double,3> z(blitz::cross(x, y));
@@ -258,11 +276,11 @@ namespace iRoCS
       pr->updateProgress(static_cast<int>(pMin + pScale * 0.06));
       if (!pr->updateProgressMessage("Computing per-label voxel sets")) return;
       pr->setTaskProgressMin(static_cast<int>(pMin + pScale * 0.06));
-      pr->setTaskProgressMax(static_cast<int>(pMin + pScale * 0.2));      
+      pr->setTaskProgressMax(static_cast<int>(pMin + pScale * 0.2));
     }
     blitz::Array<std::vector< blitz::TinyVector<atb::BlitzIndexT,3> >,1>
         voxelSets(centers.shape());
-    computeVoxelSetsPerLabel(L, voxelSets, backgroundLabel, pr);
+    computeVoxelSetsPerLabel(instances, voxelSets, backgroundLabel, pr);
 
     if (pr != NULL && !pr->updateProgressMessage(
             "Computing local shape features")) return;
@@ -279,12 +297,12 @@ namespace iRoCS
               static_cast<int>(pMin + pScale * (0.2 + prScale * i)))) return;
       if (validFlag(i) == 1)
       {
-        extractRD(L, i + 1, centers(i), localAxes(i), RD(i));
+        extractRD(instances, i + 1, centers(i), localAxes(i), RD(i));
         blockSize(i) =
             RD(i)(12) + RD(i)(13),
             RD(i)(10) + RD(i)(15),
             RD(i)(4) + RD(i)(21);
-        convexity(i) = computeConvexity(L, voxelSets(i));
+        convexity(i) = computeConvexity(instances, voxelSets(i));
         volumeOverBlock(i) = volumes(i) / std::max(
             1.0, blitz::product(blockSize(i)));
       }
@@ -305,31 +323,31 @@ namespace iRoCS
     }
     blitz::Array<std::set<int>,1> nbSets(centers.shape());
     atb::Neighborhood<3> nh(atb::Neighborhood<3>::Complex);
-    prScale = 0.29 / static_cast<double>(L.size() - 1);
-    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(L.size()); ++i)
+    prScale = 0.29 / static_cast<double>(instances.size() - 1);
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(instances.size()); ++i)
     {
-      if (pr != NULL && i % (L.size() / 100) == 0 &&
+      if (pr != NULL && i % (instances.size() / 100) == 0 &&
           !pr->updateProgress(
               static_cast<int>(pMin + pScale * (0.7 + prScale * i))))
           continue;
 
       // If not on boundary => nothing to do
-      if (L.dataFirst()[i] != 0) continue;
+      if (instances.dataFirst()[i] != 0) continue;
 
       blitz::TinyVector<atb::BlitzIndexT,3> posPx;
       ptrdiff_t tmp = i;
       for (int d = 2; d >= 0; --d)
       {
-        posPx(d) = tmp % L.extent(d);
-        tmp /= L.extent(d);
+        posPx(d) = tmp % instances.extent(d);
+        tmp /= instances.extent(d);
       }
       std::set<int> s;
       for (atb::Neighborhood<3>::const_iterator it = nh.begin();
            it != nh.end(); ++it)
       {
         blitz::TinyVector<atb::BlitzIndexT,3> nbPos(posPx + *it);
-        if (blitz::all(nbPos >= 0 && nbPos < L.shape()) &&
-            L(nbPos) > 0) s.insert(L(nbPos));
+        if (blitz::all(nbPos >= 0 && nbPos < instances.shape()) &&
+            instances(nbPos) > 0) s.insert(instances(nbPos));
       }
       if (s.size() > 1)
       {
@@ -372,6 +390,19 @@ namespace iRoCS
     try
     {
       BlitzH5File outFile(outFileName, BlitzH5File::WriteOrNew);
+      if (connectedComponentLabeling) {
+        if (pr != NULL && !pr->updateProgressMessage(
+                "Saving new instance labels to " + featureGroup +
+                "/instanceMasks")) return;
+        instances.save(outFile, featureGroup + "/instanceMasks", 3, pr);
+        blitz::Array<int,1> labelMap(centers.size());
+        labelMap = -1;
+        for (size_t i = 0; i < instances.size(); ++i) {
+          if (instances.dataFirst()[i] == 0) continue;
+          labelMap(instances.dataFirst()[i] - 1) = L.dataFirst()[i];
+        }
+        outFile.writeDataset(labelMap, featureGroup + "/labelMap", 3);
+      }
       outFile.writeDataset(validFlag, featureGroup + "/validFlag", 3);
       outFile.writeDataset(borderFlag, featureGroup + "/borderFlag", 3);
       outFile.writeDataset(volumes, featureGroup + "/volumes", 3);
@@ -396,7 +427,7 @@ namespace iRoCS
     if (pr != NULL)
     {
       pr->setTaskProgressMin(pMin);
-      pr->setTaskProgressMax(pMin + pScale);      
+      pr->setTaskProgressMax(pMin + pScale);
       pr->updateProgress(pMin + pScale);
     }
   }

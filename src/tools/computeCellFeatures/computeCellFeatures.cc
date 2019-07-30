@@ -3,7 +3,7 @@
  * Copyright (C) 2014 Kun Liu, Thorsten Falk
  *
  *        Image Analysis Lab, University of Freiburg, Germany
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -70,6 +70,12 @@ int main(int argc, char *argv[])
       "acceptable as a cell (in um_cubic)");
   thresholdOnVolume.setDefaultValue(20);
 
+  CmdArgSwitch connectedComponentLabeling(
+      'c', "connectedComponents", "This script expects that each instance has "
+      "a unique label and that all labels are consecutive. If this is not the "
+      "case, e.g. you manually edited the segmentation masks, you must use "
+      "this switch!");
+
   CmdArgType<int> backgroundLabel(
       'b', "backgroundLabel", "<int>", "The label meaning background "
       "in the segmentation dataset. After running segmentCells the background "
@@ -95,6 +101,7 @@ int main(int argc, char *argv[])
     cmd.append(&outFileName);
     cmd.append(&featureGroup);
     cmd.append(&thresholdOnVolume);
+    cmd.append(&connectedComponentLabeling);
     cmd.append(&backgroundLabel);
     cmd.append(&saveMetaData);
     cmd.description(
@@ -117,6 +124,8 @@ int main(int argc, char *argv[])
     std::cout << "thresholdOnVolume = " << thresholdOnVolume.value()
               << std::endl;
     std::cout << "backgroundLabel = " << backgroundLabel.value() << std::endl;
+    std::cout << "connectedComponents = " << connectedComponentLabeling.given()
+              << std::endl;
     std::cout << "datasetName = " << datasetName.value() << std::endl;
     std::cout << "sctGroup = " << sctGroupName.value() << std::endl;
     std::cout << "outFileName = " << ofName << std::endl;
@@ -157,7 +166,7 @@ int main(int argc, char *argv[])
 
     iRoCS::computeCellFeatures(
         L, sct, thresholdOnVolume.value(), ofName, featureGroup.value(),
-        backgroundLabel.value(), &pr);
+        backgroundLabel.value(), connectedComponentLabeling.given(), &pr);
   }
   catch (CmdLineUsageError& e)
   {
