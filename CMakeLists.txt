@@ -13,7 +13,7 @@ set(PACKAGE_TARNAME "irocs-toolbox")
 set(PACKAGE_URL "http://lmb.informatik.uni-freiburg.de/lmbsoft/iRoCS")
 set(PACKAGE_VERSION "1.2.4")
 set(VERSION "1.2.4")
-set(iRoCS-Toolbox_VERSION 1.2.3)
+set(iRoCS-Toolbox_VERSION 1.2.4)
 
 # ===============================
 # User options
@@ -142,10 +142,10 @@ if(BUILD_STATIC_TOOLS)
   # Build our own HDF5, because the Ubuntu version links against
   # the wrong libsz :(
   if (WIN32)
-    set(HDF5_URL "https://support.hdfgroup.org/ftp/HDF5/current18/src/hdf5-1.8.19.zip")
+    set(HDF5_URL "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.19/src/hdf5-1.8.19.zip")
     set(HDF5_URL_MD5 "9cc798bb14160db01c25324f33941dce")
   else()
-    set(HDF5_URL "https://support.hdfgroup.org/ftp/HDF5/current18/src/hdf5-1.8.19.tar.gz")
+    set(HDF5_URL "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.19/src/hdf5-1.8.19.tar.gz")
     set(HDF5_URL_MD5 "7f568e2464d4ab0a74d16b23956d900b")
   endif()
   list(APPEND HDF5_CMAKE_ARGS "-DBUILD_SHARED_LIBS:BOOL=OFF")

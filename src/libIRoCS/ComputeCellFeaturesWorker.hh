@@ -144,7 +144,8 @@ namespace iRoCS
  *     indicates class label instead of instance label or if the existing
  *     segment numbering is not consecutive. Labels 0 and <backgroundLabel> are
  *     background for the connected component labeling all other labels
- *     foreground.
+ *     foreground. If given the label array after connected component
+ *     labeling will be written to the output group for reference.
  *   \param pr  If given, progress will be reported to this progress reporter
  */
 /*======================================================================*/
